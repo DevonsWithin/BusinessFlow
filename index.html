@@ -1,0 +1,1332 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BusinessFlow V3.5.2 - 業務工作流系統</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root { 
+            --orange-primary: #FF6E25;
+            --orange-glow: rgba(255, 110, 37, 0.5);
+            --egypt-blue: #1633A8;
+            --egypt-blue-glow: rgba(22, 51, 168, 0.5);
+            --text-light-blue: #A1B0F6;
+            --bg-dark: #151515;
+            --bg-hover: #2a2a2a;
+            --header-bg: #202020;
+            --deep-blue-solid: #151A28;
+        }
+        
+        body { 
+            background: linear-gradient(135deg, #1a1a1a 0%, #050505 100%);
+            color: #e0e0e0; height: 100vh; overflow: hidden;
+            font-family: 'Arial', sans-serif;
+            user-select: none;
+        }
+
+        /* 側邊欄 */
+        .sidebar { 
+            background-color: rgba(22, 51, 168, 0.25);
+            border-right: 1px solid rgba(255, 255, 255, 0.1);
+            transition: width 0.3s ease; width: 240px;
+        }
+        .sidebar.collapsed { width: 70px; }
+        .sidebar.collapsed .menu-text, .sidebar.collapsed .logo-text, .sidebar.collapsed .submenu-icon { display: none; }
+
+        /* 表格容器 */
+        .table-container { height: calc(100vh - 140px); overflow: auto; position: relative; }
+        
+        /* 表格列樣式 */
+        .table-row { cursor: pointer; transition: background-color 0.2s; }
+        .table-row:hover td { background-color: var(--bg-hover) !important; }
+        .table-row:hover .sticky-col { background-color: var(--bg-hover) !important; }
+        .select-mode .table-row:hover td, .select-mode .table-row:hover .sticky-col { background-color: #1a2a50 !important; }
+
+        table { border-collapse: separate; border-spacing: 0; min-width: 100%; table-layout: fixed; }
+        
+        th { 
+            background-color: var(--header-bg);
+            position: sticky; top: 0; z-index: 40;
+            padding: 12px 10px; text-align: left; 
+            font-size: 0.8rem; color: #aaa; letter-spacing: 1px; font-weight: 600;
+            border-bottom: 2px solid var(--orange-primary);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.5); white-space: nowrap;
+            border-right: none;
+        }
+        td { 
+            padding: 0;
+            border-bottom: 1px solid #333; 
+            border-right: none !important;
+            vertical-align: middle;
+            font-size: 0.9rem; color: #e0e0e0;
+            background-color: var(--bg-dark);
+            height: 45px;
+        }
+
+        .cell-content {
+            padding: 8px 10px;
+            height: 45px; display: flex; align-items: center;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+            cursor: pointer; width: 100%;
+        }
+        .cell-content:hover { color: white; }
+
+        /* 凍結窗格設定 */
+        .sticky-col { 
+            position: sticky !important;
+            z-index: 20;
+            background-color: var(--bg-dark);
+            border-right: none !important;
+            box-shadow: 1px 0 0 #333;
+        }
+        .sticky-right {
+            position: sticky !important;
+            right: 0; z-index: 25;
+            background-color: var(--bg-dark);
+            box-shadow: -1px 0 0 #333;
+            border-left: 1px solid #333;
+        }
+        th.sticky-col, th.sticky-right { background-color: var(--header-bg); z-index: 50; }
+
+        /* 最新動態底色實心深藍 */
+        .col-latest { background-color: var(--deep-blue-solid) !important; }
+        .table-row:hover .col-latest { background-color: var(--bg-hover) !important; }
+
+        /* 凍結欄位位置計算 */
+        body:not(.select-mode) .col-0 { left: 0px; }
+        
+        /* 左方功能區展開時，Project 欄(col-1)隱藏 */
+        body:not(.sidebar-collapsed) .col-1 { display: none; }
+        body.sidebar-collapsed .col-1 { display: table-cell; }
+        /* 當 Project 顯示時的位置 */
+        body.sidebar-collapsed:not(.select-mode) .col-1 { left: 40px; }
+        
+        /* Sidebar Open (Project Hidden) */
+        body:not(.sidebar-collapsed):not(.select-mode) .col-2 { left: 40px; } 
+        body:not(.sidebar-collapsed):not(.select-mode) .col-3 { left: 120px; }
+        body:not(.sidebar-collapsed):not(.select-mode) .col-4 { left: 200px; }
+        body:not(.sidebar-collapsed):not(.select-mode) .col-5 { left: 260px; }
+        body:not(.sidebar-collapsed):not(.select-mode) .col-6 { left: 360px; }
+
+        /* Sidebar Closed (Project Shown) */
+        body.sidebar-collapsed:not(.select-mode) .col-2 { left: 120px; } 
+        body.sidebar-collapsed:not(.select-mode) .col-3 { left: 200px; }
+        body.sidebar-collapsed:not(.select-mode) .col-4 { left: 280px; }
+        body.sidebar-collapsed:not(.select-mode) .col-5 { left: 340px; }
+        body.sidebar-collapsed:not(.select-mode) .col-6 { left: 440px; }
+
+        /* 選取模式下的調整 */
+        .select-mode .col-check { left: 0px; z-index: 30; }
+        body.sidebar-collapsed.select-mode .col-0 { left: 40px; }
+        body:not(.sidebar-collapsed).select-mode .col-0 { left: 40px; }
+
+        .text-model { color: var(--text-light-blue) !important; font-weight: 500; }
+        .text-small-gray { font-size: 10px; color: #9ca3af; }
+
+        .btn-orange { background-color: var(--orange-primary); transition: all 0.2s; color: white; }
+        .btn-orange:hover { background-color: #e05d1d; box-shadow: 0 0 15px var(--orange-glow); transform: translateY(-1px); }
+        
+        .input-dark { 
+            background: rgba(0,0,0,0.4);
+            border: 1px solid rgba(255,255,255,0.1); color: white; 
+            border-radius: 4px; padding: 8px 12px; width: 100%; transition: border-color 0.3s;
+        }
+        .input-dark:focus { outline: none; border-color: var(--orange-primary); }
+        .input-dark option { background-color: #000; color: #fff; }
+
+        /* Date Segment Input Style */
+        .date-segment-container {
+            display: flex; align-items: center; gap: 4px;
+            background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 4px; padding: 4px 8px; width: 100%;
+        }
+        .date-segment-container input {
+            background: transparent; border: none; color: white; text-align: center;
+            padding: 4px 0; outline: none;
+        }
+        .date-segment-container input:focus { border-bottom: 1px solid var(--orange-primary); }
+        /* Remove number spinner */
+        .date-segment-container input::-webkit-outer-spin-button,
+        .date-segment-container input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+
+        .fab-btn {
+            position: fixed;
+            bottom: 40px; right: 40px;
+            width: 60px; height: 60px; border-radius: 50%;
+            background: var(--egypt-blue); color: white;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 0 20px var(--egypt-blue-glow);
+            cursor: pointer; transition: all 0.3s; z-index: 100; font-size: 24px;
+        }
+        .fab-btn:hover { 
+            transform: scale(1.1) rotate(90deg);
+            background-color: #fff; 
+            color: var(--orange-primary); box-shadow: 0 0 20px var(--orange-glow);
+        }
+
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #1a1a1a; }
+        ::-webkit-scrollbar-thumb { background: var(--orange-primary); border-radius: 4px; }
+
+        /* Tooltip & Comment Triangle */
+        .has-comment { position: relative; }
+        .has-comment::after {
+            content: '';
+            position: absolute; top: 0; right: 0;
+            border-left: 6px solid transparent; border-bottom: 6px solid transparent;
+            border-top: 6px solid #d4af37;
+            border-right: 6px solid #d4af37;
+            pointer-events: auto; cursor: pointer;
+        }
+        
+        .tag-badge { padding: 2px 6px; border-radius: 3px; font-size: 0.7rem; border: 1px solid rgba(255,255,255,0.2); display: inline-block; margin: 1px; }
+        .tag-blue { background-color: rgba(22, 51, 168, 0.4); color: #A1B0F6; }
+
+        .checkbox-group label { display: inline-flex; align-items: center; margin-right: 12px; margin-bottom: 6px; cursor: pointer; font-size: 0.9rem; color: #ccc; }
+        .checkbox-group input { margin-right: 6px; accent-color: var(--orange-primary); }
+
+        /* 浮動視窗樣式 */
+        .float-window {
+            position: fixed;
+            z-index: 200; display: none;
+            padding: 12px; border-radius: 6px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.5);
+            font-size: 0.9rem;
+            pointer-events: auto; white-space: pre-wrap;
+            word-break: break-all;
+            max-width: 512px;
+        }
+        
+        /* 內容浮動視窗 */
+        .float-window-content { 
+            background-color: #222;
+            border: 1px solid rgba(255, 110, 37, 0.5);
+            color: #e5e7eb;
+            line-height: 1.625;
+            backdrop-filter: blur(4px);
+        }
+
+        /* 註解浮動視窗 */
+        .float-window-comment { 
+            background-color: var(--deep-blue-solid);
+            border: 1px solid #4a5568;
+            color: #eee;
+        }
+
+        .toast-msg {
+            position: fixed;
+            bottom: 100px; left: 50%; transform: translateX(-50%);
+            background-color: rgba(255, 255, 255, 0.9); color: #000;
+            padding: 8px 16px; border-radius: 20px; font-weight: bold;
+            font-size: 0.9rem;
+            z-index: 300; opacity: 0; transition: opacity 0.3s; pointer-events: none;
+        }
+        .toast-show { opacity: 1; }
+    </style>
+</head>
+<body class="flex" onclick="handleGlobalClick(event)" oncontextmenu="return false;">
+
+    <aside id="sidebar" class="sidebar flex flex-col h-screen overflow-hidden backdrop-blur-sm">
+        <div class="p-4 flex items-center gap-4 h-16 border-b border-white/10 shrink-0">
+            <button onclick="toggleSidebar()" class="text-white text-lg hover:text-orange-400 w-6 text-center">
+                <i class="fas fa-bars"></i>
+            </button>
+            <span class="font-bold text-lg tracking-wider italic logo-text text-orange-500">BusinessFlow <span class="text-xs bg-orange-600 text-white px-1 rounded ml-1 not-italic">V3.5.2</span></span>
+        </div>
+
+        <nav class="flex-1 overflow-y-auto custom-scrollbar flex flex-col mt-4">
+            <div id="navMenu"></div>
+            <div class="my-2 border-t border-white/10 mx-4 shrink-0"></div>
+            <div>
+                <a href="#" onclick="document.getElementById('excelImport').click()" class="flex items-center gap-4 p-4 hover:bg-white/5 text-gray-300 hover:text-white transition-colors">
+                    <i class="fas fa-file-import w-6 text-center text-green-500"></i> <span class="menu-text">匯入 Excel</span>
+                </a>
+                <input type="file" id="excelImport" class="hidden" accept=".xlsx, .xls, .csv" onchange="handleExcelImport(event)">
+                <div>
+                    <a href="#" onclick="toggleExportMenu()" class="flex items-center gap-4 p-4 hover:bg-white/5 text-gray-300 hover:text-white transition-colors cursor-pointer w-full justify-between">
+                        <div class="flex items-center gap-4">
+                            <i class="fas fa-file-export w-6 text-center text-blue-400"></i> <span class="menu-text">匯出 Excel</span>
+                         </div>
+                        <i class="fas fa-chevron-down text-xs text-gray-500 submenu-icon transition-transform" id="exportArrow"></i>
+                    </a>
+                
+                    <div id="exportSubmenu" class="hidden bg-black/20 border-l-2 border-blue-500/30 ml-6">
+                        <div onclick="exportExcel('LIST')" class="p-3 pl-8 hover:bg-white/10 cursor-pointer text-sm text-gray-300"><i class="fas fa-table mr-2"></i>LIST (業務管理)</div>
+                        <div onclick="exportExcel('DAILY')" class="p-3 pl-8 hover:bg-white/10 cursor-pointer text-sm text-gray-300"><i class="fas fa-clock mr-2"></i>Daily (業務進度)</div>
+                    </div>
+                </div>
+            </div>
+   
+            <div class="my-2 border-t border-white/10 mx-4 shrink-0"></div>
+            <div>
+                <a href="#" onclick="backupData()" class="flex items-center gap-4 p-4 hover:bg-white/5 text-gray-300 hover:text-white transition-colors">
+                    <i class="fas fa-cloud-download-alt w-6 text-center text-yellow-400"></i> <span class="menu-text">備份資料 (JSON)</span>
+                </a>
+    
+                 <a href="#" onclick="document.getElementById('jsonImport').click()" class="flex items-center gap-4 p-4 hover:bg-white/5 text-gray-300 hover:text-white transition-colors">
+                    <i class="fas fa-cloud-upload-alt w-6 text-center text-yellow-400"></i> <span class="menu-text">還原資料</span>
+                </a>
+                <input type="file" id="jsonImport" class="hidden" accept=".json" onchange="restoreData(event)">
+            </div>
+        </nav>
+    </aside>
+
+    <main class="flex-1 flex flex-col overflow-hidden relative">
+        <header class="h-16 border-b border-white/10 flex justify-between items-center px-6 bg-[#121212] shrink-0">
+            <h2 id="sectionTitle" class="text-xl font-bold text-white tracking-wide">案子列表</h2>
+            <div class="flex gap-4 items-center">
+                <button id="batchDeleteBtn" onclick="deleteSelected()" class="hidden bg-red-900/50 hover:bg-red-600 text-white px-3 py-1 rounded text-sm transition-colors border border-red-500/50">
+                   <i class="fas fa-trash-alt mr-1"></i>刪除選取
+                </button>
+                <button id="exitSelectModeBtn" onclick="exitSelectionMode()" class="hidden text-gray-400 hover:text-white text-sm">
+                    取消選取
+                </button>
+
+                 <div class="relative">
+                    <select id="sortSelect" onchange="renderCurrentView()" class="bg-[#222] border border-gray-700 text-gray-300 text-sm rounded-full pl-3 pr-8 py-1.5 focus:outline-none focus:border-orange-500 appearance-none cursor-pointer hover:bg-[#333]">
+                        <option value="date_new">活動日期 (新→舊)</option>
+                        <option value="date_old">活動日期 (舊→新)</option>
+                        <option value="az">字母順序 (A→Z)</option>
+                        <option value="za">字母順序 (Z→A)</option>
+                    </select>
+                    <i class="fas fa-sort absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-xs pointer-events-none"></i>
+                </div>
+
+                <div class="relative">
+                    <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-xs"></i>
+                    <input type="text" id="searchInput" placeholder="搜尋..." onkeyup="renderCurrentView()"
+                    class="bg-[#222] border border-gray-700 rounded-full pl-8 pr-8 py-1.5 text-sm focus:outline-none focus:border-orange-500 w-64 transition-all">
+                    <i class="fas fa-times absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-xs cursor-pointer hover:text-white" onclick="clearSearch()"></i>
+                </div>
+            </div>
+        </header>
+
+        <div id="contentArea" class="flex-1 overflow-hidden p-0 bg-[#0a0a0a]">
+            <div class="h-full p-4 flex flex-col">
+                <div class="bg-[#151515] rounded-lg border border-white/5 flex-1 overflow-hidden relative shadow-xl">
+                    <div class="table-container custom-scrollbar">
+                        <table class="w-full text-left text-sm" id="mainTable">
+                            <thead id="tableHead"></thead>
+                            <tbody id="tableBody"></tbody>
+                        </table>
+                        <div id="emptyState" class="hidden flex flex-col items-center justify-center py-20 text-gray-500">
+                            <i class="fas fa-folder-open text-4xl mb-4 opacity-50"></i>
+                            <p>尚無資料，請點擊右下角 "+" 新增或長按列表項目進入批次模式</p>
+                        </div>
+                   </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="fab-btn" onclick="openModal('add')">
+            <i class="fas fa-plus"></i>
+        </div>
+    </main>
+
+    <div id="mainModal" class="fixed inset-0 bg-black/90 hidden items-center justify-center z-[100] backdrop-blur-sm" onclick="/* stop prop */">
+        <div class="bg-[#1a1a1a] border border-orange-500/30 w-[800px] max-h-[90vh] rounded-xl shadow-2xl overflow-hidden flex flex-col" onclick="event.stopPropagation()">
+            <div class="bg-[#202020] p-4 border-b border-white/10 flex justify-between items-center shrink-0">
+                <h3 id="modalTitle" class="text-orange-400 font-bold text-lg"><i class="fas fa-plus-circle mr-2"></i>新增資料</h3>
+                <button onclick="closeModal()" class="text-gray-400 hover:text-white"><i class="fas fa-times"></i></button>
+            </div>
+  
+           <div class="p-6 overflow-y-auto custom-scrollbar flex-1 space-y-5">
+                <input type="hidden" id="editId">
+                <div>
+                    <label class="block text-gray-400 text-xs mb-2">資料類型</label>
+                    <select id="modalType" onchange="renderModalFields()" class="input-dark font-bold text-orange-300 border-orange-500/50 bg-orange-600/20">
+                        <option value="projects">案子列表 (Project)</option>
+                        <option value="masterList">總表維護 (Master)</option>
+                        <option value="tasks">任務列表 (Task)</option>
+                        <option value="orders">訂單列表 (Order)</option>
+                        <option value="quotes">報價列表 (Quote)</option>
+                        <option value="contacts">聯絡人清單 (Contact)</option>
+                        <option value="codes">客戶代碼與行為 (Code)</option>
+                    </select>
+                </div>
+                <div id="modalFields" class="space-y-4"></div>
+                <div class="bg-black/20 p-4 rounded border border-white/5">
+                    <label class="block text-gray-400 text-xs mb-2">詳細註解 (滑鼠點擊三角形顯示)</label>
+                    <div id="commentsContainer" class="space-y-2"></div>
+                    <button onclick="addCommentField()" class="text-xs text-orange-400 hover:text-white mt-2 font-bold flex items-center gap-1">
+                        <i class="fas fa-plus"></i> 追加註解欄位
+                     </button>
+                </div>
+            </div>
+            <div class="p-4 bg-black/20 border-t border-white/5 flex justify-end gap-3 shrink-0">
+                <button onclick="closeModal()" class="px-4 py-2 text-gray-400 hover:text-white text-sm">取消</button>
+                <button onclick="saveData()" class="btn-orange px-6 py-2 rounded text-white font-bold shadow-lg">儲存變更</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="floatWindow" class="float-window" onmousedown="handleLongPressCopy(this)" onmouseenter="cancelFloatCloseTimer()" onmouseleave="startFloatCloseTimer()"></div>
+    <div id="toast" class="toast-msg">已複製</div>
+
+    <script>
+        let db = { projects: [], masterList: [], orders: [], tasks: [], quotes: [], contacts: [], codes: [] };
+        let currentView = 'projects';
+        let isSelectionMode = false;
+        let selectedIds = new Set();
+        let longPressTimer;
+        let copyToastTimer;
+        let floatCloseTimer = null; 
+
+        const VIEW_CONFIG = {
+            'projects': { title: '案子列表', icon: 'fa-briefcase' },
+            'orders': { title: '訂單列表', icon: 'fa-shipping-fast' },
+            'tasks': { title: '任務列表', icon: 'fa-tasks' },
+            'activities': { title: '活動列表', icon: 'fa-history' },
+            'quotes': { title: '報價列表', icon: 'fa-file-invoice-dollar' },
+            'masterList': { title: '總表維護', icon: 'fa-table' },
+            'contacts': { title: '聯絡人清單', icon: 'fa-address-book' },
+            'codes': { title: '客戶代碼與行為', icon: 'fa-barcode' }
+        };
+
+        window.onload = () => {
+            const saved = localStorage.getItem('workflowDB_v3_5');
+            if(saved) db = JSON.parse(saved);
+            if(!db.masterList) db.masterList = [];
+            renderNav();
+            switchView('projects');
+            autoCheckShipment();
+        };
+
+        function toggleSidebar() { 
+            const sb = document.getElementById('sidebar');
+            sb.classList.toggle('collapsed');
+            if(sb.classList.contains('collapsed')) {
+                document.body.classList.add('sidebar-collapsed');
+            } else {
+                document.body.classList.remove('sidebar-collapsed');
+            }
+        }
+        function toggleExportMenu() {
+            const menu = document.getElementById('exportSubmenu');
+            const arrow = document.getElementById('exportArrow');
+            if(menu.classList.contains('hidden')) {
+                menu.classList.remove('hidden');
+                arrow.classList.add('rotate-180');
+            } else {
+                menu.classList.add('hidden');
+                arrow.classList.remove('rotate-180');
+            }
+        }
+
+        // 需求1: 浮動視窗邏輯更新 (支援Hover顯示 + 正下方定位)
+        // 修改為傳入元素 (el) 以計算位置
+        function showFloatWindow(content, el, type = 'content') {
+            const fw = document.getElementById('floatWindow');
+            fw.className = `float-window ${type === 'comment' ? 'float-window-comment' : 'float-window-content'}`;
+            fw.innerText = content;
+
+            // 計算顯示位置: 該欄位正下方
+            const rect = el.getBoundingClientRect();
+            const w = 500;
+            let left = rect.left;
+            let top = rect.bottom + 5; // 正下方
+
+            // 防止超出螢幕右側
+            if (left + w > window.innerWidth) left = window.innerWidth - w - 20;
+            // 防止超出螢幕底部 (簡易處理)
+            if (top + fw.offsetHeight > window.innerHeight) top = rect.top - fw.offsetHeight - 5;
+
+            fw.style.left = left + 'px';
+            fw.style.top = top + 'px';
+            fw.style.display = 'block';
+            
+            cancelFloatCloseTimer();
+        }
+
+        function startFloatCloseTimer() {
+            floatCloseTimer = setTimeout(() => {
+                document.getElementById('floatWindow').style.display = 'none';
+            }, 1000); // 1秒後消失
+        }
+
+        function cancelFloatCloseTimer() {
+            clearTimeout(floatCloseTimer);
+        }
+
+        // 全域點擊監聽 (任意點其他地方消失)
+        function handleGlobalClick(e) {
+            const fw = document.getElementById('floatWindow');
+            if (fw.style.display === 'block' && 
+                !fw.contains(e.target) && 
+                !e.target.closest('.cell-content') && 
+                !e.target.closest('.has-comment')) {
+                fw.style.display = 'none';
+            }
+        }
+
+        function handleLongPressCopy(el, textOverride) {
+            el.onmousedown = (e) => {
+                if(e.button !== 0) return;
+                longPressTimer = setTimeout(() => {
+                    const text = textOverride || el.innerText || el.textContent;
+                    if(text) {
+                        navigator.clipboard.writeText(text).then(() => showToast());
+                    }
+                }, 800);
+            };
+            el.onmouseup = () => clearTimeout(longPressTimer);
+        }
+
+        function showToast() {
+            const t = document.getElementById('toast');
+            t.classList.add('toast-show');
+            clearTimeout(copyToastTimer);
+            copyToastTimer = setTimeout(() => t.classList.remove('toast-show'), 1000);
+        }
+
+        function renderNav() {
+            const nav = document.getElementById('navMenu');
+            nav.innerHTML = Object.keys(VIEW_CONFIG).map(key => {
+                if(key === 'activities') return ''; 
+                return `<a href="#" onclick="switchView('${key}')" class="flex items-center gap-4 p-4 hover:bg-white/5 text-gray-300 hover:text-white transition-colors border-l-4 border-transparent hover:border-orange-500 nav-item" id="nav-${key}">
+                    <i class="fas ${VIEW_CONFIG[key].icon} w-6 text-center"></i> <span class="menu-text">${VIEW_CONFIG[key].title}</span>
+                </a>`
+            }).join('') + 
+            `<a href="#" onclick="switchView('activities')" class="flex items-center gap-4 p-4 hover:bg-white/5 text-gray-300 hover:text-white transition-colors border-l-4 border-transparent hover:border-orange-500 nav-item" id="nav-activities">
+                <i class="fas fa-history w-6 text-center"></i> <span class="menu-text">活動列表</span>
+            </a>`;
+        }
+
+        function switchView(view) {
+            currentView = view;
+            exitSelectionMode();
+            document.querySelectorAll('.nav-item').forEach(el => {
+                el.classList.remove('border-orange-500', 'bg-white/5', 'text-white');
+                el.classList.add('border-transparent', 'text-gray-300');
+            });
+            const activeEl = document.getElementById('nav-' + (view === 'activities' || view === 'tasks' ? view : view));
+            if(activeEl) {
+                activeEl.classList.remove('border-transparent', 'text-gray-300');
+                activeEl.classList.add('border-orange-500', 'bg-white/5', 'text-white');
+            }
+            document.getElementById('sectionTitle').innerText = VIEW_CONFIG[view].title;
+            clearSearch();
+        }
+
+        function clearSearch() { document.getElementById('searchInput').value = ''; renderCurrentView(); }
+
+        function getLatestStatus(item) {
+            let events = [];
+            db.orders.filter(o => o.project === item.project).forEach(o => events.push({ type: '訂單', date: o.createdAt || new Date().toISOString().split('T')[0], text: '訂單' }));
+            db.quotes.filter(q => q.project === item.project).forEach(q => events.push({ type: '報價', date: q.date, text: '報價' }));
+            db.tasks.filter(t => t.project === item.project && ['RMA','規格','送樣'].includes(t.taskType)).forEach(t => events.push({ type: t.taskType, date: t.trackDate || t.startDate, text: t.taskType }));
+            events.sort((a,b) => new Date(b.date) - new Date(a.date));
+
+            let manualDate = item.manualLatestDate || '1970-01-01';
+            let auto = events[0];
+            if (auto && new Date(auto.date) >= new Date(manualDate)) {
+                return { text: auto.text, date: auto.date };
+            } else if (item.manualLatestStatus) {
+                return { text: item.manualLatestStatus, date: item.manualLatestDate };
+            }
+            return { text: '', date: '' };
+        }
+
+        function renderCurrentView() {
+            const thead = document.getElementById('tableHead');
+            const tbody = document.getElementById('tableBody');
+            const search = document.getElementById('searchInput').value.toLowerCase();
+            const sortMode = document.getElementById('sortSelect').value;
+
+            tbody.innerHTML = '';
+            let columns = [];
+            let sourceData = [];
+
+            const commonOps = { t: '操作', w: '80px', k:'ops', c: 'sticky-right' };
+            const projectColW = '80px'; 
+
+            if(currentView === 'projects') {
+                sourceData = db.projects;
+                columns = [
+                    { t: '<i class="fas fa-star text-yellow-500"></i>', w: '40px', k:'star', c: 'sticky-col col-0 text-center' },
+                    { t: 'Project', w: projectColW, k:'project', c: 'sticky-col col-1 text-small-gray' },
+                    { t: 'Agent', w: '80px', k:'agent', c: 'sticky-col col-2 text-small-gray' },
+                    { t: 'End User', w: '80px', k:'endUser', c: 'sticky-col col-3 text-small-gray' },
+                    { t: 'Size', w: '60px', k:'size', c: 'sticky-col col-4' },
+                    { t: 'Model', w: '100px', k:'model', c: 'sticky-col col-5 text-model' },
+                    { t: '<i class="fas fa-history mr-1"></i>最新動態', w: '120px', k:'latestStatus', c: 'sticky-col col-6 col-latest' },
+                    { t: '標籤', w: '150px', k:'tags' },
+                    { t: '狀況概述', w: '250px', k:'summary' },
+                    { t: '達成數量', w: '80px', k:'achievement' },
+                    { t: '當年預算', w: '80px', k:'budget' },
+                    { t: 'Active', w: '60px', k:'active' },
+                    { t: 'PLM#', w: '80px', k:'plm' },
+                    commonOps
+                ];
+            } else if (currentView === 'masterList') {
+                sourceData = db.masterList;
+                columns = [
+                    { t: 'Project', w: '120px', k:'project' },
+                    { t: 'Agent', w: '80px', k:'agent' },
+                    { t: 'End User', w: '80px', k:'endUser' },
+                    { t: 'Application', w: '100px', k:'application' },
+                    { t: 'EAU', w: '80px', k:'eau' },
+                    { t: 'Size', w: '60px', k:'size' },
+                    { t: 'Model', w: '100px', k:'model', c:'text-model' },
+                    { t: 'Price', w: '80px', k:'salesPrice' },
+                    { t: 'Remark', w: '200px', k:'remark' },
+                    { t: 'Contact', w: '100px', k:'contact' },
+                    { t: 'Cus PN', w: '100px', k:'cusPN' },
+                    { t: 'Active', w: '60px', k:'active' },
+                    { t: 'PLM#', w: '80px', k:'plm' },
+                    commonOps
+                ];
+            } else if (currentView === 'tasks' || currentView === 'activities') {
+                sourceData = currentView === 'tasks' ?
+                db.tasks.filter(t => !t.completed) : db.tasks;
+                columns = [
+                    { t: '★', w: '40px' }, { t: 'Project', w: '150px' }, { t: 'Agent', w: '100px' }, { t: 'End User', w: '100px' },
+                    { t: '任務', w: '80px' }, { t: '任務說明', w: '200px' }, { t: '文件#', w: '100px' },
+                    { t: '起始/追蹤', w: '120px' }, { t: '狀態', w: '80px' }, commonOps
+                ];
+            } else if (currentView === 'orders') {
+                sourceData = db.orders;
+                columns = [
+                    { t: '★', w: '40px' }, { t: 'Project', w: '120px' }, { t: 'Agent', w: '80px' }, { t: 'End User', w: '80px' },
+                    { t: '型號', w: '100px', c:'text-model' }, { t: 'PO#', w: '100px' }, { t: 'Qty', w: '60px' },
+                    { t: '交期', w: '100px' }, { t: '出貨', w: '60px' }, { t: '狀態說明', w: '150px' }, commonOps
+                ];
+            } else if (currentView === 'quotes') {
+                sourceData = db.quotes;
+                columns = [
+                    { t: 'Project', w: '150px' }, { t: 'Agent', w: '100px' }, { t: 'End User', w: '100px' },
+                    { t: '日期', w: '100px' }, { t: '業務報價', w: '100px', c:'text-orange-300 font-bold' },
+                    { t: 'FAE報價', w: '100px' }, { t: 'REF#', w: '100px' }, { t: '說明', w: '200px' }, { t: '操作', w: '60px', c:'sticky-right' }
+                ];
+            } else if (currentView === 'contacts') {
+                sourceData = db.contacts;
+                columns = [
+                    { t: '★', w: '40px' }, { t: 'Agent', w: '120px' }, { t: 'End User', w: '120px' },
+                    { t: 'Position', w: '120px' }, { t: 'Phone', w: '120px' }, { t: 'Address', w: '200px' },
+                    { t: 'Remark', w: '150px' }, { t: 'Active', w: '60px' }, commonOps
+                ];
+            } else if (currentView === 'codes') {
+                sourceData = db.codes;
+                columns = [
+                    { t: 'Agent', w: '150px' }, { t: 'End User', w: '150px' }, { t: 'Code', w: '100px', c:'text-model' },
+                    { t: 'Pricing', w: '100px' }, { t: 'Logistics', w: '100px' }, { t: 'Remark', w: '200px' },
+                    { t: 'Active', w: '60px' }, { t: '操作', w: '60px', c:'sticky-right' }
+                ];
+            }
+
+            if(isSelectionMode) {
+                columns.unshift({ 
+                    t: '<input type="checkbox" onchange="toggleSelectAll(this)" class="accent-orange-500 cursor-pointer">', 
+                    w: '40px', c:'sticky-col col-check text-center' 
+                });
+            }
+
+            thead.innerHTML = `<tr>${columns.map(c => `<th style="width:${c.w}; min-width:${c.w}" class="${c.c||''}">${c.t}</th>`).join('')}</tr>`;
+            let filtered = sourceData.filter(item => Object.values(item).join(' ').toLowerCase().includes(search));
+            
+            filtered.sort((a, b) => {
+                 if(currentView === 'tasks' || currentView === 'activities') {
+                    const d1 = new Date(a.trackDate || '2099-12-31').getTime();
+                    const d2 = new Date(b.trackDate || '2099-12-31').getTime();
+                    const today = new Date().getTime();
+                    const aDue = d1 <= today; const bDue = d2 <= today;
+                    if(aDue && !bDue) return -1; if(!aDue && bDue) return 1;
+                    return d1 - d2;
+                  }
+                const valA = a.updatedAt || a.date || a.startDate || ''; 
+                const valB = b.updatedAt || b.date || b.startDate || '';
+                if(sortMode === 'date_new') return new Date(valB) - new Date(valA);
+                if(sortMode === 'date_old') return new Date(valA) - new Date(valB);
+                if(sortMode === 'az') return (a.project || a.agent || '').localeCompare(b.project || b.agent || '');
+                if(sortMode === 'za') return (b.project || b.agent || '').localeCompare(a.project || a.agent || '');
+                return 0;
+            });
+            if(filtered.length === 0) {
+                document.getElementById('emptyState').classList.remove('hidden');
+            } else {
+                document.getElementById('emptyState').classList.add('hidden');
+                filtered.forEach(item => {
+                    const tr = document.createElement('tr');
+                    tr.className = 'table-row';
+                    tr.dataset.id = item.id;
+                    
+                    tr.onmousedown = (e) => {
+                        if(e.target.closest('.cell-content') || e.target.closest('.sticky-col')) 
+                        {
+                            // Let cell handle its own logic
+                        } else {
+                            startLongPress(tr); 
+                        }
+                    };
+                    tr.onmouseup = cancelLongPress;
+                    tr.onmouseleave = cancelLongPress;
+
+                    if(item.active === false || item.completed) tr.style.opacity = '0.5';
+
+                    const isSel = selectedIds.has(item.id);
+                    const starClass = item.star ? 'star-active text-yellow-400' : 'star-inactive text-gray-600';
+                    const starHTML = `<i class="fas fa-star ${starClass} hover:scale-125 transition-transform cursor-pointer" onclick="toggleStar('${currentView}', ${item.id})"></i>`;
+                    const actionsHTML = `<div class="flex justify-center gap-2 h-full items-center"><button onclick="openModal('edit', ${item.id})" class="text-gray-400 hover:text-white"><i class="fas fa-edit"></i></button><button onclick="deleteItem(${item.id})" class="text-red-900 hover:text-red-500"><i class="fas fa-trash-alt"></i></button></div>`;
+                    const checkHTML = `<input type="checkbox" class="accent-orange-500 row-check cursor-pointer transform scale-125" value="${item.id}" ${isSel?'checked':''} onchange="toggleSelectRow(${item.id})">`;
+                    const genCell = (val, fieldName) => {
+                        const comment = (item.comments || []).find(c => c.field === fieldName);
+                        const hasCommentClass = comment ? 'has-comment' : '';
+                        const displayVal = val || '';
+                        const commentText = comment ? comment.text.replace(/'/g, "&#39;") : '';
+                        
+                        // 需求1：Hover 即顯示內容，位置改為正下方
+                        // onmouseenter 觸發顯示 (並傳入 this)
+                        // onmouseleave 觸發消失計時
+                        return `<div class="cell-content ${hasCommentClass}" 
+                                    onmouseleave="startFloatCloseTimer()"
+                                    onmouseenter="handleCellHover(this, '${commentText}', '${displayVal}')"
+                                    onmousedown="handleLongPressCopy(this)">
+                                         ${displayVal}
+                                 </div>`;
+                    };
+
+                    let cells = '';
+                    if(currentView === 'projects') {
+                        const ach = calculateAchievement(item);
+                        const latest = getLatestStatus(item);
+                        cells = `
+                            <td class="sticky-col col-0 text-center"><div class="cell-content justify-center">${starHTML}</div></td>
+                            <td class="sticky-col col-1 text-small-gray">${genCell(item.project, 'project')}</td>
+                            <td class="sticky-col col-2 text-small-gray">${genCell(item.agent, 'agent')}</td>
+                            <td class="sticky-col col-3 text-small-gray">${genCell(item.endUser, 'endUser')}</td>
+                            <td class="sticky-col col-4">${genCell(item.size, 'size')}</td>
+                            <td class="sticky-col col-5 text-model">${genCell(item.model, 'model')}</td>
+                            <td class="sticky-col col-6 col-latest">
+                                <div class="flex flex-col leading-tight justify-center h-full px-2">
+                                    <span class="text-white font-bold text-xs mb-1">${renderTags(latest.text)}</span>
+                                    <span class="text-[10px] text-gray-400">${latest.date}</span>
+                                </div>
+                            </td>
+                            <td>${genCell(renderTags(item.tags), 'tags')}</td>
+                            <td>${genCell(item.summary, 'summary')}</td>
+                            <td class="text-center">
+                                 <div class="cell-content flex-col justify-center leading-tight">
+                                    <span class="text-orange-400 font-bold">${ach.qty}</span>
+                                   <span class="text-[10px] text-gray-500">${ach.percent}</span>
+                                </div>
+                            </td>
+                            <td>${genCell(item.budget, 'budget')}</td>
+                            <td class="text-center"><div class="cell-content justify-center">${item.active!==false ? 'Y' : 'N'}</div></td>
+                            <td>${genCell(item.plm, 'plm')}</td>
+                            <td class="text-center sticky-right">${actionsHTML}</td>
+                        `;
+                    } else if (currentView === 'masterList') {
+                        cells = `
+                            <td>${genCell(item.project, 'project')}</td>
+                            <td>${genCell(item.agent, 'agent')}</td>
+                            <td>${genCell(item.endUser, 'endUser')}</td>
+                            <td>${genCell(item.application, 'application')}</td>
+                            <td>${genCell(item.eau, 'eau')}</td>
+                            <td>${genCell(item.size, 'size')}</td>
+                            <td class="text-model">${genCell(item.model, 'model')}</td>
+                            <td>${genCell(item.salesPrice, 'salesPrice')}</td>
+                            <td>${genCell(item.remark, 'remark')}</td>
+                            <td>${genCell(item.contact, 'contact')}</td>
+                            <td>${genCell(item.cusPN, 'cusPN')}</td>
+                            <td class="text-center"><div class="cell-content justify-center">${item.active!==false ? 'Y' : 'N'}</div></td>
+                            <td>${genCell(item.plm, 'plm')}</td>
+                            <td class="text-center sticky-right">${actionsHTML}</td>
+                        `;
+                    } else if (currentView === 'tasks' || currentView === 'activities') {
+                         const isOverdue = !item.completed && new Date(item.trackDate) < new Date();
+                        cells = `<td class="text-center"><div class="cell-content justify-center">${starHTML}</div></td><td>${genCell(item.project,'project')}</td><td>${genCell(item.agent,'agent')}</td><td>${genCell(item.endUser,'endUser')}</td>
+                            <td><span class="tag-badge tag-blue">${item.taskType||''}</span></td><td>${genCell(item.desc,'desc')}</td><td class="font-mono text-xs">${genCell(item.docNum,'docNum')}</td>
+                            <td class="${isOverdue?'text-red-500 font-bold':'text-gray-400'} text-xs"><div>起: ${item.startDate}</div><div>追: ${item.trackDate}</div></td>
+                            <td>${item.completed ? '<span class="text-gray-500">已完成</span>' : '<span class="text-green-500">進行中</span>'}</td><td class="text-center sticky-right">${actionsHTML}</td>`;
+                    } else if (currentView === 'orders') {
+                        const ships = item.shipments && item.shipments.length ? item.shipments : [{dueDate: item.dueDate, qty: item.qty, isShipped: item.isShipped}];
+                        const qtysHtml = ships.map(s => `<div>${s.qty||0}</div>`).join('');
+                        const datesHtml = ships.map(s => `<div>${s.dueDate||'-'}</div>`).join('');
+                        const shippedHtml = ships.map(s => s.isShipped ? '<span class="text-green-500">✓</span>' : '<span class="text-gray-600">-</span>').join('<br>');
+                        cells = `<td class="text-center"><div class="cell-content justify-center">${starHTML}</div></td><td>${genCell(item.project,'project')}</td><td>${genCell(item.agent,'agent')}</td><td>${genCell(item.endUser,'endUser')}</td><td class="text-model">${genCell(item.model,'model')}</td>
+                            <td>${genCell(item.po,'po')}</td>
+                            <td class="font-mono text-xs"><div class="cell-content flex-col justify-center items-start">${qtysHtml}</div></td>
+                            <td class="text-xs"><div class="cell-content flex-col justify-center items-start">${datesHtml}</div></td>
+                            <td class="text-center text-xs"><div class="cell-content flex-col justify-center">${shippedHtml}</div></td>
+                            <td>${genCell(item.statusDesc,'statusDesc')}</td><td class="text-center sticky-right">${actionsHTML}</td>`;
+                    } else if (currentView === 'quotes') {
+                        cells = `<td>${genCell(item.project,'project')}</td><td>${genCell(item.agent,'agent')}</td><td>${genCell(item.endUser,'endUser')}</td><td>${item.date}</td><td class="text-orange-300 font-bold">${genCell(item.salesPrice,'salesPrice')}</td>
+                            <td>${genCell(item.faePrice,'faePrice')}</td><td class="text-xs text-gray-400">${genCell(item.ref,'ref')}</td><td>${genCell(item.desc,'desc')}</td><td class="text-center sticky-right">${actionsHTML}</td>`;
+                    } else if (currentView === 'contacts') {
+                        cells = `<td class="text-center"><div class="cell-content justify-center">${starHTML}</div></td><td>${genCell(item.agent,'agent')}</td><td>${genCell(item.endUser,'endUser')}</td><td>${genCell(item.position,'position')}</td><td>${genCell(item.phone,'phone')}</td>
+                            <td class="text-xs text-gray-400">${genCell(item.address,'address')}</td><td class="text-xs">${genCell(item.remark,'remark')}</td><td>${item.active!==false?'Y':'N'}</td><td class="text-center sticky-right">${actionsHTML}</td>`;
+                    } else if (currentView === 'codes') {
+                        cells = `<td>${genCell(item.agent,'agent')}</td><td>${genCell(item.endUser,'endUser')}</td><td class="font-mono text-model">${genCell(item.code,'code')}</td><td>${genCell(item.pricing,'pricing')}</td><td>${genCell(item.logistics,'logistics')}</td>
+                            <td class="text-xs">${genCell(item.remark,'remark')}</td><td>${item.active!==false?'Y':'N'}</td><td class="text-center sticky-right">${actionsHTML}</td>`;
+                    }
+
+                    if(isSelectionMode) {
+                        cells = `<td class="sticky-col col-check text-center"><div class="cell-content justify-center">${checkHTML}</div></td>` + cells;
+                    }
+
+                    tr.innerHTML = cells;
+                    tbody.appendChild(tr);
+                });
+            }
+        }
+
+        // 新增的 Hover 處理邏輯 (Req 1)
+        function handleCellHover(el, commentText, cellValue) {
+            cancelFloatCloseTimer();
+            // 如果有註解，優先顯示註解
+            if (commentText) {
+                showFloatWindow(commentText, el, 'comment');
+            } else {
+                // 沒有註解，如果文字溢出則顯示文字
+                if (el.scrollWidth > el.clientWidth && cellValue) {
+                    showFloatWindow(cellValue, el, 'content');
+                }
+            }
+        }
+
+        function startLongPress(row) { longPressTimer = setTimeout(() => { if(!isSelectionMode) enterSelectionMode(row.dataset.id); }, 800); }
+        function cancelLongPress() { clearTimeout(longPressTimer); }
+        function enterSelectionMode(id) { 
+            isSelectionMode = true;
+            document.body.classList.add('select-mode'); 
+            document.getElementById('batchDeleteBtn').classList.remove('hidden'); 
+            document.getElementById('exitSelectModeBtn').classList.remove('hidden'); 
+            if(id) selectedIds.add(parseInt(id)); 
+            renderCurrentView(); 
+        }
+        function exitSelectionMode() { 
+            isSelectionMode = false;
+            document.body.classList.remove('select-mode'); 
+            selectedIds.clear(); 
+            document.getElementById('batchDeleteBtn').classList.add('hidden'); 
+            document.getElementById('exitSelectModeBtn').classList.add('hidden'); 
+            renderCurrentView(); 
+        }
+        
+        function toggleSelectAll(cb) {
+            const visibleChecks = document.querySelectorAll('#tableBody .row-check');
+            visibleChecks.forEach(c => {
+                c.checked = cb.checked;
+                const id = parseInt(c.value);
+                if(cb.checked) selectedIds.add(id); else selectedIds.delete(id);
+            });
+            updateBatchBtnText();
+        }
+        function toggleSelectRow(id) { if(selectedIds.has(id)) selectedIds.delete(id); else selectedIds.add(id); updateBatchBtnText(); }
+        function updateBatchBtnText() { document.getElementById('batchDeleteBtn').innerHTML = `<i class="fas fa-trash-alt mr-1"></i>刪除選取 (${selectedIds.size})`; }
+        function deleteSelected() { if(!confirm(`確定刪除 ${selectedIds.size} 筆?`)) return;
+            const t = currentView === 'activities' ? 'tasks' : currentView; db[t] = db[t].filter(i => !selectedIds.has(i.id)); exitSelectionMode(); saveToLocal();
+        }
+
+        function renderTags(str) { return str ? str.split(/[,，]/).filter(t=>t.trim()).map(t => `<span class="tag-badge tag-blue">${t.trim()}</span>`).join('') : ''; }
+        
+        function calculateAchievement(proj) { 
+            const budget = parseFloat(proj.budget)||0;
+            const qty = db.orders.filter(o=>o.project===proj.project)
+                         .reduce((s,o)=> {
+                             const ships = o.shipments || [{qty: o.qty}];
+                             return s + ships.reduce((ss, sh) => ss + (parseFloat(sh.qty)||0), 0);
+                         }, 0);
+            return {qty, percent: budget?Math.round((qty/budget)*100)+'%':'0%'}; 
+        }
+        function toggleStar(v,id) { const t=v==='activities'?'tasks':v; const i=db[t].find(x=>x.id===id); if(i){i.star=!i.star;saveToLocal();renderCurrentView();} }
+        function saveToLocal() { localStorage.setItem('workflowDB_v3_5', JSON.stringify(db)); }
+
+        // Modal Logic
+        let editingId = null;
+        function openModal(mode, id) {
+            editingId = id;
+            document.getElementById('mainModal').classList.remove('hidden'); document.getElementById('mainModal').classList.add('flex');
+            const typeSel = document.getElementById('modalType');
+            if(mode === 'add') {
+                document.getElementById('modalTitle').innerHTML = '<i class="fas fa-plus-circle mr-2"></i>新增資料';
+                typeSel.disabled = false; typeSel.value = (currentView==='activities'||currentView==='tasks')?'tasks':currentView;
+                renderModalFields();
+            } else {
+                document.getElementById('modalTitle').innerHTML = '<i class="fas fa-edit mr-2"></i>編輯資料';
+                typeSel.disabled = true;
+                const foundType = Object.keys(db).find(k => db[k].find(i => i.id === id));
+                typeSel.value = foundType;
+                renderModalFields(db[foundType].find(i => i.id === id));
+            }
+        }
+        function closeModal() { document.getElementById('mainModal').classList.add('hidden'); document.getElementById('mainModal').classList.remove('flex'); }
+
+        function addShipmentRow(data = {}) {
+            const container = document.getElementById('shipmentsContainer');
+            const div = document.createElement('div');
+            div.className = "flex gap-2 items-center mb-2 p-2 bg-white/5 rounded border border-white/5 shipment-row";
+            // 使用新版日期輸入元件 (僅使用一個隨機ID做區分，實際邏輯不需要ID)
+            const rnd = Math.random().toString(36).substring(7);
+            const dateInputHtml = createDateInputGroup(`ship_date_${rnd}`, data.dueDate||'', 's-date-hidden');
+            
+            div.innerHTML = `
+                <div class="flex-1"><label class="text-xs text-gray-500">需求交期</label>${dateInputHtml}</div>
+                <div class="w-24"><label class="text-xs text-gray-500">數量</label><input type="number" class="input-dark s-qty" value="${data.qty||''}"></div>
+                <div class="flex items-center pt-4"><label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" class="accent-orange-500 s-ship" ${data.isShipped?'checked':''}> 已出貨</label></div>
+                <button onclick="this.parentElement.remove()" class="text-red-500 pt-4 px-2 hover:text-red-300"><i class="fas fa-times"></i></button>
+            `;
+            container.appendChild(div);
+        }
+
+        // 需求3：自動計算追蹤日期 (起始+3天)
+        function updateTrackDate(startDateStr) {
+            if(!startDateStr) return;
+            const d = new Date(startDateStr);
+            d.setDate(d.getDate() + 3);
+            const iso = d.toISOString().split('T')[0];
+            // 更新 hidden value
+            const trackHidden = document.getElementById('f_trackDate');
+            if(trackHidden) {
+                trackHidden.value = iso;
+                // 同步更新顯示的 input
+                const [y, m, d_val] = iso.split('-');
+                const container = trackHidden.parentElement;
+                container.querySelector('.yy').value = y;
+                container.querySelector('.mm').value = m;
+                container.querySelector('.dd').value = d_val;
+            }
+        }
+
+        function autoFillProjectInfo(val) {
+            if(!val) return;
+            const match = db.masterList.find(m => m.project === val);
+            if(match) {
+                const setVal = (id, v) => { const el = document.getElementById(id); if(el) el.value = v || ''; };
+                setVal('f_agent', match.agent);
+                setVal('f_endUser', match.endUser);
+                setVal('f_size', match.size);
+                setVal('f_model', match.model);
+                setVal('f_plm', match.plm);
+            }
+        }
+
+        // 需求2：建立三段式日期輸入 HTML 與邏輯
+        function createDateInputGroup(id, value, extraClass = '') {
+            const d = value ? new Date(value) : new Date();
+            const yVal = value ? value.split('-')[0] : d.getFullYear();
+            const mVal = value ? value.split('-')[1] : (d.getMonth() + 1).toString().padStart(2, '0');
+            const dVal = value ? value.split('-')[2] : d.getDate().toString().padStart(2, '0');
+
+            return `
+            <div class="date-segment-container">
+                <input type="text" class="yy w-12" placeholder="YYYY" maxlength="4" value="${yVal}" oninput="handleDateSegment(this, 'y')">
+                <span class="text-gray-500">/</span>
+                <input type="text" class="mm w-8" placeholder="MM" maxlength="2" value="${mVal}" oninput="handleDateSegment(this, 'm')">
+                <span class="text-gray-500">/</span>
+                <input type="text" class="dd w-8" placeholder="DD" maxlength="2" value="${dVal}" oninput="handleDateSegment(this, 'd')">
+                <input type="hidden" id="${id}" class="${extraClass}" value="${yVal}-${mVal}-${dVal}">
+            </div>`;
+        }
+
+        // 處理輸入跳格邏輯 (Req 2) & 更新 Hidden Value
+        function handleDateSegment(el, type) {
+            const container = el.parentElement;
+            const val = el.value;
+            
+            // Auto Jump Logic
+            if (type === 'y' && val.length === 4) {
+                container.querySelector('.mm').focus();
+            } else if (type === 'm' && val.length === 2) {
+                container.querySelector('.dd').focus();
+            }
+
+            // Construct Date String
+            const y = container.querySelector('.yy').value.padStart(4, '202'); // basic fallback
+            const m = container.querySelector('.mm').value.padStart(2, '0');
+            const d = container.querySelector('.dd').value.padStart(2, '0');
+            const fullDate = `${y}-${m}-${d}`;
+            
+            // Update Hidden Input
+            const hidden = container.querySelector('input[type=hidden]');
+            hidden.value = fullDate;
+
+            // Trigger Task Logic (Req 3)
+            if (hidden.id === 'f_startDate') {
+                updateTrackDate(fullDate);
+            }
+        }
+
+        function renderModalFields(data = {}) {
+            const type = document.getElementById('modalType').value;
+            const container = document.getElementById('modalFields');
+            const commContainer = document.getElementById('commentsContainer');
+            
+            commContainer.innerHTML = (data.comments || []).map((c, i) => `
+                <div class="flex gap-2 mb-1">
+                    <select class="input-dark text-xs w-1/3" onchange="updateComment(${i}, 'field', this.value)">
+                         ${getAllFields(type).map(f => `<option value="${f.k}" ${f.k===c.field?'selected':''}>${f.l}</option>`).join('')}
+                      </select>
+                    <input type="text" class="input-dark text-xs flex-1" value="${c.text}" onchange="updateComment(${i}, 'text', this.value)">
+                    <button onclick="removeComment(${i})" class="text-red-500"><i class="fas fa-times"></i></button>
+                </div>`).join('');
+            const genCheckboxGroup = (id, options, currentVal) => {
+                const vals = (currentVal || '').split(',');
+                return `<div class="checkbox-group" id="${id}">${options.map(opt => `<label><input type="checkbox" value="${opt}" ${vals.includes(opt)?'checked':''}>${opt}</label>`).join('')}</div>`;
+            };
+
+            let html = '';
+            // 使用 createDateInputGroup 替換原有的 input type="date"
+            if(type === 'orders') {
+                html = `
+                    <div class="grid grid-cols-2 gap-4">
+                        <input class="input-dark" placeholder="Project" id="f_project" value="${data.project||''}" oninput="autoFillProjectInfo(this.value)">
+                        <input class="input-dark" placeholder="Agent" id="f_agent" value="${data.agent||''}">
+                        <input class="input-dark" placeholder="End User" id="f_endUser" value="${data.endUser||''}">
+                        <input class="input-dark" placeholder="PO#" id="f_po" value="${data.po||''}">
+                        <input class="input-dark" placeholder="Model" id="f_model" value="${data.model||''}">
+                    </div>
+                    <div class="bg-black/20 p-3 rounded mt-2 border border-white/5">
+                         <div class="mb-2"><label class="text-orange-300 text-sm font-bold">訂單日期</label>${createDateInputGroup('f_orderDate', data.createdAt||new Date().toISOString().split('T')[0])}</div>
+                         <div id="shipmentsContainer"></div>
+                         <button onclick="addShipmentRow()" class="text-xs text-orange-400 hover:text-white mt-2 font-bold flex items-center gap-1"><i class="fas fa-plus"></i> 追加交期/數量</button>
+                    </div>
+                    <textarea class="input-dark h-20 mt-2" placeholder="狀態說明" id="f_statusDesc">${data.statusDesc||''}</textarea>
+                `;
+                setTimeout(() => {
+                    const ships = data.shipments && data.shipments.length ? data.shipments : (data.qty ? [{dueDate:data.dueDate, qty:data.qty, isShipped:data.isShipped}] : []);
+                    if(ships.length === 0) addShipmentRow();
+                    else ships.forEach(s => addShipmentRow(s));
+                }, 0);
+            } else if(type === 'projects') {
+                html = `
+                    <div class="grid grid-cols-3 gap-4">
+                        <input class="input-dark" placeholder="Project (必填)" id="f_project" value="${data.project||''}" oninput="autoFillProjectInfo(this.value)">
+                        <input class="input-dark" placeholder="Agent" id="f_agent" value="${data.agent||''}">
+                        <input class="input-dark" placeholder="End User" id="f_endUser" value="${data.endUser||''}">
+                        <input class="input-dark" placeholder="Size" id="f_size" value="${data.size||''}">
+                        <input class="input-dark text-model" placeholder="Model" id="f_model" value="${data.model||''}">
+                        <input class="input-dark" type="number" placeholder="當年預算" id="f_budget" value="${data.budget||''}">
+                        <input class="input-dark" placeholder="PLM#" id="f_plm" value="${data.plm||''}">
+                    </div>
+                    <div class="bg-black/20 p-3 rounded mt-2 border border-white/5">
+                        <label class="text-xs text-orange-300 block mb-2">最新動態 (手動覆蓋)</label>
+                        <div class="flex gap-4">
+                             <div class="flex-1">${genCheckboxGroup('grp_latestStatus', ['訂單','報價','RMA','規格','送樣'], data.manualLatestStatus)}</div>
+                             <div>${createDateInputGroup('f_manualLatestDate', data.manualLatestDate || new Date().toISOString().split('T')[0])}</div>
+                        </div>
+                    </div>
+                    <div class="bg-black/20 p-3 rounded mt-2 border border-white/5">
+                        <label class="text-xs text-orange-300 block mb-2">標籤</label>
+                        ${genCheckboxGroup('grp_tags', ['量產','送樣','RMA','報價','規格'], data.tags)}
+                    </div>
+                    <textarea class="input-dark h-20 mt-2" placeholder="狀況概述" id="f_summary">${data.summary||''}</textarea>
+                    <label class="flex items-center gap-2 mt-2"><input type="checkbox" id="f_active" ${data.active!==false?'checked':''} class="accent-orange-500"> Active</label>
+                `;
+            } else if(type === 'masterList') {
+                html = `
+                     <div class="grid grid-cols-3 gap-4">
+                        <input class="input-dark" placeholder="Project" id="f_project" value="${data.project||''}">
+                        <input class="input-dark" placeholder="Agent" id="f_agent" value="${data.agent||''}">
+                        <input class="input-dark" placeholder="End User" id="f_endUser" value="${data.endUser||''}">
+                        <input class="input-dark" placeholder="Application" id="f_application" value="${data.application||''}">
+                        <input class="input-dark" placeholder="EAU" id="f_eau" value="${data.eau||''}">
+                        <input class="input-dark" placeholder="Size" id="f_size" value="${data.size||''}">
+                        <input class="input-dark" placeholder="Model" id="f_model" value="${data.model||''}">
+                        <input class="input-dark" placeholder="Price" id="f_salesPrice" value="${data.salesPrice||''}">
+                        <input class="input-dark" placeholder="Contact" id="f_contact" value="${data.contact||''}">
+                        <input class="input-dark" placeholder="Cus PN" id="f_cusPN" value="${data.cusPN||''}">
+                        <input class="input-dark" placeholder="PLM#" id="f_plm" value="${data.plm||''}">
+                    </div>
+                    <textarea class="input-dark h-20 mt-2" placeholder="Remark" id="f_remark">${data.remark||''}</textarea>
+                    <label class="flex items-center gap-2 mt-2"><input type="checkbox" id="f_active" ${data.active!==false?'checked':''} class="accent-orange-500"> Active</label>
+                `;
+            } else if (type === 'tasks') {
+                // Req 3: 使用自訂元件，且 handleDateSegment 內部會觸發 updateTrackDate
+                html = `<div class="grid grid-cols-2 gap-4"><input class="input-dark" placeholder="Project" id="f_project" value="${data.project||''}" oninput="autoFillProjectInfo(this.value)"><select class="input-dark" id="f_taskType">${['詢價','RMA','規格','送樣','交期','預測','合約','其他'].map(o=>`<option ${data.taskType===o?'selected':''}>${o}</option>`).join('')}</select>
+                    <input class="input-dark" placeholder="Agent" id="f_agent" value="${data.agent||''}"><input class="input-dark" placeholder="End User" id="f_endUser" value="${data.endUser||''}">
+                    <div><label class="text-xs text-gray-400">起始</label>${createDateInputGroup('f_startDate', data.startDate||new Date().toISOString().split('T')[0])}</div>
+                    <div><label class="text-xs text-gray-400">追蹤 (起始+3天)</label>${createDateInputGroup('f_trackDate', data.trackDate||'')}</div>
+                    <input class="input-dark" placeholder="文件#" id="f_docNum" value="${data.docNum||''}"></div>
+                    <textarea class="input-dark h-20" placeholder="說明" id="f_desc">${data.desc||''}</textarea>
+                    ${editingId?`<label class="flex items-center gap-2"><input type="checkbox" id="f_completed" ${data.completed?'checked':''} class="accent-orange-500"> 已完成</label>`:''}`;
+            } else if (type === 'quotes') {
+                html = `<div class="grid grid-cols-2 gap-4"><input class="input-dark" placeholder="Project" id="f_project" value="${data.project||''}" oninput="autoFillProjectInfo(this.value)"><input class="input-dark" placeholder="Agent" id="f_agent" value="${data.agent||''}"><input class="input-dark" placeholder="End User" id="f_endUser" value="${data.endUser||''}">
+                    <div><label class="text-xs text-gray-400">日期</label>${createDateInputGroup('f_date', data.date||new Date().toISOString().split('T')[0])}</div>
+                    <input class="input-dark" placeholder="業務報價" id="f_salesPrice" value="${data.salesPrice||''}"><input class="input-dark" placeholder="FAE報價" id="f_faePrice" value="${data.faePrice||''}"><input class="input-dark" placeholder="REF#" id="f_ref" value="${data.ref||''}"></div>
+                    <textarea class="input-dark h-20" placeholder="說明" id="f_desc">${data.desc||''}</textarea>`;
+            } else if (type === 'contacts') {
+                html = `<div class="grid grid-cols-2 gap-4"><input class="input-dark" placeholder="Agent" id="f_agent" value="${data.agent||''}"><input class="input-dark" placeholder="End User" id="f_endUser" value="${data.endUser||''}"><input class="input-dark" placeholder="Position" id="f_position" value="${data.position||''}"><input class="input-dark" placeholder="Phone" id="f_phone" value="${data.phone||''}"><input class="input-dark col-span-2" placeholder="Address" id="f_address" value="${data.address||''}"></div>
+                    <textarea class="input-dark h-16" placeholder="Remark" id="f_remark">${data.remark||''}</textarea><label class="flex items-center gap-2"><input type="checkbox" id="f_active" ${data.active!==false?'checked':''} class="accent-orange-500"> Active</label>`;
+            } else if (type === 'codes') {
+                html = `<div class="grid grid-cols-2 gap-4"><input class="input-dark" placeholder="Agent" id="f_agent" value="${data.agent||''}"><input class="input-dark" placeholder="End User" id="f_endUser" value="${data.endUser||''}"><input class="input-dark" placeholder="Code" id="f_code" value="${data.code||''}"><input class="input-dark" placeholder="Pricing" id="f_pricing" value="${data.pricing||''}"><input class="input-dark" placeholder="Logistics" id="f_logistics" value="${data.logistics||''}"></div>
+                    <textarea class="input-dark h-16" placeholder="Remark" id="f_remark">${data.remark||''}</textarea><label class="flex items-center gap-2"><input type="checkbox" id="f_active" ${data.active!==false?'checked':''} class="accent-orange-500"> Active</label>`;
+            }
+            container.innerHTML = html;
+        }
+
+        function getAllFields(type) {
+            const map = {
+                'projects': [{k:'project',l:'Project'},{k:'agent',l:'Agent'},{k:'endUser',l:'End User'},{k:'size',l:'Size'},{k:'model',l:'Model'},{k:'summary',l:'狀況概述'},{k:'budget',l:'當年預算'},{k:'plm',l:'PLM#'}],
+                'masterList': [{k:'project',l:'Project'},{k:'agent',l:'Agent'},{k:'endUser',l:'End User'},{k:'application',l:'App'},{k:'eau',l:'EAU'},{k:'size',l:'Size'},{k:'model',l:'Model'},{k:'salesPrice',l:'Price'},{k:'remark',l:'Remark'},{k:'contact',l:'Contact'},{k:'cusPN',l:'Cus PN'},{k:'plm',l:'PLM#'}],
+                'tasks': [{k:'project',l:'Project'},{k:'agent',l:'Agent'},{k:'taskType',l:'任務'},{k:'desc',l:'說明'},{k:'docNum',l:'文件#'}],
+                'quotes': [{k:'project',l:'Project'},{k:'salesPrice',l:'業務報價'},{k:'faePrice',l:'FAE報價'},{k:'ref',l:'REF#'},{k:'desc',l:'說明'}],
+                'contacts': [{k:'agent',l:'Agent'},{k:'address',l:'Address'},{k:'phone',l:'Phone'},{k:'remark',l:'Remark'}],
+                'codes': [{k:'code',l:'Code'},{k:'pricing',l:'Pricing'},{k:'logistics',l:'Logistics'},{k:'remark',l:'Remark'}],
+                'orders': [{k:'po',l:'PO#'},{k:'statusDesc',l:'狀態說明'},{k:'model',l:'型號'},{k:'orderDate',l:'訂單日期'}]
+            };
+            return map[type] || [];
+        }
+
+        function addCommentField() {
+            const type = document.getElementById('modalType').value;
+            const container = document.getElementById('commentsContainer');
+            const div = document.createElement('div');
+            div.className = "flex gap-2 mb-1";
+            div.innerHTML = `<select class="input-dark text-xs w-1/3">${getAllFields(type).map(f => `<option value="${f.k}">${f.l}</option>`).join('')}</select><input type="text" class="input-dark text-xs flex-1"><button onclick="this.parentElement.remove()" class="text-red-500"><i class="fas fa-times"></i></button>`;
+            container.appendChild(div);
+        }
+
+        function saveData() {
+            const type = document.getElementById('modalType').value;
+            const inputs = document.querySelectorAll('#modalFields input:not([type=checkbox]):not(.s-qty):not(.yy):not(.mm):not(.dd), #modalFields select, #modalFields textarea');
+            const newData = { id: editingId || Date.now(), updatedAt: new Date() };
+            
+            // Collect standard inputs & hidden date inputs
+            inputs.forEach(input => { 
+                const key = input.id.replace('f_', ''); 
+                if(key && key.indexOf('ship_date') === -1) { // Skip shipment dynamic inputs handled separately
+                    newData[key] = input.value; 
+                }
+            });
+
+            document.querySelectorAll('#modalFields input[type=checkbox]:not(.group-check):not(.s-ship)').forEach(cb => { if(!cb.closest('.checkbox-group')) newData[cb.id.replace('f_', '')] = cb.checked; });
+            
+            if (type === 'projects') {
+                const getGroupVal = (id) => Array.from(document.querySelectorAll(`#${id} input:checked`)).map(c=>c.value).join(',');
+                newData.tags = getGroupVal('grp_tags');
+                newData.manualLatestStatus = getGroupVal('grp_latestStatus');
+                newData.manualLatestDate = document.getElementById('f_manualLatestDate').value;
+            }
+            if (type === 'orders') {
+                newData.createdAt = document.getElementById('f_orderDate').value;
+                newData.shipments = [];
+                document.querySelectorAll('.shipment-row').forEach(row => {
+                    // 抓取 hidden date input value
+                    const hiddenDate = row.querySelector('.s-date-hidden').value;
+                    newData.shipments.push({
+                        dueDate: hiddenDate,
+                        qty: row.querySelector('.s-qty').value,
+                        isShipped: row.querySelector('.s-ship').checked
+                    });
+                });
+            }
+
+            if(['projects','masterList','orders','quotes','tasks'].includes(type) && !newData.project) return alert('Project 為必填');
+            const commentDivs = document.querySelectorAll('#commentsContainer > div');
+            newData.comments = Array.from(commentDivs).map(div => ({ field: div.querySelector('select').value, text: div.querySelector('input').value })).filter(c => c.text);
+            if(editingId) {
+                const idx = db[type].findIndex(i => i.id === editingId);
+                if(idx >= 0) db[type][idx] = { ...db[type][idx], ...newData };
+            } else { db[type].push(newData);
+            }
+            saveToLocal(); closeModal(); renderCurrentView();
+        }
+
+        function deleteItem(id) { if(confirm('確定刪除?')) { const t = currentView==='activities'?'tasks':currentView; db[t] = db[t].filter(i=>i.id!==id);
+            saveToLocal(); renderCurrentView(); } }
+        function autoCheckShipment() { const today = new Date().toISOString().split('T')[0];
+            db.orders.forEach(o => { 
+                if(o.shipments) o.shipments.forEach(s => { if(!s.isShipped && s.dueDate && s.dueDate < today) s.isShipped = true; });
+                else if(!o.isShipped && o.dueDate && o.dueDate < today) o.isShipped = true; 
+            });
+            saveToLocal();
+        }
+
+        function handleExcelImport(e) {
+            const reader = new FileReader();
+            reader.onload = (evt) => {
+                const data = evt.target.result;
+                const wb = XLSX.read(data, {type:'binary', cellStyles: true}); 
+                let count = 0;
+                const sheetMapping = { '案子列表':'projects', '報價列表':'quotes', '聯絡人清單':'contacts', '客戶代碼與行為':'codes', '總表維護':'masterList' };
+                for (const [sheetName, dbKey] of Object.entries(sheetMapping)) {
+                    if (wb.SheetNames.includes(sheetName)) {
+                        const sheet = wb.Sheets[sheetName];
+                        const rawData = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+                        const colMap = {};
+                        if(sheet['!ref']) {
+                            const range = XLSX.utils.decode_range(sheet['!ref']);
+                            for(let C = range.s.c; C <= range.e.c; ++C) {
+                                const addr = XLSX.utils.encode_cell({r:range.s.r, c:C});
+                                const cell = sheet[addr];
+                                if(cell && cell.v) colMap[C] = cell.v.toString().trim();
+                            }
+                        }
+
+                        rawData.forEach((row, rowIndex) => {
+                            let newItem = { id: Date.now() + Math.random(), updatedAt: new Date(), comments: [] };
+                            const excelRow = (XLSX.utils.decode_range(sheet['!ref']).s.r) + 1 + rowIndex + 1;
+
+                            for (const key in row) {
+                                const k = key.toLowerCase().replace(/[\s#]/g, '');
+                                let fieldName = '';
+                                if(k.includes('project')) { newItem.project = row[key]; fieldName = 'project'; }
+                                else if(k.includes('agent')) { newItem.agent = row[key]; fieldName = 'agent'; }
+                                else if(k.includes('enduser')) { newItem.endUser = row[key]; fieldName = 'endUser'; }
+                                else if(k.includes('model')) { newItem.model = row[key]; fieldName = 'model'; }
+                                else if(k.includes('size')) { newItem.size = row[key]; fieldName = 'size'; }
+                                else if(k.includes('eau')) { newItem.eau = row[key]; fieldName = 'eau'; }
+                                else if(k.includes('app')) { newItem.application = row[key]; fieldName = 'application'; }
+                                else if(k.includes('contact')) { newItem.contact = row[key]; fieldName = 'contact'; }
+                                else if(k.includes('plm')) { newItem.plm = row[key]; fieldName = 'plm'; }
+                                else if(k.includes('業務報價') || (k.includes('price') && !k.includes('fae'))) { newItem.salesPrice = row[key]; fieldName = 'salesPrice'; }
+                                else if(k.includes('fae') || k.includes('faeprice')) { newItem.faePrice = row[key]; fieldName = 'faePrice'; }
+                                else if(k.includes('phone')) { newItem.phone = row[key]; fieldName = 'phone'; }
+                                else if(k.includes('address')) { newItem.address = row[key]; fieldName = 'address'; }
+                                else if(k.includes('code')) { newItem.code = row[key]; fieldName = 'code'; }
+                                else if(k.includes('remark')) { newItem.remark = row[key]; fieldName = 'remark'; }
+                                else if(k.includes('cuspn')) { newItem.cusPN = row[key]; fieldName = 'cusPN'; }
+                                else if(k.includes('budget')) { newItem.budget = row[key]; fieldName = 'budget'; }
+
+                                // Import Comments
+                                const colIdx = Object.keys(colMap).find(idx => colMap[idx] === key);
+                                if (colIdx && fieldName) {
+                                    const cellAddr = XLSX.utils.encode_cell({c: parseInt(colIdx), r: excelRow - 1});
+                                    const cell = sheet[cellAddr];
+                                    if(cell && (cell.c || cell.comment)) {
+                                        const c = cell.c || cell.comment;
+                                        const commentText = Array.isArray(c) ? c.map(i=>i.t).join('\n') : (c.t || c);
+                                        if(commentText) newItem.comments.push({ field: fieldName, text: commentText });
+                                    }
+                                }
+                            }
+                            db[dbKey].push(newItem);
+                            count++;
+                        });
+                    }
+                }
+                saveToLocal();
+                renderCurrentView(); alert(`成功匯入 ${count} 筆資料`);
+            };
+            reader.readAsBinaryString(e.target.files[0]);
+        }
+
+        function exportExcel(mode) {
+            const wb = XLSX.utils.book_new();
+            const dateStr = new Date().toISOString().split('T')[0].replace(/-/g, '');
+            
+            const processSheet = (ws, data) => {
+                ws['!cols'] = Object.keys(data[0]||{}).map(() => ({wch: 15}));
+                ws['!freeze'] = { xSplit: "0", ySplit: "1", topLeftCell: "A2", activePane: "bottomRight", state: "frozen" };
+                const range = XLSX.utils.decode_range(ws['!ref']);
+                for(let R = range.s.r; R <= range.e.r; ++R) {
+                    for(let C = range.s.c; C <= range.e.c; ++C) {
+                        const cellAddr = XLSX.utils.encode_cell({r:R, c:C});
+                        const cell = ws[cellAddr];
+                        if(!cell) continue;
+
+                        if(!cell.s) cell.s = {};
+                        cell.s.font = { name: "Arial", sz: 10 };
+                        if(R === 0) { 
+                            cell.s.font = { name: "Arial", sz: 11, bold: true, color: { rgb: "0B5394" } };
+                            cell.s.border = { bottom: { style: "thick", color: { rgb: "FFC000" } } };
+                        } else {
+                            const item = data[R-1];
+                            const headerCell = ws[XLSX.utils.encode_cell({r:0, c:C})];
+                            const headerName = headerCell ? headerCell.v : '';
+                            if(item && item._comments) {
+                                const mapping = {
+                                    'Project':'project','Agent':'agent','End User':'endUser','Model':'model',
+                                    'Size':'size','EAU':'eau','Application':'application','Contact':'contact',
+                                    'PLM#':'plm','Price':'salesPrice','Sales Price':'salesPrice','FAE Price':'faePrice',
+                                    'Phone':'phone','Address':'address','Code':'code','Remark':'remark',
+                                     'Cus PN':'cusPN','當年預算':'budget'
+                                };
+                                const fieldKey = mapping[headerName];
+                                const cmt = item._comments.find(c => c.field === fieldKey);
+                                if(cmt) {
+                                    if(!cell.c) cell.c = [];
+                                    cell.c.push({ t: cmt.text, a: "System" });
+                                    cell.comment = { t: cmt.text };
+                                }
+                            }
+                        }
+                    }
+                }
+                return ws;
+            };
+
+            if(mode === 'LIST') {
+                const addSheet = (name, rawData) => {
+                    const ws = XLSX.utils.json_to_sheet(rawData);
+                    processSheet(ws, rawData);
+                    XLSX.utils.book_append_sheet(wb, ws, name);
+                };
+
+                // 1. Projects
+                const projData = db.projects.map(p => {
+                    const lastQuote = db.quotes.filter(q=>q.project===p.project).sort((a,b)=>new Date(b.date)-new Date(a.date))[0];
+                    const tasks = db.tasks.filter(t => t.project === p.project).sort((a,b)=>new Date(b.trackDate||b.startDate)-new Date(a.trackDate||a.startDate));
+                 
+                    const remarkStr = tasks.map(t => `${t.trackDate||t.startDate} ${t.taskType}: ${t.desc}`).join('\r\n');
+                    return {
+                        'Project': p.project, 'Agent': p.agent, 'End User': p.endUser, 
+                        'Size': p.size, 'Model': p.model, 'Price': lastQuote ? lastQuote.salesPrice : '',
+                        'Remark': remarkStr, '_comments': p.comments 
+                    };
+                });
+                addSheet("案子列表", projData);
+
+                // 2. Master List
+                const masterData = db.masterList.map(m => ({
+                    'Project': m.project, 'Agent': m.agent, 'End User': m.endUser,
+                    'Application': m.application, 'EAU': m.eau, 'Size': m.size,
+                    'Model': m.model, 'Price': m.salesPrice, 'Remark': m.remark,
+                    'Contact': m.contact, 'Cus PN': m.cusPN, 'PLM#': m.plm, '_comments': m.comments
+                }));
+                addSheet("總表維護", masterData);
+
+                // 3. Quotes
+                const quoteData = db.quotes.map(q => ({
+                    'Project': q.project, 'Agent': q.agent, 'End User': q.endUser,
+                    'Date': q.date, 'Sales Price': q.salesPrice, 'FAE Price': q.faePrice,
+                    'REF#': q.ref, 'Desc': q.desc, '_comments': q.comments
+                }));
+                addSheet("報價列表", quoteData);
+
+                // 4. Contacts
+                const contactData = db.contacts.map(c => ({
+                    'Agent': c.agent, 'End User': c.endUser, 'Position': c.position,
+                    'Phone': c.phone, 'Address': c.address, 'Remark': c.remark, '_comments': c.comments
+                }));
+                addSheet("聯絡人清單", contactData);
+
+                // 5. Codes
+                const codeData = db.codes.map(c => ({
+                    'Agent': c.agent, 'End User': c.endUser, 'Code': c.code,
+                    'Pricing': c.pricing, 'Logistics': c.logistics, 'Remark': c.remark, '_comments': c.comments
+                }));
+                addSheet("客戶代碼與行為", codeData);
+
+                XLSX.writeFile(wb, `LIST(業務管理表)_${dateStr}.xlsx`, { cellStyles: true });
+            } else {
+                const data = db.tasks.map(t => ({
+                    '客戶': `${t.agent||''} / ${t.endUser||''}`, '日期': t.trackDate, 
+                    '議題': '', '業務事項': t.taskType, '進度狀況': t.desc, '備註': t.docNum
+                }));
+                const ws = XLSX.utils.json_to_sheet(data);
+                processSheet(ws, data);
+                XLSX.utils.book_append_sheet(wb, ws, "進度狀況");
+                XLSX.writeFile(wb, `Daily(業務進度狀況)_${dateStr}.xlsx`, { cellStyles: true });
+            }
+        }
+        
+        function backupData() {
+             const dateStr = new Date().toISOString().split('T')[0].replace(/-/g, '');
+             const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(db));
+             const node = document.createElement('a'); node.href = dataStr; 
+             node.download = `WorkFlow_${dateStr}.json`; 
+             node.click();
+        }
+        function restoreData(e) {
+            const r = new FileReader();
+            r.onload = (ev) => { db = JSON.parse(ev.target.result); saveToLocal(); location.reload(); };
+            r.readAsText(e.target.files[0]);
+        }
+    </script>
+</body>
+</html>
