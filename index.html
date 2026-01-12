@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BusinessFlow V3.5.2 - 業務工作流系統</title>
+    <title>BusinessFlow V3.5.6 - 業務工作流系統</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -33,19 +33,27 @@
             border-right: 1px solid rgba(255, 255, 255, 0.1);
             transition: width 0.3s ease; width: 240px;
         }
-        .sidebar.collapsed { width: 70px; }
-        .sidebar.collapsed .menu-text, .sidebar.collapsed .logo-text, .sidebar.collapsed .submenu-icon { display: none; }
+        .sidebar.collapsed { width: 70px;
+        }
+        .sidebar.collapsed .menu-text, .sidebar.collapsed .logo-text, .sidebar.collapsed .submenu-icon { display: none;
+        }
 
         /* 表格容器 */
-        .table-container { height: calc(100vh - 140px); overflow: auto; position: relative; }
+        .table-container { height: calc(100vh - 140px);
+        overflow: auto; position: relative; }
         
         /* 表格列樣式 */
-        .table-row { cursor: pointer; transition: background-color 0.2s; }
-        .table-row:hover td { background-color: var(--bg-hover) !important; }
-        .table-row:hover .sticky-col { background-color: var(--bg-hover) !important; }
-        .select-mode .table-row:hover td, .select-mode .table-row:hover .sticky-col { background-color: #1a2a50 !important; }
+        .table-row { cursor: pointer;
+        transition: background-color 0.2s; }
+        .table-row:hover td { background-color: var(--bg-hover) !important;
+        }
+        .table-row:hover .sticky-col { background-color: var(--bg-hover) !important;
+        }
+        .select-mode .table-row:hover td, .select-mode .table-row:hover .sticky-col { background-color: #1a2a50 !important;
+        }
 
-        table { border-collapse: separate; border-spacing: 0; min-width: 100%; table-layout: fixed; }
+        table { border-collapse: separate; border-spacing: 0; min-width: 100%; table-layout: fixed;
+        }
         
         th { 
             background-color: var(--header-bg);
@@ -72,7 +80,8 @@
             white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
             cursor: pointer; width: 100%;
         }
-        .cell-content:hover { color: white; }
+        .cell-content:hover { color: white;
+        }
 
         /* 凍結窗格設定 */
         .sticky-col { 
@@ -89,72 +98,104 @@
             box-shadow: -1px 0 0 #333;
             border-left: 1px solid #333;
         }
-        th.sticky-col, th.sticky-right { background-color: var(--header-bg); z-index: 50; }
+        th.sticky-col, th.sticky-right { background-color: var(--header-bg); z-index: 50;
+        }
 
         /* 最新動態底色實心深藍 */
-        .col-latest { background-color: var(--deep-blue-solid) !important; }
-        .table-row:hover .col-latest { background-color: var(--bg-hover) !important; }
+        .col-latest { background-color: var(--deep-blue-solid) !important;
+        }
+        .table-row:hover .col-latest { background-color: var(--bg-hover) !important;
+        }
 
         /* 凍結欄位位置計算 */
-        body:not(.select-mode) .col-0 { left: 0px; }
+        body:not(.select-mode) .col-0 { left: 0px;
+        }
         
         /* 左方功能區展開時，Project 欄(col-1)隱藏 */
-        body:not(.sidebar-collapsed) .col-1 { display: none; }
-        body.sidebar-collapsed .col-1 { display: table-cell; }
+        body:not(.sidebar-collapsed) .col-1 { display: none;
+        }
+        body.sidebar-collapsed .col-1 { display: table-cell;
+        }
         /* 當 Project 顯示時的位置 */
-        body.sidebar-collapsed:not(.select-mode) .col-1 { left: 40px; }
+        body.sidebar-collapsed:not(.select-mode) .col-1 { left: 40px;
+        }
         
         /* Sidebar Open (Project Hidden) */
-        body:not(.sidebar-collapsed):not(.select-mode) .col-2 { left: 40px; } 
-        body:not(.sidebar-collapsed):not(.select-mode) .col-3 { left: 120px; }
-        body:not(.sidebar-collapsed):not(.select-mode) .col-4 { left: 200px; }
-        body:not(.sidebar-collapsed):not(.select-mode) .col-5 { left: 260px; }
-        body:not(.sidebar-collapsed):not(.select-mode) .col-6 { left: 360px; }
+        body:not(.sidebar-collapsed):not(.select-mode) .col-2 { left: 40px;
+        } 
+        body:not(.sidebar-collapsed):not(.select-mode) .col-3 { left: 120px;
+        }
+        body:not(.sidebar-collapsed):not(.select-mode) .col-4 { left: 200px;
+        }
+        body:not(.sidebar-collapsed):not(.select-mode) .col-5 { left: 260px;
+        }
+        body:not(.sidebar-collapsed):not(.select-mode) .col-6 { left: 410px;
+        /* 修正: Model 加寬 50px */
+        }
 
         /* Sidebar Closed (Project Shown) */
-        body.sidebar-collapsed:not(.select-mode) .col-2 { left: 120px; } 
-        body.sidebar-collapsed:not(.select-mode) .col-3 { left: 200px; }
-        body.sidebar-collapsed:not(.select-mode) .col-4 { left: 280px; }
-        body.sidebar-collapsed:not(.select-mode) .col-5 { left: 340px; }
-        body.sidebar-collapsed:not(.select-mode) .col-6 { left: 440px; }
+        body.sidebar-collapsed:not(.select-mode) .col-2 { left: 120px;
+        } 
+        body.sidebar-collapsed:not(.select-mode) .col-3 { left: 200px;
+        }
+        body.sidebar-collapsed:not(.select-mode) .col-4 { left: 280px;
+        }
+        body.sidebar-collapsed:not(.select-mode) .col-5 { left: 340px;
+        }
+        body.sidebar-collapsed:not(.select-mode) .col-6 { left: 490px;
+        /* 修正: Model 加寬 50px */
+        }
 
         /* 選取模式下的調整 */
-        .select-mode .col-check { left: 0px; z-index: 30; }
-        body.sidebar-collapsed.select-mode .col-0 { left: 40px; }
-        body:not(.sidebar-collapsed).select-mode .col-0 { left: 40px; }
+        .select-mode .col-check { left: 0px;
+        z-index: 30; }
+        body.sidebar-collapsed.select-mode .col-0 { left: 40px;
+        }
+        body:not(.sidebar-collapsed).select-mode .col-0 { left: 40px;
+        }
 
-        .text-model { color: var(--text-light-blue) !important; font-weight: 500; }
-        .text-small-gray { font-size: 10px; color: #9ca3af; }
+        .text-model { color: var(--text-light-blue) !important; font-weight: 500;
+        }
+        .text-small-gray { font-size: 10px; color: #9ca3af;
+        }
 
-        .btn-orange { background-color: var(--orange-primary); transition: all 0.2s; color: white; }
-        .btn-orange:hover { background-color: #e05d1d; box-shadow: 0 0 15px var(--orange-glow); transform: translateY(-1px); }
+        .btn-orange { background-color: var(--orange-primary); transition: all 0.2s; color: white;
+        }
+        .btn-orange:hover { background-color: #e05d1d; box-shadow: 0 0 15px var(--orange-glow); transform: translateY(-1px);
+        }
         
         .input-dark { 
             background: rgba(0,0,0,0.4);
             border: 1px solid rgba(255,255,255,0.1); color: white; 
             border-radius: 4px; padding: 8px 12px; width: 100%; transition: border-color 0.3s;
         }
-        .input-dark:focus { outline: none; border-color: var(--orange-primary); }
-        .input-dark option { background-color: #000; color: #fff; }
+        .input-dark:focus { outline: none; border-color: var(--orange-primary);
+        }
+        .input-dark option { background-color: #000; color: #fff;
+        }
 
         /* Date Segment Input Style */
         .date-segment-container {
-            display: flex; align-items: center; gap: 4px;
+            display: flex;
+            align-items: center; gap: 4px;
             background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1);
             border-radius: 4px; padding: 4px 8px; width: 100%;
         }
         .date-segment-container input {
-            background: transparent; border: none; color: white; text-align: center;
+            background: transparent;
+            border: none; color: white; text-align: center;
             padding: 4px 0; outline: none;
         }
-        .date-segment-container input:focus { border-bottom: 1px solid var(--orange-primary); }
+        .date-segment-container input:focus { border-bottom: 1px solid var(--orange-primary);
+        }
         /* Remove number spinner */
         .date-segment-container input::-webkit-outer-spin-button,
-        .date-segment-container input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        .date-segment-container input::-webkit-inner-spin-button { -webkit-appearance: none;
+        margin: 0; }
 
         .fab-btn {
             position: fixed;
-            bottom: 40px; right: 40px;
+            bottom: 10px; right: 20px;
             width: 60px; height: 60px; border-radius: 50%;
             background: var(--egypt-blue); color: white;
             display: flex; align-items: center; justify-content: center;
@@ -167,12 +208,16 @@
             color: var(--orange-primary); box-shadow: 0 0 20px var(--orange-glow);
         }
 
-        ::-webkit-scrollbar { width: 8px; height: 8px; }
-        ::-webkit-scrollbar-track { background: #1a1a1a; }
-        ::-webkit-scrollbar-thumb { background: var(--orange-primary); border-radius: 4px; }
+        ::-webkit-scrollbar { width: 8px;
+        height: 8px; }
+        ::-webkit-scrollbar-track { background: #1a1a1a;
+        }
+        ::-webkit-scrollbar-thumb { background: var(--orange-primary); border-radius: 4px;
+        }
 
         /* Tooltip & Comment Triangle */
-        .has-comment { position: relative; }
+        .has-comment { position: relative;
+        }
         .has-comment::after {
             content: '';
             position: absolute; top: 0; right: 0;
@@ -182,11 +227,16 @@
             pointer-events: auto; cursor: pointer;
         }
         
-        .tag-badge { padding: 2px 6px; border-radius: 3px; font-size: 0.7rem; border: 1px solid rgba(255,255,255,0.2); display: inline-block; margin: 1px; }
-        .tag-blue { background-color: rgba(22, 51, 168, 0.4); color: #A1B0F6; }
+        .tag-badge { padding: 2px 6px;
+        border-radius: 3px; font-size: 0.7rem; border: 1px solid rgba(255,255,255,0.2); display: inline-block; margin: 1px;
+        }
+        .tag-blue { background-color: rgba(22, 51, 168, 0.4); color: #A1B0F6;
+        }
 
-        .checkbox-group label { display: inline-flex; align-items: center; margin-right: 12px; margin-bottom: 6px; cursor: pointer; font-size: 0.9rem; color: #ccc; }
-        .checkbox-group input { margin-right: 6px; accent-color: var(--orange-primary); }
+        .checkbox-group label { display: inline-flex; align-items: center; margin-right: 12px; margin-bottom: 6px;
+        cursor: pointer; font-size: 0.9rem; color: #ccc; }
+        .checkbox-group input { margin-right: 6px;
+        accent-color: var(--orange-primary); }
 
         /* 浮動視窗樣式 */
         .float-window {
@@ -224,7 +274,39 @@
             font-size: 0.9rem;
             z-index: 300; opacity: 0; transition: opacity 0.3s; pointer-events: none;
         }
-        .toast-show { opacity: 1; }
+        .toast-show { opacity: 1;
+        }
+
+        /* 專用 Action Toast */
+        .action-toast {
+            position: fixed;
+            top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background-color: rgba(20, 20, 20, 0.95); border: 1px solid var(--orange-primary);
+            padding: 20px 40px;
+            border-radius: 12px; z-index: 500;
+            display: none; flex-col: column; align-items: center; text-align: center;
+            box-shadow: 0 0 30px rgba(255, 110, 37, 0.3);
+        }
+        .action-toast h3 { font-size: 1.2rem; color: white; margin-bottom: 8px; font-weight: bold;
+        }
+        .action-toast p { font-size: 0.9rem; color: #bbb;
+        }
+        .action-toast-close { position: absolute; top: 10px; right: 15px; cursor: pointer; color: #666;
+        }
+        .action-toast-close:hover { color: white;
+        }
+
+        /* 按鈕光暈特效 */
+        .btn-glow-red { animation: pulse-red 1.5s infinite;
+        color: #ff6b6b; text-shadow: 0 0 5px red; }
+        .btn-glow-green { animation: pulse-green 1.5s infinite;
+        color: #4ade80; text-shadow: 0 0 5px lime; }
+        @keyframes pulse-red { 0% { opacity: 1;
+        } 50% { opacity: 0.6; } 100% { opacity: 1;
+        } }
+        @keyframes pulse-green { 0% { opacity: 1;
+        } 50% { opacity: 0.6; } 100% { opacity: 1;
+        } }
     </style>
 </head>
 <body class="flex" onclick="handleGlobalClick(event)" oncontextmenu="return false;">
@@ -234,41 +316,47 @@
             <button onclick="toggleSidebar()" class="text-white text-lg hover:text-orange-400 w-6 text-center">
                 <i class="fas fa-bars"></i>
             </button>
-            <span class="font-bold text-lg tracking-wider italic logo-text text-orange-500">BusinessFlow <span class="text-xs bg-orange-600 text-white px-1 rounded ml-1 not-italic">V3.5.2</span></span>
+            <span class="font-bold text-lg tracking-wider 
+            italic logo-text text-orange-500">BusinessFlow <span class="text-xs bg-orange-600 text-white px-1 rounded ml-1 not-italic">V3.5.6</span></span>
         </div>
 
         <nav class="flex-1 overflow-y-auto custom-scrollbar flex flex-col mt-4">
             <div id="navMenu"></div>
             <div class="my-2 border-t border-white/10 mx-4 shrink-0"></div>
             <div>
+          
                 <a href="#" onclick="document.getElementById('excelImport').click()" class="flex items-center gap-4 p-4 hover:bg-white/5 text-gray-300 hover:text-white transition-colors">
                     <i class="fas fa-file-import w-6 text-center text-green-500"></i> <span class="menu-text">匯入 Excel</span>
                 </a>
                 <input type="file" id="excelImport" class="hidden" accept=".xlsx, .xls, .csv" onchange="handleExcelImport(event)">
                 <div>
+ 
                     <a href="#" onclick="toggleExportMenu()" class="flex items-center gap-4 p-4 hover:bg-white/5 text-gray-300 hover:text-white transition-colors cursor-pointer w-full justify-between">
                         <div class="flex items-center gap-4">
                             <i class="fas fa-file-export w-6 text-center text-blue-400"></i> <span class="menu-text">匯出 Excel</span>
-                         </div>
+     
+                    </div>
                         <i class="fas fa-chevron-down text-xs text-gray-500 submenu-icon transition-transform" id="exportArrow"></i>
                     </a>
-                
                     <div id="exportSubmenu" class="hidden bg-black/20 border-l-2 border-blue-500/30 ml-6">
-                        <div onclick="exportExcel('LIST')" class="p-3 pl-8 hover:bg-white/10 cursor-pointer text-sm text-gray-300"><i class="fas fa-table mr-2"></i>LIST (業務管理)</div>
+    
+                    <div onclick="exportExcel('LIST')" class="p-3 pl-8 hover:bg-white/10 cursor-pointer text-sm text-gray-300"><i class="fas fa-table mr-2"></i>LIST (業務管理)</div>
                         <div onclick="exportExcel('DAILY')" class="p-3 pl-8 hover:bg-white/10 cursor-pointer text-sm text-gray-300"><i class="fas fa-clock mr-2"></i>Daily (業務進度)</div>
                     </div>
+              
                 </div>
             </div>
-   
             <div class="my-2 border-t border-white/10 mx-4 shrink-0"></div>
             <div>
                 <a href="#" onclick="backupData()" class="flex items-center gap-4 p-4 hover:bg-white/5 text-gray-300 hover:text-white transition-colors">
-                    <i class="fas fa-cloud-download-alt w-6 text-center text-yellow-400"></i> <span class="menu-text">備份資料 (JSON)</span>
+                    <i class="fas fa-cloud-download-alt 
+                    w-6 text-center text-yellow-400"></i> <span class="menu-text">備份資料 (JSON)</span>
+   
                 </a>
-    
                  <a href="#" onclick="document.getElementById('jsonImport').click()" class="flex items-center gap-4 p-4 hover:bg-white/5 text-gray-300 hover:text-white transition-colors">
                     <i class="fas fa-cloud-upload-alt w-6 text-center text-yellow-400"></i> <span class="menu-text">還原資料</span>
                 </a>
+      
                 <input type="file" id="jsonImport" class="hidden" accept=".json" onchange="restoreData(event)">
             </div>
         </nav>
@@ -278,46 +366,68 @@
         <header class="h-16 border-b border-white/10 flex justify-between items-center px-6 bg-[#121212] shrink-0">
             <h2 id="sectionTitle" class="text-xl font-bold text-white tracking-wide">案子列表</h2>
             <div class="flex gap-4 items-center">
-                <button id="batchDeleteBtn" onclick="deleteSelected()" class="hidden bg-red-900/50 hover:bg-red-600 text-white px-3 py-1 rounded text-sm transition-colors border border-red-500/50">
+   
+                <button id="btnAddToProj" onclick="toggleAddToProjectMode()" class="hidden text-gray-400 hover:text-white text-sm font-bold flex items-center transition-all">
+                    <i class="fas fa-plus-square mr-2"></i><span>新增至案子列表</span>
+                </button>
+
+                <button id="batchDeleteBtn" onclick="deleteSelected()" class="hidden bg-red-900/50 hover:bg-red-600 text-white px-3 
+                py-1 rounded text-sm transition-colors border border-red-500/50">
                    <i class="fas fa-trash-alt mr-1"></i>刪除選取
                 </button>
                 <button id="exitSelectModeBtn" onclick="exitSelectionMode()" class="hidden text-gray-400 hover:text-white text-sm">
                     取消選取
+               
                 </button>
 
                  <div class="relative">
+      
                     <select id="sortSelect" onchange="renderCurrentView()" class="bg-[#222] border border-gray-700 text-gray-300 text-sm rounded-full pl-3 pr-8 py-1.5 focus:outline-none focus:border-orange-500 appearance-none cursor-pointer hover:bg-[#333]">
                         <option value="date_new">活動日期 (新→舊)</option>
+             
                         <option value="date_old">活動日期 (舊→新)</option>
+                  
                         <option value="az">字母順序 (A→Z)</option>
                         <option value="za">字母順序 (Z→A)</option>
+                 
                     </select>
                     <i class="fas fa-sort absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-xs pointer-events-none"></i>
+                
                 </div>
 
                 <div class="relative">
+                  
                     <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-xs"></i>
                     <input type="text" id="searchInput" placeholder="搜尋..." onkeyup="renderCurrentView()"
                     class="bg-[#222] border border-gray-700 rounded-full pl-8 pr-8 py-1.5 text-sm focus:outline-none focus:border-orange-500 w-64 transition-all">
                     <i class="fas fa-times absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-xs cursor-pointer hover:text-white" onclick="clearSearch()"></i>
+  
                 </div>
             </div>
         </header>
 
         <div id="contentArea" class="flex-1 overflow-hidden p-0 bg-[#0a0a0a]">
             <div class="h-full p-4 flex flex-col">
+  
                 <div class="bg-[#151515] rounded-lg border border-white/5 flex-1 overflow-hidden relative shadow-xl">
+           
                     <div class="table-container custom-scrollbar">
                         <table class="w-full text-left text-sm" id="mainTable">
+                            
                             <thead id="tableHead"></thead>
+    
                             <tbody id="tableBody"></tbody>
                         </table>
                         <div id="emptyState" class="hidden flex flex-col items-center justify-center py-20 text-gray-500">
-                            <i class="fas fa-folder-open text-4xl mb-4 opacity-50"></i>
+              
+     
+                        <i class="fas fa-folder-open text-4xl mb-4 opacity-50"></i>
                             <p>尚無資料，請點擊右下角 "+" 新增或長按列表項目進入批次模式</p>
-                        </div>
-                   </div>
-                </div>
+                       </div>
+                   
+                    </div>
+         
+               </div>
             </div>
         </div>
 
@@ -327,36 +437,49 @@
     </main>
 
     <div id="mainModal" class="fixed inset-0 bg-black/90 hidden items-center justify-center z-[100] backdrop-blur-sm" onclick="/* stop prop */">
-        <div class="bg-[#1a1a1a] border border-orange-500/30 w-[800px] max-h-[90vh] rounded-xl shadow-2xl overflow-hidden flex flex-col" onclick="event.stopPropagation()">
-            <div class="bg-[#202020] p-4 border-b border-white/10 flex justify-between items-center shrink-0">
+   
+         <div class="bg-[#1a1a1a] border border-orange-500/30 w-[800px] max-h-[90vh] rounded-xl shadow-2xl overflow-hidden flex flex-col" onclick="event.stopPropagation()">
+ 
+           <div class="bg-[#202020] p-4 border-b border-white/10 flex justify-between items-center shrink-0">
                 <h3 id="modalTitle" class="text-orange-400 font-bold text-lg"><i class="fas fa-plus-circle mr-2"></i>新增資料</h3>
                 <button onclick="closeModal()" class="text-gray-400 hover:text-white"><i class="fas fa-times"></i></button>
             </div>
-  
-           <div class="p-6 overflow-y-auto custom-scrollbar flex-1 space-y-5">
+        
+            <div class="p-6 overflow-y-auto custom-scrollbar flex-1 space-y-5">
+         
                 <input type="hidden" id="editId">
                 <div>
                     <label class="block text-gray-400 text-xs mb-2">資料類型</label>
-                    <select id="modalType" onchange="renderModalFields()" class="input-dark font-bold text-orange-300 border-orange-500/50 bg-orange-600/20">
+                    <select id="modalType" onchange="renderModalFields()" class="input-dark font-bold 
+                    text-orange-300 border-orange-500/50 bg-orange-600/20">
+                        
                         <option value="projects">案子列表 (Project)</option>
                         <option value="masterList">總表維護 (Master)</option>
+                      
                         <option value="tasks">任務列表 (Task)</option>
                         <option value="orders">訂單列表 (Order)</option>
+                    
                         <option value="quotes">報價列表 (Quote)</option>
+                        
                         <option value="contacts">聯絡人清單 (Contact)</option>
                         <option value="codes">客戶代碼與行為 (Code)</option>
                     </select>
                 </div>
+      
                 <div id="modalFields" class="space-y-4"></div>
+            
                 <div class="bg-black/20 p-4 rounded border border-white/5">
                     <label class="block text-gray-400 text-xs mb-2">詳細註解 (滑鼠點擊三角形顯示)</label>
                     <div id="commentsContainer" class="space-y-2"></div>
-                    <button onclick="addCommentField()" class="text-xs text-orange-400 hover:text-white mt-2 font-bold flex items-center gap-1">
+                    
+                    <button onclick="addCommentField()" class="text-xs text-orange-400 
+                    hover:text-white mt-2 font-bold flex items-center gap-1">
                         <i class="fas fa-plus"></i> 追加註解欄位
-                     </button>
+                    </button>
                 </div>
             </div>
-            <div class="p-4 bg-black/20 border-t border-white/5 flex justify-end gap-3 shrink-0">
+            <div class="p-4 bg-black/20 border-t border-white/5 flex justify-end gap-3 
+            shrink-0">
                 <button onclick="closeModal()" class="px-4 py-2 text-gray-400 hover:text-white text-sm">取消</button>
                 <button onclick="saveData()" class="btn-orange px-6 py-2 rounded text-white font-bold shadow-lg">儲存變更</button>
             </div>
@@ -365,6 +488,39 @@
 
     <div id="floatWindow" class="float-window" onmousedown="handleLongPressCopy(this)" onmouseenter="cancelFloatCloseTimer()" onmouseleave="startFloatCloseTimer()"></div>
     <div id="toast" class="toast-msg">已複製</div>
+    
+    <div id="actionToast" class="action-toast">
+ 
+        <i class="fas fa-times action-toast-close" onclick="document.getElementById('actionToast').style.display='none'"></i>
+        <i class="fas fa-check-circle text-4xl text-green-500 mb-2"></i>
+        <h3>已新增至案子列表</h3>
+        <p>ˇ當年預算預設為EAU，視需要更新數值</p>
+    </div>
+
+    <div id="filterMenu" class="fixed z-[600] hidden bg-[#202020] border border-orange-500/50 rounded-lg shadow-2xl flex-col w-64 max-h-[450px]" onclick="event.stopPropagation()">
+        <div class="p-3 border-b border-white/10 flex justify-between items-center bg-[#252525]">
+            <span class="text-orange-400 font-bold text-sm"><i class="fas fa-filter mr-2"></i>篩選與排序</span>
+            <button onclick="closeFilterMenu()" class="text-gray-500 hover:text-white"><i class="fas fa-times"></i></button>
+        </div>
+        
+        <div id="sortSection" class="p-2 border-b border-white/10 bg-[#2a2a2a] hidden">
+            <label class="text-xs text-gray-400 block mb-1">此欄位排序：</label>
+            <select id="filterSortSelect" onchange="applySort(this.value)" class="bg-black/40 border border-gray-600 text-gray-300 text-xs rounded w-full p-1 focus:border-orange-500 outline-none">
+                <option value="">(無)</option>
+            </select>
+        </div>
+    
+        <div class="p-2 border-b border-white/10 flex gap-2">
+            <button onclick="toggleFilterCheck(true)" class="text-xs text-blue-400 hover:text-white">全選</button>
+            <span class="text-gray-600">|</span>
+            <button onclick="toggleFilterCheck(false)" class="text-xs text-blue-400 hover:text-white">全不選</button>
+        </div>
+        <div id="filterOptions" class="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-1">
+        </div>
+        <div class="p-3 border-t border-white/10 flex justify-end gap-2 bg-[#252525]">
+            <button onclick="applyFilter()" class="btn-orange px-3 py-1 rounded text-xs font-bold">套用</button>
+        </div>
+    </div>
 
     <script>
         let db = { projects: [], masterList: [], orders: [], tasks: [], quotes: [], contacts: [], codes: [] };
@@ -374,6 +530,17 @@
         let longPressTimer;
         let copyToastTimer;
         let floatCloseTimer = null; 
+        
+        // V3.5.4 新增至案子列表狀態
+        let isAddToProjectMode = false;
+        let selectedMasterIds = new Set();
+
+        // V3.5.5 & V3.5.6 Filter & Sort State
+        let activeFilters = {};
+        // { view: { colKey: Set(values) } }
+        let currentFilterCol = null;
+        let headerLongPressTimer;
+        let activeSort = null; // { col: 'key', order: 'asc'/'desc'/'new'/'old' }
 
         const VIEW_CONFIG = {
             'projects': { title: '案子列表', icon: 'fa-briefcase' },
@@ -416,42 +583,100 @@
             }
         }
 
-        // 需求1: 浮動視窗邏輯更新 (支援Hover顯示 + 正下方定位)
-        // 修改為傳入元素 (el) 以計算位置
+        // V3.5.4 新增至案子列表邏輯
+        function toggleAddToProjectMode() {
+            const btn = document.getElementById('btnAddToProj');
+            const span = btn.querySelector('span');
+            
+            if(!isAddToProjectMode) {
+                isAddToProjectMode = true;
+                selectedMasterIds.clear();
+                btn.classList.add('btn-glow-red');
+                span.innerText = '新增至案子列表 (選取中)';
+                renderCurrentView();
+            } else {
+                if(selectedMasterIds.size > 0) {
+                    let count = 0;
+                    selectedMasterIds.forEach(id => {
+                        const m = db.masterList.find(x => x.id === id);
+                        if(m) {
+                            if(!db.projects.some(p => p.project === m.project)) {
+                                db.projects.push({
+                                    id: Date.now() + Math.random(),
+                                    updatedAt: new Date(),
+                                    project: m.project,
+                                    agent: m.agent,
+                                    endUser: m.endUser,
+                                    size: m.size,
+                                    model: m.model,
+                                    budget: m.eau, 
+                                    plm: m.plm,
+                                    active: true,
+                                    comments: []
+                                });
+                                count++;
+                            }
+                        }
+                    });
+                    if(count > 0) {
+                        saveToLocal();
+                        btn.classList.remove('btn-glow-red');
+                        btn.classList.add('btn-glow-green');
+                        const toast = document.getElementById('actionToast');
+                        toast.style.display = 'flex';
+                        setTimeout(() => { toast.style.display = 'none'; }, 3000);
+                    }
+                }
+                
+                isAddToProjectMode = false;
+                selectedMasterIds.clear();
+                setTimeout(() => {
+                    btn.classList.remove('btn-glow-red', 'btn-glow-green');
+                    span.innerText = '新增至案子列表';
+                }, 1000);
+                renderCurrentView();
+            }
+        }
+
+        function toggleAddMasterSelect(id) {
+            if(selectedMasterIds.has(id)) selectedMasterIds.delete(id);
+            else selectedMasterIds.add(id);
+        }
+        function toggleAddMasterSelectAll(cb) {
+             const checks = document.querySelectorAll('.master-add-check');
+             checks.forEach(c => {
+                 const id = parseFloat(c.value);
+                 c.checked = cb.checked;
+                 if(cb.checked) selectedMasterIds.add(id); else selectedMasterIds.delete(id);
+             });
+        }
+
         function showFloatWindow(content, el, type = 'content') {
             const fw = document.getElementById('floatWindow');
             fw.className = `float-window ${type === 'comment' ? 'float-window-comment' : 'float-window-content'}`;
             fw.innerText = content;
-
-            // 計算顯示位置: 該欄位正下方
             const rect = el.getBoundingClientRect();
             const w = 500;
             let left = rect.left;
-            let top = rect.bottom + 5; // 正下方
-
-            // 防止超出螢幕右側
+            let top = rect.bottom + 5;
             if (left + w > window.innerWidth) left = window.innerWidth - w - 20;
-            // 防止超出螢幕底部 (簡易處理)
             if (top + fw.offsetHeight > window.innerHeight) top = rect.top - fw.offsetHeight - 5;
-
             fw.style.left = left + 'px';
             fw.style.top = top + 'px';
             fw.style.display = 'block';
-            
             cancelFloatCloseTimer();
         }
 
         function startFloatCloseTimer() {
             floatCloseTimer = setTimeout(() => {
                 document.getElementById('floatWindow').style.display = 'none';
-            }, 1000); // 1秒後消失
+            }, 1000);
         }
 
         function cancelFloatCloseTimer() {
             clearTimeout(floatCloseTimer);
         }
 
-        // 全域點擊監聽 (任意點其他地方消失)
         function handleGlobalClick(e) {
             const fw = document.getElementById('floatWindow');
             if (fw.style.display === 'block' && 
@@ -459,6 +684,11 @@
                 !e.target.closest('.cell-content') && 
                 !e.target.closest('.has-comment')) {
                 fw.style.display = 'none';
+            }
+            // V3.5.6: Fix flash - checking closest filterMenu
+            const fm = document.getElementById('filterMenu');
+            if (!fm.classList.contains('hidden') && !fm.contains(e.target) && !e.target.closest('th')) {
+                closeFilterMenu();
             }
         }
 
@@ -498,6 +728,13 @@
         function switchView(view) {
             currentView = view;
             exitSelectionMode();
+            isAddToProjectMode = false;
+            selectedMasterIds.clear();
+            activeSort = null; // Reset Sort
+            const btn = document.getElementById('btnAddToProj');
+            btn.classList.add('hidden');
+            btn.classList.remove('btn-glow-red', 'btn-glow-green');
+            btn.querySelector('span').innerText = '新增至案子列表';
             document.querySelectorAll('.nav-item').forEach(el => {
                 el.classList.remove('border-orange-500', 'bg-white/5', 'text-white');
                 el.classList.add('border-transparent', 'text-gray-300');
@@ -508,10 +745,14 @@
                 activeEl.classList.add('border-orange-500', 'bg-white/5', 'text-white');
             }
             document.getElementById('sectionTitle').innerText = VIEW_CONFIG[view].title;
+            if(view === 'masterList') {
+                btn.classList.remove('hidden');
+            }
             clearSearch();
         }
 
-        function clearSearch() { document.getElementById('searchInput').value = ''; renderCurrentView(); }
+        function clearSearch() { document.getElementById('searchInput').value = ''; renderCurrentView();
+        }
 
         function getLatestStatus(item) {
             let events = [];
@@ -530,19 +771,160 @@
             return { text: '', date: '' };
         }
 
+        // V3.5.6 Filter Logic (Long Press) & Sorting
+        function startHeaderLongPress(e, key) {
+            if(!key || key === 'ops') return;
+            // V3.5.6 Allowed Star filter
+            headerLongPressTimer = setTimeout(() => {
+                openFilterMenu(e, key);
+            }, 800);
+        }
+
+        function cancelHeaderLongPress() {
+            clearTimeout(headerLongPressTimer);
+        }
+
+        function openFilterMenu(e, key) {
+            const menu = document.getElementById('filterMenu');
+            // Prevent if already open
+            if(!menu.classList.contains('hidden') && currentFilterCol === key) return;
+            // Show Filter Menu
+            const uniqueValues = new Set();
+            const sourceData = currentView === 'tasks' && currentView !== 'activities' ? db.tasks.filter(t => !t.completed) : db[currentView === 'activities' ? 'tasks' : currentView];
+            sourceData.forEach(item => {
+                if(key === 'star') {
+                    uniqueValues.add(item.star ? 'true' : 'false');
+                } else if(item[key]) {
+                    uniqueValues.add(item[key].toString());
+                } else if(key === 'latestStatus') {
+                     // For latest status, filter by text? User only asked for SORT.
+                     // But filter should work too based on V3.5.5 logic.
+                     const st = getLatestStatus(item);
+                     if(st.text) uniqueValues.add(st.text);
+                }
+            });
+            currentFilterCol = key;
+            const container = document.getElementById('filterOptions');
+            container.innerHTML = '';
+            // Init active filters
+            if(!activeFilters[currentView]) activeFilters[currentView] = {};
+            const currentSet = activeFilters[currentView][key] || new Set([...uniqueValues]); 
+
+            // Render Options
+            Array.from(uniqueValues).sort().forEach(val => {
+                const div = document.createElement('div');
+                div.className = 'flex items-center gap-2 hover:bg-white/5 p-1 rounded cursor-pointer';
+                div.onclick = (e) => {
+                     const cb = div.querySelector('input');
+                    if(e.target !== cb) cb.checked = !cb.checked;
+                };
+                let displayVal = val;
+                if(key === 'star') displayVal = val === 'true' ? '<i class="fas fa-star text-yellow-500"></i>' : '<span class="text-gray-500">無星星</span>';
+                div.innerHTML = `<input type="checkbox" class="accent-orange-500 filter-check" value="${val}" ${currentSet.has(val)?'checked':''}> <span class="text-xs text-gray-300 truncate">${displayVal}</span>`;
+                container.appendChild(div);
+            });
+            // V3.5.6 Sorting Options
+            const sortSection = document.getElementById('sortSection');
+            const sortSelect = document.getElementById('filterSortSelect');
+            sortSelect.innerHTML = '<option value="">(預設)</option>';
+            let showSort = false;
+            const addOpt = (val, txt) => sortSelect.innerHTML += `<option value="${val}" ${activeSort && activeSort.col===key && activeSort.order===val ? 'selected' : ''}>${txt}</option>`;
+            // Logic per View & Column
+            if (currentView === 'projects') {
+                if (key === 'latestStatus') { showSort = true;
+                addOpt('new', '活動日期(新→舊)'); addOpt('old', '活動日期(舊→新)'); }
+                if (['project','agent','endUser','size','model','budget'].includes(key)) { showSort = true;
+                addOpt('az', '字母順序(A→Z)'); addOpt('za', '字母順序(Z→A)'); }
+                if (key === 'achievement') { showSort = true;
+                addOpt('az', '字母順序(A→Z)'); addOpt('za', '字母順序(Z→A)'); }
+            } else if (currentView === 'orders') {
+                if (['project','agent','endUser','model'].includes(key)) { showSort = true;
+                addOpt('az', '字母順序(A→Z)'); addOpt('za', '字母順序(Z→A)'); }
+                // Orders '交期' is traditionally 'dueDate' or mapped to date
+                if (key === 'dueDate' || key === 'statusDesc') { showSort = true;
+                addOpt('az', '字母順序(A→Z)'); addOpt('za', '字母順序(Z→A)'); } 
+                // Note: user said "交期" -> assuming column key matches
+            } else if (currentView === 'tasks' || currentView === 'activities') {
+                if (['project','agent','endUser','model'].includes(key)) { showSort = true;
+                addOpt('az', '字母順序(A→Z)'); addOpt('za', '字母順序(Z→A)'); }
+                if (key === 'trackDate') { showSort = true;
+                addOpt('new', '活動日期(新→舊)'); addOpt('old', '活動日期(舊→新)'); }
+            } else if (currentView === 'quotes') {
+                // V3.5.6: Added model to sort
+                if (['project','agent','endUser','model'].includes(key)) { showSort = true;
+                addOpt('az', '字母順序(A→Z)'); addOpt('za', '字母順序(Z→A)'); }
+                if (key === 'date') { showSort = true;
+                addOpt('new', '活動日期(新→舊)'); addOpt('old', '活動日期(舊→新)'); }
+            } else if (currentView === 'masterList') {
+                if (['project','agent','endUser','eau','size','model'].includes(key)) { showSort = true;
+                addOpt('az', '字母順序(A→Z)'); addOpt('za', '字母順序(Z→A)'); }
+            }
+
+            sortSection.classList.toggle('hidden', !showSort);
+            // Position Menu
+            menu.style.left = Math.min(e.clientX, window.innerWidth - 270) + 'px';
+            menu.style.top = Math.min(e.clientY, window.innerHeight - 450) + 'px';
+            menu.classList.remove('hidden');
+            menu.classList.add('flex');
+        }
+
+        function closeFilterMenu() {
+            document.getElementById('filterMenu').classList.add('hidden');
+            document.getElementById('filterMenu').classList.remove('flex');
+            currentFilterCol = null;
+        }
+
+        function toggleFilterCheck(check) {
+            document.querySelectorAll('.filter-check').forEach(c => c.checked = check);
+        }
+
+        function applySort(order) {
+            if(!order) {
+                activeSort = null;
+            } else {
+                activeSort = { col: currentFilterCol, order: order };
+            }
+            // Close menu isn't mandatory but good UX, or keep open?
+            // Usually apply sort renders view.
+            renderCurrentView();
+            // Don't close immediately to allow multiple actions?
+            // User request was just to add function.
+            // I'll keep it open until "Apply" or close. But Render redraws table.
+        }
+
+        function applyFilter() {
+            if(!currentFilterCol) return;
+            const checks = document.querySelectorAll('.filter-check');
+            const checkedVals = new Set();
+            checks.forEach(c => {
+                if(c.checked) checkedVals.add(c.value);
+            });
+            // V3.5.6: If all selected (equal to total options), remove filter (Icon disappear)
+            if(checks.length > 0 && checkedVals.size === checks.length) {
+                if(activeFilters[currentView]) delete activeFilters[currentView][currentFilterCol];
+            } else {
+                if(!activeFilters[currentView]) activeFilters[currentView] = {};
+                activeFilters[currentView][currentFilterCol] = checkedVals;
+            }
+
+            closeFilterMenu();
+            renderCurrentView();
+        }
+
         function renderCurrentView() {
             const thead = document.getElementById('tableHead');
             const tbody = document.getElementById('tableBody');
             const search = document.getElementById('searchInput').value.toLowerCase();
             const sortMode = document.getElementById('sortSelect').value;
+            // Global Sort
 
             tbody.innerHTML = '';
             let columns = [];
             let sourceData = [];
 
             const commonOps = { t: '操作', w: '80px', k:'ops', c: 'sticky-right' };
-            const projectColW = '80px'; 
-
+            const projectColW = '80px';
+            const modelColSpec = { t: 'Model', w: '150px', k:'model', c: 'sticky-col col-5 text-model text-[10px]' };
             if(currentView === 'projects') {
                 sourceData = db.projects;
                 columns = [
@@ -551,7 +933,7 @@
                     { t: 'Agent', w: '80px', k:'agent', c: 'sticky-col col-2 text-small-gray' },
                     { t: 'End User', w: '80px', k:'endUser', c: 'sticky-col col-3 text-small-gray' },
                     { t: 'Size', w: '60px', k:'size', c: 'sticky-col col-4' },
-                    { t: 'Model', w: '100px', k:'model', c: 'sticky-col col-5 text-model' },
+                    modelColSpec,
                     { t: '<i class="fas fa-history mr-1"></i>最新動態', w: '120px', k:'latestStatus', c: 'sticky-col col-6 col-latest' },
                     { t: '標籤', w: '150px', k:'tags' },
                     { t: '狀況概述', w: '250px', k:'summary' },
@@ -564,13 +946,14 @@
             } else if (currentView === 'masterList') {
                 sourceData = db.masterList;
                 columns = [
-                    { t: 'Project', w: '120px', k:'project' },
-                    { t: 'Agent', w: '80px', k:'agent' },
-                    { t: 'End User', w: '80px', k:'endUser' },
+                    { t: '', w: '40px', c: 'sticky-col col-0' },
+                    { t: 'Project', w: '120px', k:'project', c: 'sticky-col col-1 text-small-gray' },
+                    { t: 'Agent', w: '80px', k:'agent', c: 'sticky-col col-2 text-small-gray' },
+                    { t: 'End User', w: '80px', k:'endUser', c: 'sticky-col col-3 text-small-gray' },
                     { t: 'Application', w: '100px', k:'application' },
                     { t: 'EAU', w: '80px', k:'eau' },
                     { t: 'Size', w: '60px', k:'size' },
-                    { t: 'Model', w: '100px', k:'model', c:'text-model' },
+                    { t: 'Model', w: '150px', k:'model', c:'text-model text-[10px]' },
                     { t: 'Price', w: '80px', k:'salesPrice' },
                     { t: 'Remark', w: '200px', k:'remark' },
                     { t: 'Contact', w: '100px', k:'contact' },
@@ -583,37 +966,49 @@
                 sourceData = currentView === 'tasks' ?
                 db.tasks.filter(t => !t.completed) : db.tasks;
                 columns = [
-                    { t: '★', w: '40px' }, { t: 'Project', w: '150px' }, { t: 'Agent', w: '100px' }, { t: 'End User', w: '100px' },
-                    { t: '任務', w: '80px' }, { t: '任務說明', w: '200px' }, { t: '文件#', w: '100px' },
-                    { t: '起始/追蹤', w: '120px' }, { t: '狀態', w: '80px' }, commonOps
+                    { t: '★', w: '40px', c: 'sticky-col col-0 text-center' }, 
+                    { t: 'Project', w: '150px', k: 'project', c: 'sticky-col col-1 text-small-gray' }, 
+                    { t: 'Agent', w: '100px', k: 'agent', c: 'sticky-col col-2 text-small-gray' }, 
+                    { t: 'End User', w: '100px', k: 'endUser', c: 'sticky-col col-3 text-small-gray' },
+                    { t: 'Model', w: '150px', k: 'model', c: 'sticky-col col-5 text-model text-[10px]' },
+                    { t: '任務', w: '80px', k: 'taskType' }, { t: '任務說明', w: '200px', k: 'desc' }, { t: '文件#', w: '100px', k: 'docNum' },
+                    { t: '起始/追蹤', w: '120px', k: 'trackDate' }, { t: '狀態', w: '80px' }, commonOps
                 ];
+                columns[4].c = 'text-model text-[10px]';
             } else if (currentView === 'orders') {
                 sourceData = db.orders;
+                // V3.5.6: Mapped DueDate to k:'dueDate' for filtering/sorting
+                // V3.5.6: Renamed '型號' to 'Model'
                 columns = [
-                    { t: '★', w: '40px' }, { t: 'Project', w: '120px' }, { t: 'Agent', w: '80px' }, { t: 'End User', w: '80px' },
-                    { t: '型號', w: '100px', c:'text-model' }, { t: 'PO#', w: '100px' }, { t: 'Qty', w: '60px' },
-                    { t: '交期', w: '100px' }, { t: '出貨', w: '60px' }, { t: '狀態說明', w: '150px' }, commonOps
+                    { t: '★', w: '40px' }, { t: 'Project', w: '120px', k:'project' }, { t: 'Agent', w: '80px', k:'agent' }, { t: 'End User', w: '80px', k:'endUser' },
+                    { t: 'Model', w: '100px', c:'text-model', k:'model' }, 
+                    { t: 'PO#', w: '100px', k:'po' }, { t: 'Qty', w: '60px', k:'qty' },
+                    { t: '交期', w: '100px', k:'dueDate' }, { t: '出貨', w: '60px' }, { t: '狀態說明', w: '150px', k:'statusDesc' }, commonOps
                 ];
             } else if (currentView === 'quotes') {
-                sourceData = db.quotes;
+                // V3.5.6 Add Model Column
                 columns = [
-                    { t: 'Project', w: '150px' }, { t: 'Agent', w: '100px' }, { t: 'End User', w: '100px' },
-                    { t: '日期', w: '100px' }, { t: '業務報價', w: '100px', c:'text-orange-300 font-bold' },
-                    { t: 'FAE報價', w: '100px' }, { t: 'REF#', w: '100px' }, { t: '說明', w: '200px' }, { t: '操作', w: '60px', c:'sticky-right' }
+                    { t: 'Project', w: '150px', k:'project', c: 'text-xs' }, 
+                    { t: 'Agent', w: '100px', k:'agent', c: 'text-xs' }, 
+                    { t: 'End User', w: '100px', k:'endUser', c: 'text-xs' },
+                    { t: '日期', w: '100px', k:'date' }, 
+                    { t: 'Model', w: '150px', k:'model', c: 'text-model text-[10px]' },
+                    { t: '業務報價', w: '100px', c:'text-orange-300 font-bold', k:'salesPrice' },
+                    { t: 'FAE報價', w: '100px', k:'faePrice' }, { t: 'REF#', w: '100px', k:'ref', c: 'text-xs text-gray-400' }, { t: '說明', w: '200px', k:'desc' }, { t: '操作', w: '60px', c:'sticky-right' }
                 ];
             } else if (currentView === 'contacts') {
                 sourceData = db.contacts;
                 columns = [
-                    { t: '★', w: '40px' }, { t: 'Agent', w: '120px' }, { t: 'End User', w: '120px' },
-                    { t: 'Position', w: '120px' }, { t: 'Phone', w: '120px' }, { t: 'Address', w: '200px' },
-                    { t: 'Remark', w: '150px' }, { t: 'Active', w: '60px' }, commonOps
+                    { t: '★', w: '40px' }, { t: 'Agent', w: '120px', k:'agent' }, { t: 'End User', w: '120px', k:'endUser' },
+                    { t: 'Position', w: '120px', k:'position' }, { t: 'Phone', w: '120px', k:'phone' }, { t: 'Address', w: '200px', k:'address' },
+                    { t: 'Remark', w: '150px', k:'remark' }, { t: 'Active', w: '60px', k:'active' }, commonOps
                 ];
             } else if (currentView === 'codes') {
                 sourceData = db.codes;
                 columns = [
-                    { t: 'Agent', w: '150px' }, { t: 'End User', w: '150px' }, { t: 'Code', w: '100px', c:'text-model' },
-                    { t: 'Pricing', w: '100px' }, { t: 'Logistics', w: '100px' }, { t: 'Remark', w: '200px' },
-                    { t: 'Active', w: '60px' }, { t: '操作', w: '60px', c:'sticky-right' }
+                    { t: 'Agent', w: '150px', k:'agent' }, { t: 'End User', w: '150px', k:'endUser' }, { t: 'Code', w: '100px', c:'text-model', k:'code' },
+                    { t: 'Pricing', w: '100px', k:'pricing' }, { t: 'Logistics', w: '100px', k:'logistics' }, { t: 'Remark', w: '200px', k:'remark' },
+                    { t: 'Active', w: '60px', k:'active' }, { t: '操作', w: '60px', c:'sticky-right' }
                 ];
             }
 
@@ -624,18 +1019,95 @@
                 });
             }
 
-            thead.innerHTML = `<tr>${columns.map(c => `<th style="width:${c.w}; min-width:${c.w}" class="${c.c||''}">${c.t}</th>`).join('')}</tr>`;
-            let filtered = sourceData.filter(item => Object.values(item).join(' ').toLowerCase().includes(search));
-            
-            filtered.sort((a, b) => {
-                 if(currentView === 'tasks' || currentView === 'activities') {
-                    const d1 = new Date(a.trackDate || '2099-12-31').getTime();
-                    const d2 = new Date(b.trackDate || '2099-12-31').getTime();
-                    const today = new Date().getTime();
-                    const aDue = d1 <= today; const bDue = d2 <= today;
-                    if(aDue && !bDue) return -1; if(!aDue && bDue) return 1;
-                    return d1 - d2;
-                  }
+            if(isAddToProjectMode && currentView === 'masterList') {
+                columns[0] = { 
+                    t: '<input type="checkbox" onchange="toggleAddMasterSelectAll(this)" class="accent-orange-500 cursor-pointer">', 
+                    w: '40px', c:'sticky-col col-0 text-center' 
+                };
+            }
+
+            // V3.5.6: Filter Icon logic
+            thead.innerHTML = `<tr>${columns.map(c => {
+                const isFiltered = activeFilters[currentView] && activeFilters[currentView][c.k];
+                const filterIcon = isFiltered ? '<i class="fas fa-filter text-orange-500 ml-1 text-[10px]"></i>' : '';
+                return `<th style="width:${c.w}; min-width:${c.w}" 
+                            class="${c.c||''}"
+                            onmousedown="startHeaderLongPress(event, '${c.k}')"
+                            onmouseup="cancelHeaderLongPress()"
+                            >${c.t}${filterIcon}</th>`
+            }).join('')}</tr>`;
+            // Apply Filters
+            let filtered = sourceData;
+            if(activeFilters[currentView]) {
+                Object.keys(activeFilters[currentView]).forEach(key => {
+                    const validSet = activeFilters[currentView][key];
+                    if(validSet) {
+                        filtered = filtered.filter(item => {
+                            if(key === 'star') return validSet.has(item.star ? 'true' : 'false');
+                            if(key === 'latestStatus') {
+                                const st = getLatestStatus(item);
+                                return validSet.has(st.text);
+                            }
+                            if(key === 'dueDate' && currentView === 'orders') {
+                                // Orders dueDate is inside shipments usually, or top level? 
+                                // Simplified: check shipments or item.dueDate.
+                                // Logic: if any shipment matches, keep it? Or strictly top level?
+                                // Based on V3.5.5 display logic: ships.map(s => s.dueDate)
+                                // Filter logic: match any string representation.
+                                const ships = item.shipments && item.shipments.length ? item.shipments : [{dueDate:item.dueDate}];
+                                return ships.some(s => validSet.has(s.dueDate||'-'));
+                            }
+                            const val = item[key] ? item[key].toString() : '';
+                            return validSet.has(val); 
+                        });
+                    }
+                });
+            }
+
+            filtered = filtered.filter(item => Object.values(item).join(' ').toLowerCase().includes(search));
+            // V3.5.6 Sorting Logic Override
+            const doSort = (a, b) => {
+                // 1. Check Active Column Sort
+                if(activeSort) {
+                    const { col, order } = activeSort;
+                    let valA, valB;
+
+                    if(col === 'latestStatus') {
+                        valA = getLatestStatus(a).date || '';
+                        valB = getLatestStatus(b).date || '';
+                    } else if (col === 'achievement') {
+                        // Sort by PERCENT
+                        const achA = calculateAchievement(a).percent;
+                        const achB = calculateAchievement(b).percent;
+                        valA = parseFloat(achA) || 0;
+                        valB = parseFloat(achB) || 0;
+                    } else if (col === 'budget') {
+                        valA = parseFloat(a.budget) || 0;
+                        valB = parseFloat(b.budget) || 0;
+                    } else if (col === 'dueDate' && currentView === 'orders') {
+                         // Sort by earliest due date
+                         const getEarliest = (i) => {
+                             const ships = i.shipments || [{dueDate:i.dueDate}];
+                             const dates = ships.map(s=>s.dueDate).filter(d=>d).sort();
+                             return dates[0] || '9999-99-99';
+                         };
+                         valA = getEarliest(a); valB = getEarliest(b);
+                    } else {
+                        valA = a[col] || '';
+                        valB = b[col] || '';
+                        // Try numeric sort if looks like number?
+                        // No, requirements said "A->Z" (Alpha)
+                        // But size/EAU might be numbers.
+                        // Let's stick to localeCompare for A->Z unless specified.
+                    }
+
+                    if(order === 'new') return new Date(valB) - new Date(valA);
+                    if(order === 'old') return new Date(valA) - new Date(valB);
+                    if(order === 'az') return valA.toString().localeCompare(valB.toString());
+                    if(order === 'za') return valB.toString().localeCompare(valA.toString());
+                }
+
+                // 2. Global Sort Fallback
                 const valA = a.updatedAt || a.date || a.startDate || ''; 
                 const valB = b.updatedAt || b.date || b.startDate || '';
                 if(sortMode === 'date_new') return new Date(valB) - new Date(valA);
@@ -643,7 +1115,24 @@
                 if(sortMode === 'az') return (a.project || a.agent || '').localeCompare(b.project || b.agent || '');
                 if(sortMode === 'za') return (b.project || b.agent || '').localeCompare(a.project || a.agent || '');
                 return 0;
-            });
+            };
+            // V3.5.6 Task/Activity Special Overdue Sort
+            if(currentView === 'tasks' || currentView === 'activities') {
+                const today = new Date().toISOString().split('T')[0];
+                const isOverdue = (t) => !t.completed && t.trackDate && t.trackDate < today;
+                
+                const overdueItems = filtered.filter(isOverdue);
+                const normalItems = filtered.filter(t => !isOverdue(t));
+                
+                // Overdue: always Old -> New
+                overdueItems.sort((a,b) => new Date(a.trackDate) - new Date(b.trackDate));
+                // Normal: use active sort
+                normalItems.sort(doSort);
+                filtered = [...overdueItems, ...normalItems];
+            } else {
+                filtered.sort(doSort);
+            }
+
             if(filtered.length === 0) {
                 document.getElementById('emptyState').classList.remove('hidden');
             } else {
@@ -653,17 +1142,15 @@
                     tr.className = 'table-row';
                     tr.dataset.id = item.id;
                     
-                    tr.onmousedown = (e) => {
+                     tr.onmousedown = (e) => {
                         if(e.target.closest('.cell-content') || e.target.closest('.sticky-col')) 
                         {
-                            // Let cell handle its own logic
                         } else {
-                            startLongPress(tr); 
+                             startLongPress(tr); 
                         }
                     };
                     tr.onmouseup = cancelLongPress;
                     tr.onmouseleave = cancelLongPress;
-
                     if(item.active === false || item.completed) tr.style.opacity = '0.5';
 
                     const isSel = selectedIds.has(item.id);
@@ -676,15 +1163,11 @@
                         const hasCommentClass = comment ? 'has-comment' : '';
                         const displayVal = val || '';
                         const commentText = comment ? comment.text.replace(/'/g, "&#39;") : '';
-                        
-                        // 需求1：Hover 即顯示內容，位置改為正下方
-                        // onmouseenter 觸發顯示 (並傳入 this)
-                        // onmouseleave 觸發消失計時
                         return `<div class="cell-content ${hasCommentClass}" 
-                                    onmouseleave="startFloatCloseTimer()"
+                        onmouseleave="startFloatCloseTimer()"
                                     onmouseenter="handleCellHover(this, '${commentText}', '${displayVal}')"
                                     onmousedown="handleLongPressCopy(this)">
-                                         ${displayVal}
+                                       ${displayVal}
                                  </div>`;
                     };
 
@@ -692,42 +1175,58 @@
                     if(currentView === 'projects') {
                         const ach = calculateAchievement(item);
                         const latest = getLatestStatus(item);
+                        // V3.5.5 Budget Comma Separator
+                        const displayBudget = item.budget ? parseFloat(item.budget.toString().replace(/,/g,'')).toLocaleString() : '';
+
                         cells = `
                             <td class="sticky-col col-0 text-center"><div class="cell-content justify-center">${starHTML}</div></td>
                             <td class="sticky-col col-1 text-small-gray">${genCell(item.project, 'project')}</td>
                             <td class="sticky-col col-2 text-small-gray">${genCell(item.agent, 'agent')}</td>
                             <td class="sticky-col col-3 text-small-gray">${genCell(item.endUser, 'endUser')}</td>
                             <td class="sticky-col col-4">${genCell(item.size, 'size')}</td>
-                            <td class="sticky-col col-5 text-model">${genCell(item.model, 'model')}</td>
+                            <td class="sticky-col col-5 text-model text-[10px]">${genCell(item.model, 'model')}</td>
                             <td class="sticky-col col-6 col-latest">
                                 <div class="flex flex-col leading-tight justify-center h-full px-2">
                                     <span class="text-white font-bold text-xs mb-1">${renderTags(latest.text)}</span>
                                     <span class="text-[10px] text-gray-400">${latest.date}</span>
                                 </div>
                             </td>
-                            <td>${genCell(renderTags(item.tags), 'tags')}</td>
+                            <td>${renderTags(item.tags)}</td>
                             <td>${genCell(item.summary, 'summary')}</td>
                             <td class="text-center">
-                                 <div class="cell-content flex-col justify-center leading-tight">
+                                <div class="cell-content flex-col justify-center leading-tight">
                                     <span class="text-orange-400 font-bold">${ach.qty}</span>
-                                   <span class="text-[10px] text-gray-500">${ach.percent}</span>
+                                    <span class="text-[10px] text-gray-500">${ach.percent}</span>
                                 </div>
                             </td>
-                            <td>${genCell(item.budget, 'budget')}</td>
+                            <td>${genCell(displayBudget, 'budget')}</td>
                             <td class="text-center"><div class="cell-content justify-center">${item.active!==false ? 'Y' : 'N'}</div></td>
                             <td>${genCell(item.plm, 'plm')}</td>
                             <td class="text-center sticky-right">${actionsHTML}</td>
                         `;
                     } else if (currentView === 'masterList') {
+                        const lastQuote = db.quotes.filter(q => q.project === item.project).sort((a,b)=>new Date(b.date)-new Date(a.date))[0];
+                        const displayPrice = lastQuote ? lastQuote.salesPrice : (item.salesPrice || '');
+                        const displayEau = item.eau ? parseFloat(item.eau.toString().replace(/,/g,'')).toLocaleString() : '';
+                        let col0Content = '';
+                        if(isAddToProjectMode) {
+                            const exists = db.projects.some(p => p.project === item.project);
+                            if(!exists) {
+                                const isChecked = selectedMasterIds.has(item.id);
+                                col0Content = `<input type="checkbox" class="accent-orange-500 master-add-check cursor-pointer transform scale-125" value="${item.id}" ${isChecked?'checked':''} onchange="toggleAddMasterSelect(${item.id})">`;
+                            }
+                        }
+
                         cells = `
-                            <td>${genCell(item.project, 'project')}</td>
-                            <td>${genCell(item.agent, 'agent')}</td>
-                            <td>${genCell(item.endUser, 'endUser')}</td>
+                            <td class="sticky-col col-0 text-center"><div class="cell-content justify-center">${col0Content}</div></td>
+                            <td class="sticky-col col-1 text-small-gray">${genCell(item.project, 'project')}</td>
+                            <td class="sticky-col col-2 text-small-gray">${genCell(item.agent, 'agent')}</td>
+                            <td class="sticky-col col-3 text-small-gray">${genCell(item.endUser, 'endUser')}</td>
                             <td>${genCell(item.application, 'application')}</td>
-                            <td>${genCell(item.eau, 'eau')}</td>
+                            <td>${genCell(displayEau, 'eau')}</td>
                             <td>${genCell(item.size, 'size')}</td>
-                            <td class="text-model">${genCell(item.model, 'model')}</td>
-                            <td>${genCell(item.salesPrice, 'salesPrice')}</td>
+                            <td class="text-model text-[10px]">${genCell(item.model, 'model')}</td>
+                            <td>${genCell(displayPrice, 'salesPrice')}</td>
                             <td>${genCell(item.remark, 'remark')}</td>
                             <td>${genCell(item.contact, 'contact')}</td>
                             <td>${genCell(item.cusPN, 'cusPN')}</td>
@@ -737,10 +1236,16 @@
                         `;
                     } else if (currentView === 'tasks' || currentView === 'activities') {
                          const isOverdue = !item.completed && new Date(item.trackDate) < new Date();
-                        cells = `<td class="text-center"><div class="cell-content justify-center">${starHTML}</div></td><td>${genCell(item.project,'project')}</td><td>${genCell(item.agent,'agent')}</td><td>${genCell(item.endUser,'endUser')}</td>
-                            <td><span class="tag-badge tag-blue">${item.taskType||''}</span></td><td>${genCell(item.desc,'desc')}</td><td class="font-mono text-xs">${genCell(item.docNum,'docNum')}</td>
-                            <td class="${isOverdue?'text-red-500 font-bold':'text-gray-400'} text-xs"><div>起: ${item.startDate}</div><div>追: ${item.trackDate}</div></td>
-                            <td>${item.completed ? '<span class="text-gray-500">已完成</span>' : '<span class="text-green-500">進行中</span>'}</td><td class="text-center sticky-right">${actionsHTML}</td>`;
+                         const masterItem = db.masterList.find(m => m.project === item.project);
+                         const displayModel = masterItem ? masterItem.model : '';
+                         cells = `<td class="sticky-col col-0 text-center"><div class="cell-content justify-center">${starHTML}</div></td>
+                        <td class="sticky-col col-1 text-small-gray">${genCell(item.project,'project')}</td>
+                        <td class="sticky-col col-2 text-small-gray">${genCell(item.agent,'agent')}</td>
+                        <td class="sticky-col col-3 text-small-gray">${genCell(item.endUser,'endUser')}</td>
+                        <td class="text-model text-[10px]">${genCell(displayModel,'model')}</td>
+                        <td><span class="tag-badge tag-blue">${item.taskType||''}</span></td><td>${genCell(item.desc,'desc')}</td><td class="font-mono text-xs">${genCell(item.docNum,'docNum')}</td>
+                        <td class="${isOverdue?'text-red-500 font-bold':'text-gray-400'} text-xs"><div>起: ${item.startDate}</div><div>追: ${item.trackDate}</div></td>
+                        <td>${item.completed ? '<span class="text-gray-500">已完成</span>' : '<span class="text-green-500">進行中</span>'}</td><td class="text-center sticky-right">${actionsHTML}</td>`;
                     } else if (currentView === 'orders') {
                         const ships = item.shipments && item.shipments.length ? item.shipments : [{dueDate: item.dueDate, qty: item.qty, isShipped: item.isShipped}];
                         const qtysHtml = ships.map(s => `<div>${s.qty||0}</div>`).join('');
@@ -753,7 +1258,9 @@
                             <td class="text-center text-xs"><div class="cell-content flex-col justify-center">${shippedHtml}</div></td>
                             <td>${genCell(item.statusDesc,'statusDesc')}</td><td class="text-center sticky-right">${actionsHTML}</td>`;
                     } else if (currentView === 'quotes') {
-                        cells = `<td>${genCell(item.project,'project')}</td><td>${genCell(item.agent,'agent')}</td><td>${genCell(item.endUser,'endUser')}</td><td>${item.date}</td><td class="text-orange-300 font-bold">${genCell(item.salesPrice,'salesPrice')}</td>
+                        // V3.5.5 Updated Quote Cells with text-xs logic
+                        // V3.5.6 Add Model cell
+                        cells = `<td class="text-xs">${genCell(item.project,'project')}</td><td class="text-xs">${genCell(item.agent,'agent')}</td><td class="text-xs">${genCell(item.endUser,'endUser')}</td><td>${item.date}</td><td class="text-model text-[10px]">${genCell(item.model,'model')}</td><td class="text-orange-300 font-bold">${genCell(item.salesPrice,'salesPrice')}</td>
                             <td>${genCell(item.faePrice,'faePrice')}</td><td class="text-xs text-gray-400">${genCell(item.ref,'ref')}</td><td>${genCell(item.desc,'desc')}</td><td class="text-center sticky-right">${actionsHTML}</td>`;
                     } else if (currentView === 'contacts') {
                         cells = `<td class="text-center"><div class="cell-content justify-center">${starHTML}</div></td><td>${genCell(item.agent,'agent')}</td><td>${genCell(item.endUser,'endUser')}</td><td>${genCell(item.position,'position')}</td><td>${genCell(item.phone,'phone')}</td>
@@ -773,28 +1280,27 @@
             }
         }
 
-        // 新增的 Hover 處理邏輯 (Req 1)
         function handleCellHover(el, commentText, cellValue) {
             cancelFloatCloseTimer();
-            // 如果有註解，優先顯示註解
             if (commentText) {
                 showFloatWindow(commentText, el, 'comment');
             } else {
-                // 沒有註解，如果文字溢出則顯示文字
                 if (el.scrollWidth > el.clientWidth && cellValue) {
                     showFloatWindow(cellValue, el, 'content');
                 }
             }
         }
 
-        function startLongPress(row) { longPressTimer = setTimeout(() => { if(!isSelectionMode) enterSelectionMode(row.dataset.id); }, 800); }
-        function cancelLongPress() { clearTimeout(longPressTimer); }
+        function startLongPress(row) { longPressTimer = setTimeout(() => { if(!isSelectionMode) enterSelectionMode(row.dataset.id); }, 800);
+        }
+        function cancelLongPress() { clearTimeout(longPressTimer);
+        }
         function enterSelectionMode(id) { 
             isSelectionMode = true;
             document.body.classList.add('select-mode'); 
             document.getElementById('batchDeleteBtn').classList.remove('hidden'); 
             document.getElementById('exitSelectModeBtn').classList.remove('hidden'); 
-            if(id) selectedIds.add(parseInt(id)); 
+            if(id) selectedIds.add(parseFloat(id)); 
             renderCurrentView(); 
         }
         function exitSelectionMode() { 
@@ -810,30 +1316,36 @@
             const visibleChecks = document.querySelectorAll('#tableBody .row-check');
             visibleChecks.forEach(c => {
                 c.checked = cb.checked;
-                const id = parseInt(c.value);
+                const id = parseFloat(c.value);
                 if(cb.checked) selectedIds.add(id); else selectedIds.delete(id);
             });
             updateBatchBtnText();
         }
-        function toggleSelectRow(id) { if(selectedIds.has(id)) selectedIds.delete(id); else selectedIds.add(id); updateBatchBtnText(); }
-        function updateBatchBtnText() { document.getElementById('batchDeleteBtn').innerHTML = `<i class="fas fa-trash-alt mr-1"></i>刪除選取 (${selectedIds.size})`; }
+        function toggleSelectRow(id) { if(selectedIds.has(id)) selectedIds.delete(id); else selectedIds.add(id); updateBatchBtnText();
+        }
+        function updateBatchBtnText() { document.getElementById('batchDeleteBtn').innerHTML = `<i class="fas fa-trash-alt mr-1"></i>刪除選取 (${selectedIds.size})`;
+        }
         function deleteSelected() { if(!confirm(`確定刪除 ${selectedIds.size} 筆?`)) return;
-            const t = currentView === 'activities' ? 'tasks' : currentView; db[t] = db[t].filter(i => !selectedIds.has(i.id)); exitSelectionMode(); saveToLocal();
+        const t = currentView === 'activities' ? 'tasks' : currentView; db[t] = db[t].filter(i => !selectedIds.has(i.id)); exitSelectionMode(); saveToLocal();
         }
 
-        function renderTags(str) { return str ? str.split(/[,，]/).filter(t=>t.trim()).map(t => `<span class="tag-badge tag-blue">${t.trim()}</span>`).join('') : ''; }
+        function renderTags(str) { return str ?
+            str.split(/[,，]/).filter(t=>t.trim()).map(t => `<span class="tag-badge tag-blue">${t.trim()}</span>`).join('') : ''; }
         
         function calculateAchievement(proj) { 
             const budget = parseFloat(proj.budget)||0;
             const qty = db.orders.filter(o=>o.project===proj.project)
                          .reduce((s,o)=> {
                              const ships = o.shipments || [{qty: o.qty}];
-                             return s + ships.reduce((ss, sh) => ss + (parseFloat(sh.qty)||0), 0);
+                             return s + ships.reduce((ss, sh) => ss 
+                                + (parseFloat(sh.qty)||0), 0);
                          }, 0);
             return {qty, percent: budget?Math.round((qty/budget)*100)+'%':'0%'}; 
         }
-        function toggleStar(v,id) { const t=v==='activities'?'tasks':v; const i=db[t].find(x=>x.id===id); if(i){i.star=!i.star;saveToLocal();renderCurrentView();} }
-        function saveToLocal() { localStorage.setItem('workflowDB_v3_5', JSON.stringify(db)); }
+        function toggleStar(v,id) { const t=v==='activities'?'tasks':v; const i=db[t].find(x=>x.id===id);
+        if(i){i.star=!i.star;saveToLocal();renderCurrentView();} }
+        function saveToLocal() { localStorage.setItem('workflowDB_v3_5', JSON.stringify(db));
+        }
 
         // Modal Logic
         let editingId = null;
@@ -853,36 +1365,34 @@
                 renderModalFields(db[foundType].find(i => i.id === id));
             }
         }
-        function closeModal() { document.getElementById('mainModal').classList.add('hidden'); document.getElementById('mainModal').classList.remove('flex'); }
+        function closeModal() { document.getElementById('mainModal').classList.add('hidden');
+        document.getElementById('mainModal').classList.remove('flex'); }
 
         function addShipmentRow(data = {}) {
             const container = document.getElementById('shipmentsContainer');
             const div = document.createElement('div');
             div.className = "flex gap-2 items-center mb-2 p-2 bg-white/5 rounded border border-white/5 shipment-row";
-            // 使用新版日期輸入元件 (僅使用一個隨機ID做區分，實際邏輯不需要ID)
             const rnd = Math.random().toString(36).substring(7);
+            // V3.5.5: data.dueDate default is '' (empty)
             const dateInputHtml = createDateInputGroup(`ship_date_${rnd}`, data.dueDate||'', 's-date-hidden');
-            
             div.innerHTML = `
                 <div class="flex-1"><label class="text-xs text-gray-500">需求交期</label>${dateInputHtml}</div>
                 <div class="w-24"><label class="text-xs text-gray-500">數量</label><input type="number" class="input-dark s-qty" value="${data.qty||''}"></div>
                 <div class="flex items-center pt-4"><label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" class="accent-orange-500 s-ship" ${data.isShipped?'checked':''}> 已出貨</label></div>
                 <button onclick="this.parentElement.remove()" class="text-red-500 pt-4 px-2 hover:text-red-300"><i class="fas fa-times"></i></button>
+     
             `;
             container.appendChild(div);
         }
 
-        // 需求3：自動計算追蹤日期 (起始+3天)
         function updateTrackDate(startDateStr) {
             if(!startDateStr) return;
             const d = new Date(startDateStr);
             d.setDate(d.getDate() + 3);
             const iso = d.toISOString().split('T')[0];
-            // 更新 hidden value
             const trackHidden = document.getElementById('f_trackDate');
             if(trackHidden) {
                 trackHidden.value = iso;
-                // 同步更新顯示的 input
                 const [y, m, d_val] = iso.split('-');
                 const container = trackHidden.parentElement;
                 container.querySelector('.yy').value = y;
@@ -895,56 +1405,55 @@
             if(!val) return;
             const match = db.masterList.find(m => m.project === val);
             if(match) {
-                const setVal = (id, v) => { const el = document.getElementById(id); if(el) el.value = v || ''; };
+                const setVal = (id, v) => { const el = document.getElementById(id);
+                if(el) el.value = v || ''; };
                 setVal('f_agent', match.agent);
                 setVal('f_endUser', match.endUser);
                 setVal('f_size', match.size);
-                setVal('f_model', match.model);
                 setVal('f_plm', match.plm);
             }
         }
 
-        // 需求2：建立三段式日期輸入 HTML 與邏輯
+        // V3.5.5 Fix: Added setTimeout to handleDateSegment to prevent auto-jump glitch
         function createDateInputGroup(id, value, extraClass = '') {
-            const d = value ? new Date(value) : new Date();
-            const yVal = value ? value.split('-')[0] : d.getFullYear();
-            const mVal = value ? value.split('-')[1] : (d.getMonth() + 1).toString().padStart(2, '0');
-            const dVal = value ? value.split('-')[2] : d.getDate().toString().padStart(2, '0');
+            let yVal = '', mVal = '', dVal = '';
+            if (value) {
+                const d = new Date(value);
+                yVal = value.split('-')[0] || d.getFullYear();
+                mVal = value.split('-')[1] || (d.getMonth() + 1).toString().padStart(2, '0');
+                dVal = value.split('-')[2] || d.getDate().toString().padStart(2, '0');
+            }
 
             return `
             <div class="date-segment-container">
-                <input type="text" class="yy w-12" placeholder="YYYY" maxlength="4" value="${yVal}" oninput="handleDateSegment(this, 'y')">
+                <input type="text" class="yy w-12" placeholder="YYYY" maxlength="4" value="${yVal}" oninput="handleDateSegment(this, 'y')" onfocus="this.select()">
                 <span class="text-gray-500">/</span>
-                <input type="text" class="mm w-8" placeholder="MM" maxlength="2" value="${mVal}" oninput="handleDateSegment(this, 'm')">
-                <span class="text-gray-500">/</span>
-                <input type="text" class="dd w-8" placeholder="DD" maxlength="2" value="${dVal}" oninput="handleDateSegment(this, 'd')">
-                <input type="hidden" id="${id}" class="${extraClass}" value="${yVal}-${mVal}-${dVal}">
+                <input type="text" class="mm w-8" placeholder="MM" maxlength="2" value="${mVal}" oninput="handleDateSegment(this, 'm')" onfocus="this.select()">
+       
+                 <span class="text-gray-500">/</span>
+                <input type="text" class="dd w-8" placeholder="DD" maxlength="2" value="${dVal}" oninput="handleDateSegment(this, 'd')" onfocus="this.select()">
+                <input type="hidden" id="${id}" class="${extraClass}" value="${value}">
             </div>`;
         }
 
-        // 處理輸入跳格邏輯 (Req 2) & 更新 Hidden Value
         function handleDateSegment(el, type) {
             const container = el.parentElement;
             const val = el.value;
             
-            // Auto Jump Logic
+            // V3.5.5 Fix: Add timeout to prevent event bleeding when focus changes rapidly
             if (type === 'y' && val.length === 4) {
-                container.querySelector('.mm').focus();
+                setTimeout(() => container.querySelector('.mm').focus(), 50);
             } else if (type === 'm' && val.length === 2) {
-                container.querySelector('.dd').focus();
+                setTimeout(() => container.querySelector('.dd').focus(), 50);
             }
 
-            // Construct Date String
-            const y = container.querySelector('.yy').value.padStart(4, '202'); // basic fallback
+            const y = container.querySelector('.yy').value.padStart(4, '202');
             const m = container.querySelector('.mm').value.padStart(2, '0');
             const d = container.querySelector('.dd').value.padStart(2, '0');
             const fullDate = `${y}-${m}-${d}`;
-            
-            // Update Hidden Input
             const hidden = container.querySelector('input[type=hidden]');
             hidden.value = fullDate;
 
-            // Trigger Task Logic (Req 3)
             if (hidden.id === 'f_startDate') {
                 updateTrackDate(fullDate);
             }
@@ -959,7 +1468,8 @@
                 <div class="flex gap-2 mb-1">
                     <select class="input-dark text-xs w-1/3" onchange="updateComment(${i}, 'field', this.value)">
                          ${getAllFields(type).map(f => `<option value="${f.k}" ${f.k===c.field?'selected':''}>${f.l}</option>`).join('')}
-                      </select>
+           
+                        </select>
                     <input type="text" class="input-dark text-xs flex-1" value="${c.text}" onchange="updateComment(${i}, 'text', this.value)">
                     <button onclick="removeComment(${i})" class="text-red-500"><i class="fas fa-times"></i></button>
                 </div>`).join('');
@@ -969,84 +1479,116 @@
             };
 
             let html = '';
-            // 使用 createDateInputGroup 替換原有的 input type="date"
             if(type === 'orders') {
+                // V3.5.5 Orders: OrderDate defaults Today, DueDate (in shipment) defaults empty
+                // Label changed to "訂單日期"
+                const defaultOrderDate = data.createdAt || new Date().toISOString().split('T')[0];
                 html = `
                     <div class="grid grid-cols-2 gap-4">
                         <input class="input-dark" placeholder="Project" id="f_project" value="${data.project||''}" oninput="autoFillProjectInfo(this.value)">
                         <input class="input-dark" placeholder="Agent" id="f_agent" value="${data.agent||''}">
+                
                         <input class="input-dark" placeholder="End User" id="f_endUser" value="${data.endUser||''}">
                         <input class="input-dark" placeholder="PO#" id="f_po" value="${data.po||''}">
                         <input class="input-dark" placeholder="Model" id="f_model" value="${data.model||''}">
                     </div>
-                    <div class="bg-black/20 p-3 rounded mt-2 border border-white/5">
-                         <div class="mb-2"><label class="text-orange-300 text-sm font-bold">訂單日期</label>${createDateInputGroup('f_orderDate', data.createdAt||new Date().toISOString().split('T')[0])}</div>
+           
+                     <div class="bg-black/20 p-3 rounded mt-2 border border-white/5">
+                         <div class="mb-2"><label class="text-orange-300 text-sm font-bold">訂單日期</label>${createDateInputGroup('f_orderDate', defaultOrderDate)}</div>
                          <div id="shipmentsContainer"></div>
-                         <button onclick="addShipmentRow()" class="text-xs text-orange-400 hover:text-white mt-2 font-bold flex items-center gap-1"><i class="fas fa-plus"></i> 追加交期/數量</button>
+                         <button onclick="addShipmentRow()" class="text-xs text-orange-400 
+                         hover:text-white mt-2 font-bold flex items-center gap-1"><i class="fas fa-plus"></i> 追加交期/數量</button>
                     </div>
                     <textarea class="input-dark h-20 mt-2" placeholder="狀態說明" id="f_statusDesc">${data.statusDesc||''}</textarea>
                 `;
                 setTimeout(() => {
+                    // Shipment logic: if editing, load shipments. if new, add one empty row (default empty date)
                     const ships = data.shipments && data.shipments.length ? data.shipments : (data.qty ? [{dueDate:data.dueDate, qty:data.qty, isShipped:data.isShipped}] : []);
-                    if(ships.length === 0) addShipmentRow();
+                    if(ships.length === 0) addShipmentRow(); 
+    
                     else ships.forEach(s => addShipmentRow(s));
                 }, 0);
             } else if(type === 'projects') {
                 html = `
                     <div class="grid grid-cols-3 gap-4">
                         <input class="input-dark" placeholder="Project (必填)" id="f_project" value="${data.project||''}" oninput="autoFillProjectInfo(this.value)">
+                        
                         <input class="input-dark" placeholder="Agent" id="f_agent" value="${data.agent||''}">
                         <input class="input-dark" placeholder="End User" id="f_endUser" value="${data.endUser||''}">
                         <input class="input-dark" placeholder="Size" id="f_size" value="${data.size||''}">
                         <input class="input-dark text-model" placeholder="Model" id="f_model" value="${data.model||''}">
+          
                         <input class="input-dark" type="number" placeholder="當年預算" id="f_budget" value="${data.budget||''}">
                         <input class="input-dark" placeholder="PLM#" id="f_plm" value="${data.plm||''}">
                     </div>
                     <div class="bg-black/20 p-3 rounded mt-2 border border-white/5">
+       
                         <label class="text-xs text-orange-300 block mb-2">最新動態 (手動覆蓋)</label>
                         <div class="flex gap-4">
                              <div class="flex-1">${genCheckboxGroup('grp_latestStatus', ['訂單','報價','RMA','規格','送樣'], data.manualLatestStatus)}</div>
-                             <div>${createDateInputGroup('f_manualLatestDate', data.manualLatestDate || new Date().toISOString().split('T')[0])}</div>
+                     
+                         <div>${createDateInputGroup('f_manualLatestDate', data.manualLatestDate || new Date().toISOString().split('T')[0])}</div>
                         </div>
                     </div>
                     <div class="bg-black/20 p-3 rounded mt-2 border border-white/5">
                         <label class="text-xs text-orange-300 block mb-2">標籤</label>
-                        ${genCheckboxGroup('grp_tags', ['量產','送樣','RMA','報價','規格'], data.tags)}
+ 
+                         ${genCheckboxGroup('grp_tags', ['量產','送樣','RMA','報價','規格'], data.tags)}
                     </div>
                     <textarea class="input-dark h-20 mt-2" placeholder="狀況概述" id="f_summary">${data.summary||''}</textarea>
                     <label class="flex items-center gap-2 mt-2"><input type="checkbox" id="f_active" ${data.active!==false?'checked':''} class="accent-orange-500"> Active</label>
-                `;
+  
+              `;
             } else if(type === 'masterList') {
                 html = `
                      <div class="grid grid-cols-3 gap-4">
                         <input class="input-dark" placeholder="Project" id="f_project" value="${data.project||''}">
-                        <input class="input-dark" placeholder="Agent" id="f_agent" value="${data.agent||''}">
+                        <input 
+                         class="input-dark" placeholder="Agent" id="f_agent" value="${data.agent||''}">
                         <input class="input-dark" placeholder="End User" id="f_endUser" value="${data.endUser||''}">
                         <input class="input-dark" placeholder="Application" id="f_application" value="${data.application||''}">
                         <input class="input-dark" placeholder="EAU" id="f_eau" value="${data.eau||''}">
+            
                         <input class="input-dark" placeholder="Size" id="f_size" value="${data.size||''}">
                         <input class="input-dark" placeholder="Model" id="f_model" value="${data.model||''}">
                         <input class="input-dark" placeholder="Price" id="f_salesPrice" value="${data.salesPrice||''}">
-                        <input class="input-dark" placeholder="Contact" id="f_contact" value="${data.contact||''}">
+                        <input class="input-dark" placeholder="Contact" id="f_contact" 
+                         value="${data.contact||''}">
                         <input class="input-dark" placeholder="Cus PN" id="f_cusPN" value="${data.cusPN||''}">
                         <input class="input-dark" placeholder="PLM#" id="f_plm" value="${data.plm||''}">
                     </div>
-                    <textarea class="input-dark h-20 mt-2" placeholder="Remark" id="f_remark">${data.remark||''}</textarea>
+                    <textarea class="input-dark h-20 
+                    mt-2" placeholder="Remark" id="f_remark">${data.remark||''}</textarea>
                     <label class="flex items-center gap-2 mt-2"><input type="checkbox" id="f_active" ${data.active!==false?'checked':''} class="accent-orange-500"> Active</label>
                 `;
             } else if (type === 'tasks') {
-                // Req 3: 使用自訂元件，且 handleDateSegment 內部會觸發 updateTrackDate
+                const defStart = data.startDate || new Date().toISOString().split('T')[0];
+                let defTrack = data.trackDate || '';
+                if(!editingId && !defTrack) {
+                    const d = new Date(defStart);
+                    d.setDate(d.getDate()+3);
+                    defTrack = d.toISOString().split('T')[0];
+                }
+
                 html = `<div class="grid grid-cols-2 gap-4"><input class="input-dark" placeholder="Project" id="f_project" value="${data.project||''}" oninput="autoFillProjectInfo(this.value)"><select class="input-dark" id="f_taskType">${['詢價','RMA','規格','送樣','交期','預測','合約','其他'].map(o=>`<option ${data.taskType===o?'selected':''}>${o}</option>`).join('')}</select>
                     <input class="input-dark" placeholder="Agent" id="f_agent" value="${data.agent||''}"><input class="input-dark" placeholder="End User" id="f_endUser" value="${data.endUser||''}">
-                    <div><label class="text-xs text-gray-400">起始</label>${createDateInputGroup('f_startDate', data.startDate||new Date().toISOString().split('T')[0])}</div>
-                    <div><label class="text-xs text-gray-400">追蹤 (起始+3天)</label>${createDateInputGroup('f_trackDate', data.trackDate||'')}</div>
+                    <div></div><div></div>
+                  
+                    <div><label class="text-xs text-gray-400">起始</label>${createDateInputGroup('f_startDate', defStart)}</div>
+                    <div><label class="text-xs text-gray-400">追蹤 (起始+3天)</label>${createDateInputGroup('f_trackDate', defTrack)}</div>
                     <input class="input-dark" placeholder="文件#" id="f_docNum" value="${data.docNum||''}"></div>
                     <textarea class="input-dark h-20" placeholder="說明" id="f_desc">${data.desc||''}</textarea>
-                    ${editingId?`<label class="flex items-center gap-2"><input type="checkbox" id="f_completed" ${data.completed?'checked':''} class="accent-orange-500"> 已完成</label>`:''}`;
+                    ${editingId?`<label class="flex items-center 
+                    gap-2"><input type="checkbox" id="f_completed" ${data.completed?'checked':''} class="accent-orange-500"> 已完成</label>`:''}`;
             } else if (type === 'quotes') {
-                html = `<div class="grid grid-cols-2 gap-4"><input class="input-dark" placeholder="Project" id="f_project" value="${data.project||''}" oninput="autoFillProjectInfo(this.value)"><input class="input-dark" placeholder="Agent" id="f_agent" value="${data.agent||''}"><input class="input-dark" placeholder="End User" id="f_endUser" value="${data.endUser||''}">
+                // V3.5.5 Quote Price: Change input to textarea for Enter support
+                // V3.5.6 Add Model Input
+                html = `<div class="grid grid-cols-2 gap-4"><input class="input-dark" placeholder="Project" id="f_project" value="${data.project||''}" oninput="autoFillProjectInfo(this.value)"><input class="input-dark" placeholder="Agent" id="f_agent" value="${data.agent||''}"><input class="input-dark" placeholder="End User" id="f_endUser" value="${data.endUser||''}"><input class="input-dark" placeholder="Model" id="f_model" value="${data.model||''}">
                     <div><label class="text-xs text-gray-400">日期</label>${createDateInputGroup('f_date', data.date||new Date().toISOString().split('T')[0])}</div>
-                    <input class="input-dark" placeholder="業務報價" id="f_salesPrice" value="${data.salesPrice||''}"><input class="input-dark" placeholder="FAE報價" id="f_faePrice" value="${data.faePrice||''}"><input class="input-dark" placeholder="REF#" id="f_ref" value="${data.ref||''}"></div>
+   
+                     <textarea class="input-dark h-16" placeholder="業務報價 (Enter 換行)" id="f_salesPrice">${data.salesPrice||''}</textarea>
+                    <textarea class="input-dark h-16" placeholder="FAE報價 (Enter 換行)" id="f_faePrice">${data.faePrice||''}</textarea>
+                    <input class="input-dark" placeholder="REF#" id="f_ref" value="${data.ref||''}"></div>
                     <textarea class="input-dark h-20" placeholder="說明" id="f_desc">${data.desc||''}</textarea>`;
             } else if (type === 'contacts') {
                 html = `<div class="grid grid-cols-2 gap-4"><input class="input-dark" placeholder="Agent" id="f_agent" value="${data.agent||''}"><input class="input-dark" placeholder="End User" id="f_endUser" value="${data.endUser||''}"><input class="input-dark" placeholder="Position" id="f_position" value="${data.position||''}"><input class="input-dark" placeholder="Phone" id="f_phone" value="${data.phone||''}"><input class="input-dark col-span-2" placeholder="Address" id="f_address" value="${data.address||''}"></div>
@@ -1062,8 +1604,9 @@
             const map = {
                 'projects': [{k:'project',l:'Project'},{k:'agent',l:'Agent'},{k:'endUser',l:'End User'},{k:'size',l:'Size'},{k:'model',l:'Model'},{k:'summary',l:'狀況概述'},{k:'budget',l:'當年預算'},{k:'plm',l:'PLM#'}],
                 'masterList': [{k:'project',l:'Project'},{k:'agent',l:'Agent'},{k:'endUser',l:'End User'},{k:'application',l:'App'},{k:'eau',l:'EAU'},{k:'size',l:'Size'},{k:'model',l:'Model'},{k:'salesPrice',l:'Price'},{k:'remark',l:'Remark'},{k:'contact',l:'Contact'},{k:'cusPN',l:'Cus PN'},{k:'plm',l:'PLM#'}],
-                'tasks': [{k:'project',l:'Project'},{k:'agent',l:'Agent'},{k:'taskType',l:'任務'},{k:'desc',l:'說明'},{k:'docNum',l:'文件#'}],
-                'quotes': [{k:'project',l:'Project'},{k:'salesPrice',l:'業務報價'},{k:'faePrice',l:'FAE報價'},{k:'ref',l:'REF#'},{k:'desc',l:'說明'}],
+                'tasks': [{k:'project',l:'Project'},{k:'agent',l:'Agent'},{k:'model',l:'Model'},{k:'taskType',l:'任務'},{k:'desc',l:'說明'},{k:'docNum',l:'文件#'}],
+                'quotes': [{k:'project',l:'Project'},{k:'salesPrice',l:'業務報價'},{k:'faePrice',l:'FAE報價'},{k:'ref',l:'REF#'},{k:'desc',l:'說明'},{k:'model',l:'Model'}],
+    
                 'contacts': [{k:'agent',l:'Agent'},{k:'address',l:'Address'},{k:'phone',l:'Phone'},{k:'remark',l:'Remark'}],
                 'codes': [{k:'code',l:'Code'},{k:'pricing',l:'Pricing'},{k:'logistics',l:'Logistics'},{k:'remark',l:'Remark'}],
                 'orders': [{k:'po',l:'PO#'},{k:'statusDesc',l:'狀態說明'},{k:'model',l:'型號'},{k:'orderDate',l:'訂單日期'}]
@@ -1085,16 +1628,13 @@
             const inputs = document.querySelectorAll('#modalFields input:not([type=checkbox]):not(.s-qty):not(.yy):not(.mm):not(.dd), #modalFields select, #modalFields textarea');
             const newData = { id: editingId || Date.now(), updatedAt: new Date() };
             
-            // Collect standard inputs & hidden date inputs
             inputs.forEach(input => { 
                 const key = input.id.replace('f_', ''); 
-                if(key && key.indexOf('ship_date') === -1) { // Skip shipment dynamic inputs handled separately
+                if(key && key.indexOf('ship_date') === -1) { 
                     newData[key] = input.value; 
                 }
             });
-
             document.querySelectorAll('#modalFields input[type=checkbox]:not(.group-check):not(.s-ship)').forEach(cb => { if(!cb.closest('.checkbox-group')) newData[cb.id.replace('f_', '')] = cb.checked; });
-            
             if (type === 'projects') {
                 const getGroupVal = (id) => Array.from(document.querySelectorAll(`#${id} input:checked`)).map(c=>c.value).join(',');
                 newData.tags = getGroupVal('grp_tags');
@@ -1105,7 +1645,6 @@
                 newData.createdAt = document.getElementById('f_orderDate').value;
                 newData.shipments = [];
                 document.querySelectorAll('.shipment-row').forEach(row => {
-                    // 抓取 hidden date input value
                     const hiddenDate = row.querySelector('.s-date-hidden').value;
                     newData.shipments.push({
                         dueDate: hiddenDate,
@@ -1127,13 +1666,13 @@
         }
 
         function deleteItem(id) { if(confirm('確定刪除?')) { const t = currentView==='activities'?'tasks':currentView; db[t] = db[t].filter(i=>i.id!==id);
-            saveToLocal(); renderCurrentView(); } }
+        saveToLocal(); renderCurrentView(); } }
         function autoCheckShipment() { const today = new Date().toISOString().split('T')[0];
-            db.orders.forEach(o => { 
+        db.orders.forEach(o => { 
                 if(o.shipments) o.shipments.forEach(s => { if(!s.isShipped && s.dueDate && s.dueDate < today) s.isShipped = true; });
                 else if(!o.isShipped && o.dueDate && o.dueDate < today) o.isShipped = true; 
             });
-            saveToLocal();
+        saveToLocal();
         }
 
         function handleExcelImport(e) {
@@ -1159,42 +1698,72 @@
 
                         rawData.forEach((row, rowIndex) => {
                             let newItem = { id: Date.now() + Math.random(), updatedAt: new Date(), comments: [] };
+        
                             const excelRow = (XLSX.utils.decode_range(sheet['!ref']).s.r) + 1 + rowIndex + 1;
 
                             for (const key in row) {
                                 const k = key.toLowerCase().replace(/[\s#]/g, '');
+  
                                 let fieldName = '';
                                 if(k.includes('project')) { newItem.project = row[key]; fieldName = 'project'; }
+                           
                                 else if(k.includes('agent')) { newItem.agent = row[key]; fieldName = 'agent'; }
                                 else if(k.includes('enduser')) { newItem.endUser = row[key]; fieldName = 'endUser'; }
                                 else if(k.includes('model')) { newItem.model = row[key]; fieldName = 'model'; }
-                                else if(k.includes('size')) { newItem.size = row[key]; fieldName = 'size'; }
-                                else if(k.includes('eau')) { newItem.eau = row[key]; fieldName = 'eau'; }
-                                else if(k.includes('app')) { newItem.application = row[key]; fieldName = 'application'; }
-                                else if(k.includes('contact')) { newItem.contact = row[key]; fieldName = 'contact'; }
-                                else if(k.includes('plm')) { newItem.plm = row[key]; fieldName = 'plm'; }
-                                else if(k.includes('業務報價') || (k.includes('price') && !k.includes('fae'))) { newItem.salesPrice = row[key]; fieldName = 'salesPrice'; }
-                                else if(k.includes('fae') || k.includes('faeprice')) { newItem.faePrice = row[key]; fieldName = 'faePrice'; }
-                                else if(k.includes('phone')) { newItem.phone = row[key]; fieldName = 'phone'; }
-                                else if(k.includes('address')) { newItem.address = row[key]; fieldName = 'address'; }
-                                else if(k.includes('code')) { newItem.code = row[key]; fieldName = 'code'; }
-                                else if(k.includes('remark')) { newItem.remark = row[key]; fieldName = 'remark'; }
-                                else if(k.includes('cuspn')) { newItem.cusPN = row[key]; fieldName = 'cusPN'; }
-                                else if(k.includes('budget')) { newItem.budget = row[key]; fieldName = 'budget'; }
+    
+                                else if(k.includes('size')) { newItem.size = row[key];
+                                fieldName = 'size'; }
+                                else if(k.includes('eau')) { newItem.eau = row[key];
+                                fieldName = 'eau'; }
+                                else if(k.includes('app')) { newItem.application = row[key];
+                                fieldName = 'application'; }
+                                else if(k.includes('contact')) { newItem.contact = row[key];
+                                fieldName = 'contact'; }
+                                else if(k.includes('plm')) { newItem.plm = row[key];
+                                fieldName = 'plm'; }
+                                else if(k.includes('業務報價') || (k.includes('price') && !k.includes('fae'))) { newItem.salesPrice = row[key];
+                                fieldName = 'salesPrice'; }
+                                else if(k.includes('fae') || k.includes('faeprice')) { newItem.faePrice = row[key];
+                                fieldName = 'faePrice'; }
+                                else if(k.includes('phone')) { newItem.phone = row[key];
+                                fieldName = 'phone'; }
+                                else if(k.includes('address')) { newItem.address = row[key];
+                                fieldName = 'address'; }
+                                else if(k.includes('code')) { newItem.code = row[key];
+                                fieldName = 'code'; }
+                                else if(k.includes('remark')) { newItem.remark = row[key];
+                                fieldName = 'remark'; }
+                                else if(k.includes('cuspn')) { newItem.cusPN = row[key];
+                                fieldName = 'cusPN'; }
+                                else if(k.includes('budget')) { newItem.budget = row[key];
+                                fieldName = 'budget'; }
 
-                                // Import Comments
                                 const colIdx = Object.keys(colMap).find(idx => colMap[idx] === key);
                                 if (colIdx && fieldName) {
                                     const cellAddr = XLSX.utils.encode_cell({c: parseInt(colIdx), r: excelRow - 1});
                                     const cell = sheet[cellAddr];
                                     if(cell && (cell.c || cell.comment)) {
-                                        const c = cell.c || cell.comment;
+                                        const c = cell.c ||
+                                        cell.comment;
                                         const commentText = Array.isArray(c) ? c.map(i=>i.t).join('\n') : (c.t || c);
                                         if(commentText) newItem.comments.push({ field: fieldName, text: commentText });
                                     }
                                 }
                             }
-                            db[dbKey].push(newItem);
+                            
+            
+                            let existIdx = -1;
+                            if(dbKey === 'projects' || dbKey === 'masterList' || dbKey === 'quotes') {
+                                existIdx = db[dbKey].findIndex(x => x.project === newItem.project);
+                            } else if (dbKey === 'codes') {
+                                existIdx = db[dbKey].findIndex(x => x.code === newItem.code);
+                            }
+                            
+                            if (existIdx > -1) {
+                                db[dbKey][existIdx] = newItem;
+                            } else {
+                                db[dbKey].push(newItem);
+                            }
                             count++;
                         });
                     }
@@ -1231,10 +1800,12 @@
                             if(item && item._comments) {
                                 const mapping = {
                                     'Project':'project','Agent':'agent','End User':'endUser','Model':'model',
+                         
                                     'Size':'size','EAU':'eau','Application':'application','Contact':'contact',
                                     'PLM#':'plm','Price':'salesPrice','Sales Price':'salesPrice','FAE Price':'faePrice',
                                     'Phone':'phone','Address':'address','Code':'code','Remark':'remark',
-                                     'Cus PN':'cusPN','當年預算':'budget'
+               
+                                    'Cus PN':'cusPN','當年預算':'budget'
                                 };
                                 const fieldKey = mapping[headerName];
                                 const cmt = item._comments.find(c => c.field === fieldKey);
@@ -1247,9 +1818,9 @@
                         }
                     }
                 }
+            
                 return ws;
             };
-
             if(mode === 'LIST') {
                 const addSheet = (name, rawData) => {
                     const ws = XLSX.utils.json_to_sheet(rawData);
@@ -1265,7 +1836,8 @@
                     const remarkStr = tasks.map(t => `${t.trackDate||t.startDate} ${t.taskType}: ${t.desc}`).join('\r\n');
                     return {
                         'Project': p.project, 'Agent': p.agent, 'End User': p.endUser, 
-                        'Size': p.size, 'Model': p.model, 'Price': lastQuote ? lastQuote.salesPrice : '',
+                       'Size': p.size, 'Model': p.model, 'Price': lastQuote ? lastQuote.salesPrice : '',
+      
                         'Remark': remarkStr, '_comments': p.comments 
                     };
                 });
@@ -1275,7 +1847,8 @@
                 const masterData = db.masterList.map(m => ({
                     'Project': m.project, 'Agent': m.agent, 'End User': m.endUser,
                     'Application': m.application, 'EAU': m.eau, 'Size': m.size,
-                    'Model': m.model, 'Price': m.salesPrice, 'Remark': m.remark,
+                    'Model': m.model, 'Price': 
+                    m.salesPrice, 'Remark': m.remark,
                     'Contact': m.contact, 'Cus PN': m.cusPN, 'PLM#': m.plm, '_comments': m.comments
                 }));
                 addSheet("總表維護", masterData);
@@ -1283,8 +1856,9 @@
                 // 3. Quotes
                 const quoteData = db.quotes.map(q => ({
                     'Project': q.project, 'Agent': q.agent, 'End User': q.endUser,
-                    'Date': q.date, 'Sales Price': q.salesPrice, 'FAE Price': q.faePrice,
-                    'REF#': q.ref, 'Desc': q.desc, '_comments': q.comments
+                    'Date': q.date, 'Model': q.model, 'Sales Price': q.salesPrice, 'FAE Price': q.faePrice,
+                    'REF#': q.ref, 
+                    'Desc': q.desc, '_comments': q.comments
                 }));
                 addSheet("報價列表", quoteData);
 
@@ -1307,6 +1881,7 @@
                 const data = db.tasks.map(t => ({
                     '客戶': `${t.agent||''} / ${t.endUser||''}`, '日期': t.trackDate, 
                     '議題': '', '業務事項': t.taskType, '進度狀況': t.desc, '備註': t.docNum
+                
                 }));
                 const ws = XLSX.utils.json_to_sheet(data);
                 processSheet(ws, data);
