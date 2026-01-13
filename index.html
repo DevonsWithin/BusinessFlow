@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BusinessFlow V3.5.6 - 業務工作流系統</title>
+    <title>BusinessFlow V3.5.7 - 業務工作流系統</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -40,11 +40,11 @@
 
         /* 表格容器 */
         .table-container { height: calc(100vh - 140px);
-        overflow: auto; position: relative; }
+            overflow: auto; position: relative; }
         
         /* 表格列樣式 */
         .table-row { cursor: pointer;
-        transition: background-color 0.2s; }
+            transition: background-color 0.2s; }
         .table-row:hover td { background-color: var(--bg-hover) !important;
         }
         .table-row:hover .sticky-col { background-color: var(--bg-hover) !important;
@@ -148,7 +148,7 @@
 
         /* 選取模式下的調整 */
         .select-mode .col-check { left: 0px;
-        z-index: 30; }
+            z-index: 30; }
         body.sidebar-collapsed.select-mode .col-0 { left: 40px;
         }
         body:not(.sidebar-collapsed).select-mode .col-0 { left: 40px;
@@ -191,7 +191,7 @@
         /* Remove number spinner */
         .date-segment-container input::-webkit-outer-spin-button,
         .date-segment-container input::-webkit-inner-spin-button { -webkit-appearance: none;
-        margin: 0; }
+            margin: 0; }
 
         .fab-btn {
             position: fixed;
@@ -209,7 +209,7 @@
         }
 
         ::-webkit-scrollbar { width: 8px;
-        height: 8px; }
+            height: 8px; }
         ::-webkit-scrollbar-track { background: #1a1a1a;
         }
         ::-webkit-scrollbar-thumb { background: var(--orange-primary); border-radius: 4px;
@@ -228,15 +228,15 @@
         }
         
         .tag-badge { padding: 2px 6px;
-        border-radius: 3px; font-size: 0.7rem; border: 1px solid rgba(255,255,255,0.2); display: inline-block; margin: 1px;
+            border-radius: 3px; font-size: 0.7rem; border: 1px solid rgba(255,255,255,0.2); display: inline-block; margin: 1px;
         }
         .tag-blue { background-color: rgba(22, 51, 168, 0.4); color: #A1B0F6;
         }
 
         .checkbox-group label { display: inline-flex; align-items: center; margin-right: 12px; margin-bottom: 6px;
-        cursor: pointer; font-size: 0.9rem; color: #ccc; }
+            cursor: pointer; font-size: 0.9rem; color: #ccc; }
         .checkbox-group input { margin-right: 6px;
-        accent-color: var(--orange-primary); }
+            accent-color: var(--orange-primary); }
 
         /* 浮動視窗樣式 */
         .float-window {
@@ -298,9 +298,9 @@
 
         /* 按鈕光暈特效 */
         .btn-glow-red { animation: pulse-red 1.5s infinite;
-        color: #ff6b6b; text-shadow: 0 0 5px red; }
+            color: #ff6b6b; text-shadow: 0 0 5px red; }
         .btn-glow-green { animation: pulse-green 1.5s infinite;
-        color: #4ade80; text-shadow: 0 0 5px lime; }
+            color: #4ade80; text-shadow: 0 0 5px lime; }
         @keyframes pulse-red { 0% { opacity: 1;
         } 50% { opacity: 0.6; } 100% { opacity: 1;
         } }
@@ -317,7 +317,7 @@
                 <i class="fas fa-bars"></i>
             </button>
             <span class="font-bold text-lg tracking-wider 
-            italic logo-text text-orange-500">BusinessFlow <span class="text-xs bg-orange-600 text-white px-1 rounded ml-1 not-italic">V3.5.6</span></span>
+            italic logo-text text-orange-500">BusinessFlow <span class="text-xs bg-orange-600 text-white px-1 rounded ml-1 not-italic">V3.5.7</span></span>
         </div>
 
         <nav class="flex-1 overflow-y-auto custom-scrollbar flex flex-col mt-4">
@@ -329,31 +329,35 @@
                     <i class="fas fa-file-import w-6 text-center text-green-500"></i> <span class="menu-text">匯入 Excel</span>
                 </a>
                 <input type="file" id="excelImport" class="hidden" accept=".xlsx, .xls, .csv" onchange="handleExcelImport(event)">
+           
                 <div>
  
                     <a href="#" onclick="toggleExportMenu()" class="flex items-center gap-4 p-4 hover:bg-white/5 text-gray-300 hover:text-white transition-colors cursor-pointer w-full justify-between">
                         <div class="flex items-center gap-4">
-                            <i class="fas fa-file-export w-6 text-center text-blue-400"></i> <span class="menu-text">匯出 Excel</span>
-     
-                    </div>
+                            <i class="fas fa-file-export w-6 text-center text-blue-400"></i> 
+                            <span class="menu-text">匯出 Excel</span>
+                        </div>
                         <i class="fas fa-chevron-down text-xs text-gray-500 submenu-icon transition-transform" id="exportArrow"></i>
                     </a>
-                    <div id="exportSubmenu" class="hidden bg-black/20 border-l-2 border-blue-500/30 ml-6">
+                    <div id="exportSubmenu" 
+                    class="hidden bg-black/20 border-l-2 border-blue-500/30 ml-6">
     
                     <div onclick="exportExcel('LIST')" class="p-3 pl-8 hover:bg-white/10 cursor-pointer text-sm text-gray-300"><i class="fas fa-table mr-2"></i>LIST (業務管理)</div>
                         <div onclick="exportExcel('DAILY')" class="p-3 pl-8 hover:bg-white/10 cursor-pointer text-sm text-gray-300"><i class="fas fa-clock mr-2"></i>Daily (業務進度)</div>
                     </div>
-              
+      
                 </div>
             </div>
             <div class="my-2 border-t border-white/10 mx-4 shrink-0"></div>
             <div>
                 <a href="#" onclick="backupData()" class="flex items-center gap-4 p-4 hover:bg-white/5 text-gray-300 hover:text-white transition-colors">
+         
                     <i class="fas fa-cloud-download-alt 
                     w-6 text-center text-yellow-400"></i> <span class="menu-text">備份資料 (JSON)</span>
    
                 </a>
                  <a href="#" onclick="document.getElementById('jsonImport').click()" class="flex items-center gap-4 p-4 hover:bg-white/5 text-gray-300 hover:text-white transition-colors">
+               
                     <i class="fas fa-cloud-upload-alt w-6 text-center text-yellow-400"></i> <span class="menu-text">還原資料</span>
                 </a>
       
@@ -363,7 +367,8 @@
     </aside>
 
     <main class="flex-1 flex flex-col overflow-hidden relative">
-        <header class="h-16 border-b border-white/10 flex justify-between items-center px-6 bg-[#121212] shrink-0">
+        <header class="h-16 border-b border-white/10 
+        flex justify-between items-center px-6 bg-[#121212] shrink-0">
             <h2 id="sectionTitle" class="text-xl font-bold text-white tracking-wide">案子列表</h2>
             <div class="flex gap-4 items-center">
    
@@ -375,21 +380,18 @@
                 py-1 rounded text-sm transition-colors border border-red-500/50">
                    <i class="fas fa-trash-alt mr-1"></i>刪除選取
                 </button>
+            
                 <button id="exitSelectModeBtn" onclick="exitSelectionMode()" class="hidden text-gray-400 hover:text-white text-sm">
                     取消選取
-               
                 </button>
 
                  <div class="relative">
       
                     <select id="sortSelect" onchange="renderCurrentView()" class="bg-[#222] border border-gray-700 text-gray-300 text-sm rounded-full pl-3 pr-8 py-1.5 focus:outline-none focus:border-orange-500 appearance-none cursor-pointer hover:bg-[#333]">
                         <option value="date_new">活動日期 (新→舊)</option>
-             
                         <option value="date_old">活動日期 (舊→新)</option>
-                  
                         <option value="az">字母順序 (A→Z)</option>
                         <option value="za">字母順序 (Z→A)</option>
-                 
                     </select>
                     <i class="fas fa-sort absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-xs pointer-events-none"></i>
                 
@@ -400,7 +402,8 @@
                     <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-xs"></i>
                     <input type="text" id="searchInput" placeholder="搜尋..." onkeyup="renderCurrentView()"
                     class="bg-[#222] border border-gray-700 rounded-full pl-8 pr-8 py-1.5 text-sm focus:outline-none focus:border-orange-500 w-64 transition-all">
-                    <i class="fas fa-times absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-xs cursor-pointer hover:text-white" onclick="clearSearch()"></i>
+                    <i class="fas fa-times absolute right-3 top-1/2 
+                    transform -translate-y-1/2 text-gray-500 text-xs cursor-pointer hover:text-white" onclick="clearSearch()"></i>
   
                 </div>
             </div>
@@ -410,7 +413,7 @@
             <div class="h-full p-4 flex flex-col">
   
                 <div class="bg-[#151515] rounded-lg border border-white/5 flex-1 overflow-hidden relative shadow-xl">
-           
+ 
                     <div class="table-container custom-scrollbar">
                         <table class="w-full text-left text-sm" id="mainTable">
                             
@@ -418,11 +421,12 @@
     
                             <tbody id="tableBody"></tbody>
                         </table>
-                        <div id="emptyState" class="hidden flex flex-col items-center justify-center py-20 text-gray-500">
+                        <div id="emptyState" 
+                        class="hidden flex flex-col items-center justify-center py-20 text-gray-500">
               
-     
                         <i class="fas fa-folder-open text-4xl mb-4 opacity-50"></i>
                             <p>尚無資料，請點擊右下角 "+" 新增或長按列表項目進入批次模式</p>
+                
                        </div>
                    
                     </div>
@@ -431,7 +435,8 @@
             </div>
         </div>
 
-        <div class="fab-btn" onclick="openModal('add')">
+        <div class="fab-btn" 
+        onclick="openModal('add')">
             <i class="fas fa-plus"></i>
         </div>
     </main>
@@ -441,6 +446,7 @@
          <div class="bg-[#1a1a1a] border border-orange-500/30 w-[800px] max-h-[90vh] rounded-xl shadow-2xl overflow-hidden flex flex-col" onclick="event.stopPropagation()">
  
            <div class="bg-[#202020] p-4 border-b border-white/10 flex justify-between items-center shrink-0">
+              
                 <h3 id="modalTitle" class="text-orange-400 font-bold text-lg"><i class="fas fa-plus-circle mr-2"></i>新增資料</h3>
                 <button onclick="closeModal()" class="text-gray-400 hover:text-white"><i class="fas fa-times"></i></button>
             </div>
@@ -448,11 +454,12 @@
             <div class="p-6 overflow-y-auto custom-scrollbar flex-1 space-y-5">
          
                 <input type="hidden" id="editId">
+      
                 <div>
                     <label class="block text-gray-400 text-xs mb-2">資料類型</label>
                     <select id="modalType" onchange="renderModalFields()" class="input-dark font-bold 
                     text-orange-300 border-orange-500/50 bg-orange-600/20">
-                        
+                   
                         <option value="projects">案子列表 (Project)</option>
                         <option value="masterList">總表維護 (Master)</option>
                       
@@ -460,7 +467,7 @@
                         <option value="orders">訂單列表 (Order)</option>
                     
                         <option value="quotes">報價列表 (Quote)</option>
-                        
+                       
                         <option value="contacts">聯絡人清單 (Contact)</option>
                         <option value="codes">客戶代碼與行為 (Code)</option>
                     </select>
@@ -471,7 +478,7 @@
                 <div class="bg-black/20 p-4 rounded border border-white/5">
                     <label class="block text-gray-400 text-xs mb-2">詳細註解 (滑鼠點擊三角形顯示)</label>
                     <div id="commentsContainer" class="space-y-2"></div>
-                    
+       
                     <button onclick="addCommentField()" class="text-xs text-orange-400 
                     hover:text-white mt-2 font-bold flex items-center gap-1">
                         <i class="fas fa-plus"></i> 追加註解欄位
@@ -481,6 +488,7 @@
             <div class="p-4 bg-black/20 border-t border-white/5 flex justify-end gap-3 
             shrink-0">
                 <button onclick="closeModal()" class="px-4 py-2 text-gray-400 hover:text-white text-sm">取消</button>
+         
                 <button onclick="saveData()" class="btn-orange px-6 py-2 rounded text-white font-bold shadow-lg">儲存變更</button>
             </div>
         </div>
@@ -494,6 +502,7 @@
         <i class="fas fa-times action-toast-close" onclick="document.getElementById('actionToast').style.display='none'"></i>
         <i class="fas fa-check-circle text-4xl text-green-500 mb-2"></i>
         <h3>已新增至案子列表</h3>
+  
         <p>ˇ當年預算預設為EAU，視需要更新數值</p>
     </div>
 
@@ -510,7 +519,8 @@
             </select>
         </div>
     
-        <div class="p-2 border-b border-white/10 flex gap-2">
+        <div class="p-2 border-b border-white/10 
+        flex gap-2">
             <button onclick="toggleFilterCheck(true)" class="text-xs text-blue-400 hover:text-white">全選</button>
             <span class="text-gray-600">|</span>
             <button onclick="toggleFilterCheck(false)" class="text-xs text-blue-400 hover:text-white">全不選</button>
@@ -518,7 +528,8 @@
         <div id="filterOptions" class="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-1">
         </div>
         <div class="p-3 border-t border-white/10 flex justify-end gap-2 bg-[#252525]">
-            <button onclick="applyFilter()" class="btn-orange px-3 py-1 rounded text-xs font-bold">套用</button>
+         
+           <button onclick="applyFilter()" class="btn-orange px-3 py-1 rounded text-xs font-bold">套用</button>
         </div>
     </div>
 
@@ -547,12 +558,12 @@
             'orders': { title: '訂單列表', icon: 'fa-shipping-fast' },
             'tasks': { title: '任務列表', icon: 'fa-tasks' },
             'activities': { title: '活動列表', icon: 'fa-history' },
+     
             'quotes': { title: '報價列表', icon: 'fa-file-invoice-dollar' },
             'masterList': { title: '總表維護', icon: 'fa-table' },
             'contacts': { title: '聯絡人清單', icon: 'fa-address-book' },
             'codes': { title: '客戶代碼與行為', icon: 'fa-barcode' }
         };
-
         window.onload = () => {
             const saved = localStorage.getItem('workflowDB_v3_5');
             if(saved) db = JSON.parse(saved);
@@ -561,7 +572,6 @@
             switchView('projects');
             autoCheckShipment();
         };
-
         function toggleSidebar() { 
             const sb = document.getElementById('sidebar');
             sb.classList.toggle('collapsed');
@@ -601,20 +611,25 @@
                         const m = db.masterList.find(x => x.id === id);
                         if(m) {
                             if(!db.projects.some(p => p.project === m.project)) {
+         
                                 db.projects.push({
                                     id: Date.now() + Math.random(),
                                     updatedAt: new Date(),
                                     project: m.project,
                                     agent: m.agent,
+                          
                                     endUser: m.endUser,
                                     size: m.size,
                                     model: m.model,
+               
                                     budget: m.eau, 
                                     plm: m.plm,
                                     active: true,
+   
                                     comments: []
                                 });
                                 count++;
+  
                             }
                         }
                     });
@@ -685,11 +700,14 @@
                 !e.target.closest('.has-comment')) {
                 fw.style.display = 'none';
             }
-            // V3.5.6: Fix flash - checking closest filterMenu
-            const fm = document.getElementById('filterMenu');
+            
+            // V3.5.7: 修正 - 篩選視窗只允許點擊 X 關閉，避免誤觸或閃爍
+            // 移除舊的自動關閉邏輯
+            /* const fm = document.getElementById('filterMenu');
             if (!fm.classList.contains('hidden') && !fm.contains(e.target) && !e.target.closest('th')) {
                 closeFilterMenu();
-            }
+            } 
+            */
         }
 
         function handleLongPressCopy(el, textOverride) {
@@ -700,7 +718,8 @@
                     if(text) {
                         navigator.clipboard.writeText(text).then(() => showToast());
                     }
-                }, 800);
+  
+              }, 800);
             };
             el.onmouseup = () => clearTimeout(longPressTimer);
         }
@@ -719,6 +738,7 @@
                 return `<a href="#" onclick="switchView('${key}')" class="flex items-center gap-4 p-4 hover:bg-white/5 text-gray-300 hover:text-white transition-colors border-l-4 border-transparent hover:border-orange-500 nav-item" id="nav-${key}">
                     <i class="fas ${VIEW_CONFIG[key].icon} w-6 text-center"></i> <span class="menu-text">${VIEW_CONFIG[key].title}</span>
                 </a>`
+ 
             }).join('') + 
             `<a href="#" onclick="switchView('activities')" class="flex items-center gap-4 p-4 hover:bg-white/5 text-gray-300 hover:text-white transition-colors border-l-4 border-transparent hover:border-orange-500 nav-item" id="nav-activities">
                 <i class="fas fa-history w-6 text-center"></i> <span class="menu-text">活動列表</span>
@@ -790,15 +810,15 @@
             if(!menu.classList.contains('hidden') && currentFilterCol === key) return;
             // Show Filter Menu
             const uniqueValues = new Set();
-            const sourceData = currentView === 'tasks' && currentView !== 'activities' ? db.tasks.filter(t => !t.completed) : db[currentView === 'activities' ? 'tasks' : currentView];
+            const sourceData = currentView === 'tasks' && currentView !== 'activities' ? db.tasks.filter(t => !t.completed) : db[currentView === 'activities' ?
+            'tasks' : currentView];
             sourceData.forEach(item => {
                 if(key === 'star') {
                     uniqueValues.add(item.star ? 'true' : 'false');
                 } else if(item[key]) {
                     uniqueValues.add(item[key].toString());
+             
                 } else if(key === 'latestStatus') {
-                     // For latest status, filter by text? User only asked for SORT.
-                     // But filter should work too based on V3.5.5 logic.
                      const st = getLatestStatus(item);
                      if(st.text) uniqueValues.add(st.text);
                 }
@@ -815,11 +835,13 @@
                 const div = document.createElement('div');
                 div.className = 'flex items-center gap-2 hover:bg-white/5 p-1 rounded cursor-pointer';
                 div.onclick = (e) => {
-                     const cb = div.querySelector('input');
+              
+                    const cb = div.querySelector('input');
                     if(e.target !== cb) cb.checked = !cb.checked;
                 };
                 let displayVal = val;
-                if(key === 'star') displayVal = val === 'true' ? '<i class="fas fa-star text-yellow-500"></i>' : '<span class="text-gray-500">無星星</span>';
+                if(key === 'star') displayVal = val === 'true' ? '<i class="fas fa-star text-yellow-500"></i>' : 
+                '<span class="text-gray-500">無星星</span>';
                 div.innerHTML = `<input type="checkbox" class="accent-orange-500 filter-check" value="${val}" ${currentSet.has(val)?'checked':''}> <span class="text-xs text-gray-300 truncate">${displayVal}</span>`;
                 container.appendChild(div);
             });
@@ -840,17 +862,14 @@
             } else if (currentView === 'orders') {
                 if (['project','agent','endUser','model'].includes(key)) { showSort = true;
                 addOpt('az', '字母順序(A→Z)'); addOpt('za', '字母順序(Z→A)'); }
-                // Orders '交期' is traditionally 'dueDate' or mapped to date
                 if (key === 'dueDate' || key === 'statusDesc') { showSort = true;
                 addOpt('az', '字母順序(A→Z)'); addOpt('za', '字母順序(Z→A)'); } 
-                // Note: user said "交期" -> assuming column key matches
             } else if (currentView === 'tasks' || currentView === 'activities') {
                 if (['project','agent','endUser','model'].includes(key)) { showSort = true;
                 addOpt('az', '字母順序(A→Z)'); addOpt('za', '字母順序(Z→A)'); }
                 if (key === 'trackDate') { showSort = true;
                 addOpt('new', '活動日期(新→舊)'); addOpt('old', '活動日期(舊→新)'); }
             } else if (currentView === 'quotes') {
-                // V3.5.6: Added model to sort
                 if (['project','agent','endUser','model'].includes(key)) { showSort = true;
                 addOpt('az', '字母順序(A→Z)'); addOpt('za', '字母順序(Z→A)'); }
                 if (key === 'date') { showSort = true;
@@ -884,12 +903,7 @@
             } else {
                 activeSort = { col: currentFilterCol, order: order };
             }
-            // Close menu isn't mandatory but good UX, or keep open?
-            // Usually apply sort renders view.
             renderCurrentView();
-            // Don't close immediately to allow multiple actions?
-            // User request was just to add function.
-            // I'll keep it open until "Apply" or close. But Render redraws table.
         }
 
         function applyFilter() {
@@ -938,10 +952,12 @@
                     { t: '標籤', w: '150px', k:'tags' },
                     { t: '狀況概述', w: '250px', k:'summary' },
                     { t: '達成數量', w: '80px', k:'achievement' },
-                    { t: '當年預算', w: '80px', k:'budget' },
+              
+                    { t: '當年預算', w: '80px', k:'budget', c: 'text-right' },
                     { t: 'Active', w: '60px', k:'active' },
                     { t: 'PLM#', w: '80px', k:'plm' },
                     commonOps
+                
                 ];
             } else if (currentView === 'masterList') {
                 sourceData = db.masterList;
@@ -949,10 +965,12 @@
                     { t: '', w: '40px', c: 'sticky-col col-0' },
                     { t: 'Project', w: '120px', k:'project', c: 'sticky-col col-1 text-small-gray' },
                     { t: 'Agent', w: '80px', k:'agent', c: 'sticky-col col-2 text-small-gray' },
+          
                     { t: 'End User', w: '80px', k:'endUser', c: 'sticky-col col-3 text-small-gray' },
                     { t: 'Application', w: '100px', k:'application' },
-                    { t: 'EAU', w: '80px', k:'eau' },
+                    { t: 'EAU', w: '80px', k:'eau', c: 'text-right' },
                     { t: 'Size', w: '60px', k:'size' },
+ 
                     { t: 'Model', w: '150px', k:'model', c:'text-model text-[10px]' },
                     { t: 'Price', w: '80px', k:'salesPrice' },
                     { t: 'Remark', w: '200px', k:'remark' },
@@ -960,6 +978,7 @@
                     { t: 'Cus PN', w: '100px', k:'cusPN' },
                     { t: 'Active', w: '60px', k:'active' },
                     { t: 'PLM#', w: '80px', k:'plm' },
+                
                     commonOps
                 ];
             } else if (currentView === 'tasks' || currentView === 'activities') {
@@ -972,27 +991,30 @@
                     { t: 'End User', w: '100px', k: 'endUser', c: 'sticky-col col-3 text-small-gray' },
                     { t: 'Model', w: '150px', k: 'model', c: 'sticky-col col-5 text-model text-[10px]' },
                     { t: '任務', w: '80px', k: 'taskType' }, { t: '任務說明', w: '200px', k: 'desc' }, { t: '文件#', w: '100px', k: 'docNum' },
-                    { t: '起始/追蹤', w: '120px', k: 'trackDate' }, { t: '狀態', w: '80px' }, commonOps
+                    { t: '起始/追蹤', w: '120px', k: 'trackDate' }, 
+                    { t: '狀態', w: '80px' }, 
+                    { t: '完成日', w: '100px', k: 'completedDate' },
+                    commonOps
                 ];
                 columns[4].c = 'text-model text-[10px]';
             } else if (currentView === 'orders') {
                 sourceData = db.orders;
-                // V3.5.6: Mapped DueDate to k:'dueDate' for filtering/sorting
-                // V3.5.6: Renamed '型號' to 'Model'
                 columns = [
                     { t: '★', w: '40px' }, { t: 'Project', w: '120px', k:'project' }, { t: 'Agent', w: '80px', k:'agent' }, { t: 'End User', w: '80px', k:'endUser' },
+       
                     { t: 'Model', w: '100px', c:'text-model', k:'model' }, 
                     { t: 'PO#', w: '100px', k:'po' }, { t: 'Qty', w: '60px', k:'qty' },
                     { t: '交期', w: '100px', k:'dueDate' }, { t: '出貨', w: '60px' }, { t: '狀態說明', w: '150px', k:'statusDesc' }, commonOps
+      
                 ];
             } else if (currentView === 'quotes') {
-                // V3.5.6 Add Model Column
                 columns = [
                     { t: 'Project', w: '150px', k:'project', c: 'text-xs' }, 
                     { t: 'Agent', w: '100px', k:'agent', c: 'text-xs' }, 
                     { t: 'End User', w: '100px', k:'endUser', c: 'text-xs' },
                     { t: '日期', w: '100px', k:'date' }, 
                     { t: 'Model', w: '150px', k:'model', c: 'text-model text-[10px]' },
+             
                     { t: '業務報價', w: '100px', c:'text-orange-300 font-bold', k:'salesPrice' },
                     { t: 'FAE報價', w: '100px', k:'faePrice' }, { t: 'REF#', w: '100px', k:'ref', c: 'text-xs text-gray-400' }, { t: '說明', w: '200px', k:'desc' }, { t: '操作', w: '60px', c:'sticky-right' }
                 ];
@@ -1001,6 +1023,7 @@
                 columns = [
                     { t: '★', w: '40px' }, { t: 'Agent', w: '120px', k:'agent' }, { t: 'End User', w: '120px', k:'endUser' },
                     { t: 'Position', w: '120px', k:'position' }, { t: 'Phone', w: '120px', k:'phone' }, { t: 'Address', w: '200px', k:'address' },
+                  
                     { t: 'Remark', w: '150px', k:'remark' }, { t: 'Active', w: '60px', k:'active' }, commonOps
                 ];
             } else if (currentView === 'codes') {
@@ -1008,6 +1031,7 @@
                 columns = [
                     { t: 'Agent', w: '150px', k:'agent' }, { t: 'End User', w: '150px', k:'endUser' }, { t: 'Code', w: '100px', c:'text-model', k:'code' },
                     { t: 'Pricing', w: '100px', k:'pricing' }, { t: 'Logistics', w: '100px', k:'logistics' }, { t: 'Remark', w: '200px', k:'remark' },
+                
                     { t: 'Active', w: '60px', k:'active' }, { t: '操作', w: '60px', c:'sticky-right' }
                 ];
             }
@@ -1023,18 +1047,21 @@
                 columns[0] = { 
                     t: '<input type="checkbox" onchange="toggleAddMasterSelectAll(this)" class="accent-orange-500 cursor-pointer">', 
                     w: '40px', c:'sticky-col col-0 text-center' 
-                };
+             
+               };
             }
 
             // V3.5.6: Filter Icon logic
             thead.innerHTML = `<tr>${columns.map(c => {
                 const isFiltered = activeFilters[currentView] && activeFilters[currentView][c.k];
                 const filterIcon = isFiltered ? '<i class="fas fa-filter text-orange-500 ml-1 text-[10px]"></i>' : '';
+               
                 return `<th style="width:${c.w}; min-width:${c.w}" 
                             class="${c.c||''}"
                             onmousedown="startHeaderLongPress(event, '${c.k}')"
                             onmouseup="cancelHeaderLongPress()"
-                            >${c.t}${filterIcon}</th>`
+          
+                  >${c.t}${filterIcon}</th>`
             }).join('')}</tr>`;
             // Apply Filters
             let filtered = sourceData;
@@ -1043,21 +1070,20 @@
                     const validSet = activeFilters[currentView][key];
                     if(validSet) {
                         filtered = filtered.filter(item => {
-                            if(key === 'star') return validSet.has(item.star ? 'true' : 'false');
+         
+                           if(key === 'star') return validSet.has(item.star ? 'true' : 'false');
                             if(key === 'latestStatus') {
                                 const st = getLatestStatus(item);
-                                return validSet.has(st.text);
+       
+                                 return validSet.has(st.text);
                             }
                             if(key === 'dueDate' && currentView === 'orders') {
-                                // Orders dueDate is inside shipments usually, or top level? 
-                                // Simplified: check shipments or item.dueDate.
-                                // Logic: if any shipment matches, keep it? Or strictly top level?
-                                // Based on V3.5.5 display logic: ships.map(s => s.dueDate)
-                                // Filter logic: match any string representation.
+           
                                 const ships = item.shipments && item.shipments.length ? item.shipments : [{dueDate:item.dueDate}];
                                 return ships.some(s => validSet.has(s.dueDate||'-'));
                             }
-                            const val = item[key] ? item[key].toString() : '';
+                            const val = item[key] ?
+                            item[key].toString() : '';
                             return validSet.has(val); 
                         });
                     }
@@ -1073,8 +1099,12 @@
                     let valA, valB;
 
                     if(col === 'latestStatus') {
+                        // V3.5.7 Fix: Sort by Date properly
                         valA = getLatestStatus(a).date || '';
                         valB = getLatestStatus(b).date || '';
+                        const getMs = (d) => d ? new Date(d).getTime() : 0;
+                        if(order === 'new') return getMs(valB) - getMs(valA);
+                        if(order === 'old') return getMs(valA) - getMs(valB);
                     } else if (col === 'achievement') {
                         // Sort by PERCENT
                         const achA = calculateAchievement(a).percent;
@@ -1085,20 +1115,15 @@
                         valA = parseFloat(a.budget) || 0;
                         valB = parseFloat(b.budget) || 0;
                     } else if (col === 'dueDate' && currentView === 'orders') {
-                         // Sort by earliest due date
                          const getEarliest = (i) => {
-                             const ships = i.shipments || [{dueDate:i.dueDate}];
+                              const ships = i.shipments || [{dueDate:i.dueDate}];
                              const dates = ships.map(s=>s.dueDate).filter(d=>d).sort();
                              return dates[0] || '9999-99-99';
                          };
-                         valA = getEarliest(a); valB = getEarliest(b);
+                        valA = getEarliest(a); valB = getEarliest(b);
                     } else {
                         valA = a[col] || '';
                         valB = b[col] || '';
-                        // Try numeric sort if looks like number?
-                        // No, requirements said "A->Z" (Alpha)
-                        // But size/EAU might be numbers.
-                        // Let's stick to localeCompare for A->Z unless specified.
                     }
 
                     if(order === 'new') return new Date(valB) - new Date(valA);
@@ -1116,7 +1141,7 @@
                 if(sortMode === 'za') return (b.project || b.agent || '').localeCompare(a.project || a.agent || '');
                 return 0;
             };
-            // V3.5.6 Task/Activity Special Overdue Sort
+            // V3.5.7 Task/Activity Special Overdue Sort
             if(currentView === 'tasks' || currentView === 'activities') {
                 const today = new Date().toISOString().split('T')[0];
                 const isOverdue = (t) => !t.completed && t.trackDate && t.trackDate < today;
@@ -1124,7 +1149,7 @@
                 const overdueItems = filtered.filter(isOverdue);
                 const normalItems = filtered.filter(t => !isOverdue(t));
                 
-                // Overdue: always Old -> New
+                // Overdue: always Old -> New (Oldest overdue first)
                 overdueItems.sort((a,b) => new Date(a.trackDate) - new Date(b.trackDate));
                 // Normal: use active sort
                 normalItems.sort(doSort);
@@ -1142,19 +1167,22 @@
                     tr.className = 'table-row';
                     tr.dataset.id = item.id;
                     
-                     tr.onmousedown = (e) => {
+                      tr.onmousedown = (e) => {
                         if(e.target.closest('.cell-content') || e.target.closest('.sticky-col')) 
                         {
                         } else {
+         
                              startLongPress(tr); 
                         }
                     };
                     tr.onmouseup = cancelLongPress;
+             
                     tr.onmouseleave = cancelLongPress;
                     if(item.active === false || item.completed) tr.style.opacity = '0.5';
 
                     const isSel = selectedIds.has(item.id);
                     const starClass = item.star ? 'star-active text-yellow-400' : 'star-inactive text-gray-600';
+            
                     const starHTML = `<i class="fas fa-star ${starClass} hover:scale-125 transition-transform cursor-pointer" onclick="toggleStar('${currentView}', ${item.id})"></i>`;
                     const actionsHTML = `<div class="flex justify-center gap-2 h-full items-center"><button onclick="openModal('edit', ${item.id})" class="text-gray-400 hover:text-white"><i class="fas fa-edit"></i></button><button onclick="deleteItem(${item.id})" class="text-red-900 hover:text-red-500"><i class="fas fa-trash-alt"></i></button></div>`;
                     const checkHTML = `<input type="checkbox" class="accent-orange-500 row-check cursor-pointer transform scale-125" value="${item.id}" ${isSel?'checked':''} onchange="toggleSelectRow(${item.id})">`;
@@ -1162,10 +1190,12 @@
                         const comment = (item.comments || []).find(c => c.field === fieldName);
                         const hasCommentClass = comment ? 'has-comment' : '';
                         const displayVal = val || '';
-                        const commentText = comment ? comment.text.replace(/'/g, "&#39;") : '';
+                        const commentText = comment ?
+                        comment.text.replace(/'/g, "&#39;") : '';
                         return `<div class="cell-content ${hasCommentClass}" 
                         onmouseleave="startFloatCloseTimer()"
                                     onmouseenter="handleCellHover(this, '${commentText}', '${displayVal}')"
+                              
                                     onmousedown="handleLongPressCopy(this)">
                                        ${displayVal}
                                  </div>`;
@@ -1176,31 +1206,40 @@
                         const ach = calculateAchievement(item);
                         const latest = getLatestStatus(item);
                         // V3.5.5 Budget Comma Separator
-                        const displayBudget = item.budget ? parseFloat(item.budget.toString().replace(/,/g,'')).toLocaleString() : '';
+                        const displayBudget = item.budget ?
+                        parseFloat(item.budget.toString().replace(/,/g,'')).toLocaleString() : '';
 
                         cells = `
                             <td class="sticky-col col-0 text-center"><div class="cell-content justify-center">${starHTML}</div></td>
                             <td class="sticky-col col-1 text-small-gray">${genCell(item.project, 'project')}</td>
-                            <td class="sticky-col col-2 text-small-gray">${genCell(item.agent, 'agent')}</td>
+                            <td class="sticky-col 
+                            col-2 text-small-gray">${genCell(item.agent, 'agent')}</td>
                             <td class="sticky-col col-3 text-small-gray">${genCell(item.endUser, 'endUser')}</td>
                             <td class="sticky-col col-4">${genCell(item.size, 'size')}</td>
                             <td class="sticky-col col-5 text-model text-[10px]">${genCell(item.model, 'model')}</td>
-                            <td class="sticky-col col-6 col-latest">
+  
+                           <td class="sticky-col col-6 col-latest">
                                 <div class="flex flex-col leading-tight justify-center h-full px-2">
+                                 
                                     <span class="text-white font-bold text-xs mb-1">${renderTags(latest.text)}</span>
                                     <span class="text-[10px] text-gray-400">${latest.date}</span>
                                 </div>
+                       
                             </td>
                             <td>${renderTags(item.tags)}</td>
                             <td>${genCell(item.summary, 'summary')}</td>
                             <td class="text-center">
+         
                                 <div class="cell-content flex-col justify-center leading-tight">
                                     <span class="text-orange-400 font-bold">${ach.qty}</span>
+                                   
                                     <span class="text-[10px] text-gray-500">${ach.percent}</span>
                                 </div>
                             </td>
-                            <td>${genCell(displayBudget, 'budget')}</td>
-                            <td class="text-center"><div class="cell-content justify-center">${item.active!==false ? 'Y' : 'N'}</div></td>
+                            <td class="text-right">${genCell(displayBudget, 'budget')}</td>
+        
+                            <td class="text-center"><div class="cell-content justify-center">${item.active!==false ?
+                            'Y' : 'N'}</div></td>
                             <td>${genCell(item.plm, 'plm')}</td>
                             <td class="text-center sticky-right">${actionsHTML}</td>
                         `;
@@ -1219,18 +1258,23 @@
 
                         cells = `
                             <td class="sticky-col col-0 text-center"><div class="cell-content justify-center">${col0Content}</div></td>
-                            <td class="sticky-col col-1 text-small-gray">${genCell(item.project, 'project')}</td>
+                 
+                           <td class="sticky-col col-1 text-small-gray">${genCell(item.project, 'project')}</td>
                             <td class="sticky-col col-2 text-small-gray">${genCell(item.agent, 'agent')}</td>
                             <td class="sticky-col col-3 text-small-gray">${genCell(item.endUser, 'endUser')}</td>
+                     
                             <td>${genCell(item.application, 'application')}</td>
-                            <td>${genCell(displayEau, 'eau')}</td>
+                            <td class="text-right">${genCell(displayEau, 'eau')}</td>
                             <td>${genCell(item.size, 'size')}</td>
                             <td class="text-model text-[10px]">${genCell(item.model, 'model')}</td>
-                            <td>${genCell(displayPrice, 'salesPrice')}</td>
+   
+                             <td>${genCell(displayPrice, 'salesPrice')}</td>
                             <td>${genCell(item.remark, 'remark')}</td>
                             <td>${genCell(item.contact, 'contact')}</td>
-                            <td>${genCell(item.cusPN, 'cusPN')}</td>
-                            <td class="text-center"><div class="cell-content justify-center">${item.active!==false ? 'Y' : 'N'}</div></td>
+                
+                             <td>${genCell(item.cusPN, 'cusPN')}</td>
+                            <td class="text-center"><div class="cell-content justify-center">${item.active!==false ?
+                             'Y' : 'N'}</div></td>
                             <td>${genCell(item.plm, 'plm')}</td>
                             <td class="text-center sticky-right">${actionsHTML}</td>
                         `;
@@ -1238,30 +1282,36 @@
                          const isOverdue = !item.completed && new Date(item.trackDate) < new Date();
                          const masterItem = db.masterList.find(m => m.project === item.project);
                          const displayModel = masterItem ? masterItem.model : '';
+                         // V3.5.7: Add Completed Date Column
                          cells = `<td class="sticky-col col-0 text-center"><div class="cell-content justify-center">${starHTML}</div></td>
                         <td class="sticky-col col-1 text-small-gray">${genCell(item.project,'project')}</td>
                         <td class="sticky-col col-2 text-small-gray">${genCell(item.agent,'agent')}</td>
                         <td class="sticky-col col-3 text-small-gray">${genCell(item.endUser,'endUser')}</td>
+            
                         <td class="text-model text-[10px]">${genCell(displayModel,'model')}</td>
                         <td><span class="tag-badge tag-blue">${item.taskType||''}</span></td><td>${genCell(item.desc,'desc')}</td><td class="font-mono text-xs">${genCell(item.docNum,'docNum')}</td>
                         <td class="${isOverdue?'text-red-500 font-bold':'text-gray-400'} text-xs"><div>起: ${item.startDate}</div><div>追: ${item.trackDate}</div></td>
-                        <td>${item.completed ? '<span class="text-gray-500">已完成</span>' : '<span class="text-green-500">進行中</span>'}</td><td class="text-center sticky-right">${actionsHTML}</td>`;
+                        <td>${item.completed ?
+                        '<span class="text-gray-500">已完成</span>' : '<span class="text-green-500">進行中</span>'}</td>
+                        <td class="text-xs text-gray-400">${genCell(item.completedDate, 'completedDate')}</td>
+                        <td class="text-center sticky-right">${actionsHTML}</td>`;
                     } else if (currentView === 'orders') {
-                        const ships = item.shipments && item.shipments.length ? item.shipments : [{dueDate: item.dueDate, qty: item.qty, isShipped: item.isShipped}];
+                        const ships = item.shipments && item.shipments.length ?
+                        item.shipments : [{dueDate: item.dueDate, qty: item.qty, isShipped: item.isShipped}];
                         const qtysHtml = ships.map(s => `<div>${s.qty||0}</div>`).join('');
                         const datesHtml = ships.map(s => `<div>${s.dueDate||'-'}</div>`).join('');
                         const shippedHtml = ships.map(s => s.isShipped ? '<span class="text-green-500">✓</span>' : '<span class="text-gray-600">-</span>').join('<br>');
                         cells = `<td class="text-center"><div class="cell-content justify-center">${starHTML}</div></td><td>${genCell(item.project,'project')}</td><td>${genCell(item.agent,'agent')}</td><td>${genCell(item.endUser,'endUser')}</td><td class="text-model">${genCell(item.model,'model')}</td>
                             <td>${genCell(item.po,'po')}</td>
                             <td class="font-mono text-xs"><div class="cell-content flex-col justify-center items-start">${qtysHtml}</div></td>
-                            <td class="text-xs"><div class="cell-content flex-col justify-center items-start">${datesHtml}</div></td>
+                            <td class="text-xs"><div class="cell-content flex-col 
+                            justify-center items-start">${datesHtml}</div></td>
                             <td class="text-center text-xs"><div class="cell-content flex-col justify-center">${shippedHtml}</div></td>
                             <td>${genCell(item.statusDesc,'statusDesc')}</td><td class="text-center sticky-right">${actionsHTML}</td>`;
                     } else if (currentView === 'quotes') {
-                        // V3.5.5 Updated Quote Cells with text-xs logic
-                        // V3.5.6 Add Model cell
                         cells = `<td class="text-xs">${genCell(item.project,'project')}</td><td class="text-xs">${genCell(item.agent,'agent')}</td><td class="text-xs">${genCell(item.endUser,'endUser')}</td><td>${item.date}</td><td class="text-model text-[10px]">${genCell(item.model,'model')}</td><td class="text-orange-300 font-bold">${genCell(item.salesPrice,'salesPrice')}</td>
-                            <td>${genCell(item.faePrice,'faePrice')}</td><td class="text-xs text-gray-400">${genCell(item.ref,'ref')}</td><td>${genCell(item.desc,'desc')}</td><td class="text-center sticky-right">${actionsHTML}</td>`;
+  
+                           <td>${genCell(item.faePrice,'faePrice')}</td><td class="text-xs text-gray-400">${genCell(item.ref,'ref')}</td><td>${genCell(item.desc,'desc')}</td><td class="text-center sticky-right">${actionsHTML}</td>`;
                     } else if (currentView === 'contacts') {
                         cells = `<td class="text-center"><div class="cell-content justify-center">${starHTML}</div></td><td>${genCell(item.agent,'agent')}</td><td>${genCell(item.endUser,'endUser')}</td><td>${genCell(item.position,'position')}</td><td>${genCell(item.phone,'phone')}</td>
                             <td class="text-xs text-gray-400">${genCell(item.address,'address')}</td><td class="text-xs">${genCell(item.remark,'remark')}</td><td>${item.active!==false?'Y':'N'}</td><td class="text-center sticky-right">${actionsHTML}</td>`;
@@ -1330,7 +1380,7 @@
         }
 
         function renderTags(str) { return str ?
-            str.split(/[,，]/).filter(t=>t.trim()).map(t => `<span class="tag-badge tag-blue">${t.trim()}</span>`).join('') : ''; }
+        str.split(/[,，]/).filter(t=>t.trim()).map(t => `<span class="tag-badge tag-blue">${t.trim()}</span>`).join('') : ''; }
         
         function calculateAchievement(proj) { 
             const budget = parseFloat(proj.budget)||0;
@@ -1366,14 +1416,13 @@
             }
         }
         function closeModal() { document.getElementById('mainModal').classList.add('hidden');
-        document.getElementById('mainModal').classList.remove('flex'); }
+            document.getElementById('mainModal').classList.remove('flex'); }
 
         function addShipmentRow(data = {}) {
             const container = document.getElementById('shipmentsContainer');
             const div = document.createElement('div');
             div.className = "flex gap-2 items-center mb-2 p-2 bg-white/5 rounded border border-white/5 shipment-row";
             const rnd = Math.random().toString(36).substring(7);
-            // V3.5.5: data.dueDate default is '' (empty)
             const dateInputHtml = createDateInputGroup(`ship_date_${rnd}`, data.dueDate||'', 's-date-hidden');
             div.innerHTML = `
                 <div class="flex-1"><label class="text-xs text-gray-500">需求交期</label>${dateInputHtml}</div>
@@ -1459,6 +1508,33 @@
             }
         }
 
+        // V3.5.7: Task Completed Toggle
+        function toggleTaskCompleteFields(checkbox) {
+            const section = document.getElementById('taskCompleteSection');
+            if(checkbox.checked) {
+                section.classList.remove('hidden');
+                // Auto popup specific comment hint
+                const container = document.getElementById('commentsContainer');
+                // Check if already exists
+                const existing = Array.from(container.querySelectorAll('input[type=text]')).some(i => i.value === '針對任務採取了哪些行動');
+                if(!existing) {
+                    addCommentField();
+                    // Select 'desc'
+                    const lastRow = container.lastElementChild;
+                    if(lastRow) {
+                        const sel = lastRow.querySelector('select');
+                        sel.value = 'desc';
+                        const input = lastRow.querySelector('input');
+                        input.value = '';
+                        input.placeholder = '針對任務採取了哪些行動';
+                        input.focus();
+                    }
+                }
+            } else {
+                section.classList.add('hidden');
+            }
+        }
+
         function renderModalFields(data = {}) {
             const type = document.getElementById('modalType').value;
             const container = document.getElementById('modalFields');
@@ -1480,9 +1556,8 @@
 
             let html = '';
             if(type === 'orders') {
-                // V3.5.5 Orders: OrderDate defaults Today, DueDate (in shipment) defaults empty
-                // Label changed to "訂單日期"
-                const defaultOrderDate = data.createdAt || new Date().toISOString().split('T')[0];
+                const defaultOrderDate = data.createdAt ||
+                new Date().toISOString().split('T')[0];
                 html = `
                     <div class="grid grid-cols-2 gap-4">
                         <input class="input-dark" placeholder="Project" id="f_project" value="${data.project||''}" oninput="autoFillProjectInfo(this.value)">
@@ -1491,18 +1566,20 @@
                         <input class="input-dark" placeholder="End User" id="f_endUser" value="${data.endUser||''}">
                         <input class="input-dark" placeholder="PO#" id="f_po" value="${data.po||''}">
                         <input class="input-dark" placeholder="Model" id="f_model" value="${data.model||''}">
-                    </div>
+               
+                     </div>
            
                      <div class="bg-black/20 p-3 rounded mt-2 border border-white/5">
                          <div class="mb-2"><label class="text-orange-300 text-sm font-bold">訂單日期</label>${createDateInputGroup('f_orderDate', defaultOrderDate)}</div>
                          <div id="shipmentsContainer"></div>
-                         <button onclick="addShipmentRow()" class="text-xs text-orange-400 
+ 
+                        <button onclick="addShipmentRow()" class="text-xs text-orange-400 
                          hover:text-white mt-2 font-bold flex items-center gap-1"><i class="fas fa-plus"></i> 追加交期/數量</button>
                     </div>
+                   
                     <textarea class="input-dark h-20 mt-2" placeholder="狀態說明" id="f_statusDesc">${data.statusDesc||''}</textarea>
                 `;
                 setTimeout(() => {
-                    // Shipment logic: if editing, load shipments. if new, add one empty row (default empty date)
                     const ships = data.shipments && data.shipments.length ? data.shipments : (data.qty ? [{dueDate:data.dueDate, qty:data.qty, isShipped:data.isShipped}] : []);
                     if(ships.length === 0) addShipmentRow(); 
     
@@ -1516,18 +1593,22 @@
                         <input class="input-dark" placeholder="Agent" id="f_agent" value="${data.agent||''}">
                         <input class="input-dark" placeholder="End User" id="f_endUser" value="${data.endUser||''}">
                         <input class="input-dark" placeholder="Size" id="f_size" value="${data.size||''}">
+               
                         <input class="input-dark text-model" placeholder="Model" id="f_model" value="${data.model||''}">
           
                         <input class="input-dark" type="number" placeholder="當年預算" id="f_budget" value="${data.budget||''}">
                         <input class="input-dark" placeholder="PLM#" id="f_plm" value="${data.plm||''}">
+                   
                     </div>
                     <div class="bg-black/20 p-3 rounded mt-2 border border-white/5">
        
                         <label class="text-xs text-orange-300 block mb-2">最新動態 (手動覆蓋)</label>
                         <div class="flex gap-4">
-                             <div class="flex-1">${genCheckboxGroup('grp_latestStatus', ['訂單','報價','RMA','規格','送樣'], data.manualLatestStatus)}</div>
+           
+                                <div class="flex-1">${genCheckboxGroup('grp_latestStatus', ['訂單','報價','RMA','規格','送樣'], data.manualLatestStatus)}</div>
                      
-                         <div>${createDateInputGroup('f_manualLatestDate', data.manualLatestDate || new Date().toISOString().split('T')[0])}</div>
+                         <div>${createDateInputGroup('f_manualLatestDate', data.manualLatestDate ||
+                        new Date().toISOString().split('T')[0])}</div>
                         </div>
                     </div>
                     <div class="bg-black/20 p-3 rounded mt-2 border border-white/5">
@@ -1536,7 +1617,8 @@
                          ${genCheckboxGroup('grp_tags', ['量產','送樣','RMA','報價','規格'], data.tags)}
                     </div>
                     <textarea class="input-dark h-20 mt-2" placeholder="狀況概述" id="f_summary">${data.summary||''}</textarea>
-                    <label class="flex items-center gap-2 mt-2"><input type="checkbox" id="f_active" ${data.active!==false?'checked':''} class="accent-orange-500"> Active</label>
+                    <label class="flex items-center gap-2 mt-2"><input type="checkbox" id="f_active" ${data.active!==false?'checked':''} 
+                    class="accent-orange-500"> Active</label>
   
               `;
             } else if(type === 'masterList') {
@@ -1547,28 +1629,34 @@
                          class="input-dark" placeholder="Agent" id="f_agent" value="${data.agent||''}">
                         <input class="input-dark" placeholder="End User" id="f_endUser" value="${data.endUser||''}">
                         <input class="input-dark" placeholder="Application" id="f_application" value="${data.application||''}">
+               
                         <input class="input-dark" placeholder="EAU" id="f_eau" value="${data.eau||''}">
             
                         <input class="input-dark" placeholder="Size" id="f_size" value="${data.size||''}">
                         <input class="input-dark" placeholder="Model" id="f_model" value="${data.model||''}">
+                   
                         <input class="input-dark" placeholder="Price" id="f_salesPrice" value="${data.salesPrice||''}">
                         <input class="input-dark" placeholder="Contact" id="f_contact" 
                          value="${data.contact||''}">
                         <input class="input-dark" placeholder="Cus PN" id="f_cusPN" value="${data.cusPN||''}">
-                        <input class="input-dark" placeholder="PLM#" id="f_plm" value="${data.plm||''}">
+         
+                       <input class="input-dark" placeholder="PLM#" id="f_plm" value="${data.plm||''}">
                     </div>
                     <textarea class="input-dark h-20 
                     mt-2" placeholder="Remark" id="f_remark">${data.remark||''}</textarea>
+                
                     <label class="flex items-center gap-2 mt-2"><input type="checkbox" id="f_active" ${data.active!==false?'checked':''} class="accent-orange-500"> Active</label>
                 `;
             } else if (type === 'tasks') {
-                const defStart = data.startDate || new Date().toISOString().split('T')[0];
+                const defStart = data.startDate ||
+                new Date().toISOString().split('T')[0];
                 let defTrack = data.trackDate || '';
                 if(!editingId && !defTrack) {
                     const d = new Date(defStart);
                     d.setDate(d.getDate()+3);
                     defTrack = d.toISOString().split('T')[0];
                 }
+                const defCompDate = data.completedDate || new Date().toISOString().split('T')[0];
 
                 html = `<div class="grid grid-cols-2 gap-4"><input class="input-dark" placeholder="Project" id="f_project" value="${data.project||''}" oninput="autoFillProjectInfo(this.value)"><select class="input-dark" id="f_taskType">${['詢價','RMA','規格','送樣','交期','預測','合約','其他'].map(o=>`<option ${data.taskType===o?'selected':''}>${o}</option>`).join('')}</select>
                     <input class="input-dark" placeholder="Agent" id="f_agent" value="${data.agent||''}"><input class="input-dark" placeholder="End User" id="f_endUser" value="${data.endUser||''}">
@@ -1578,17 +1666,24 @@
                     <div><label class="text-xs text-gray-400">追蹤 (起始+3天)</label>${createDateInputGroup('f_trackDate', defTrack)}</div>
                     <input class="input-dark" placeholder="文件#" id="f_docNum" value="${data.docNum||''}"></div>
                     <textarea class="input-dark h-20" placeholder="說明" id="f_desc">${data.desc||''}</textarea>
-                    ${editingId?`<label class="flex items-center 
-                    gap-2"><input type="checkbox" id="f_completed" ${data.completed?'checked':''} class="accent-orange-500"> 已完成</label>`:''}`;
+     
+                    ${editingId?`
+                    <div class="mt-2 border-t border-white/10 pt-2">
+                        <label class="flex items-center gap-2"><input type="checkbox" id="f_completed" ${data.completed?'checked':''} class="accent-orange-500" onchange="toggleTaskCompleteFields(this)"> 已完成</label>
+                        <div id="taskCompleteSection" class="${data.completed?'':'hidden'} mt-2 p-2 border border-green-500/30 rounded bg-green-900/10">
+                             <label class="text-xs text-green-400 block mb-1">完成日期</label>
+                             ${createDateInputGroup('f_completedDate', defCompDate)}
+                        </div>
+                    </div>`:''}`;
             } else if (type === 'quotes') {
-                // V3.5.5 Quote Price: Change input to textarea for Enter support
-                // V3.5.6 Add Model Input
                 html = `<div class="grid grid-cols-2 gap-4"><input class="input-dark" placeholder="Project" id="f_project" value="${data.project||''}" oninput="autoFillProjectInfo(this.value)"><input class="input-dark" placeholder="Agent" id="f_agent" value="${data.agent||''}"><input class="input-dark" placeholder="End User" id="f_endUser" value="${data.endUser||''}"><input class="input-dark" placeholder="Model" id="f_model" value="${data.model||''}">
-                    <div><label class="text-xs text-gray-400">日期</label>${createDateInputGroup('f_date', data.date||new Date().toISOString().split('T')[0])}</div>
+         
+                   <div><label class="text-xs text-gray-400">日期</label>${createDateInputGroup('f_date', data.date||new Date().toISOString().split('T')[0])}</div>
    
                      <textarea class="input-dark h-16" placeholder="業務報價 (Enter 換行)" id="f_salesPrice">${data.salesPrice||''}</textarea>
                     <textarea class="input-dark h-16" placeholder="FAE報價 (Enter 換行)" id="f_faePrice">${data.faePrice||''}</textarea>
                     <input class="input-dark" placeholder="REF#" id="f_ref" value="${data.ref||''}"></div>
+     
                     <textarea class="input-dark h-20" placeholder="說明" id="f_desc">${data.desc||''}</textarea>`;
             } else if (type === 'contacts') {
                 html = `<div class="grid grid-cols-2 gap-4"><input class="input-dark" placeholder="Agent" id="f_agent" value="${data.agent||''}"><input class="input-dark" placeholder="End User" id="f_endUser" value="${data.endUser||''}"><input class="input-dark" placeholder="Position" id="f_position" value="${data.position||''}"><input class="input-dark" placeholder="Phone" id="f_phone" value="${data.phone||''}"><input class="input-dark col-span-2" placeholder="Address" id="f_address" value="${data.address||''}"></div>
@@ -1626,7 +1721,8 @@
         function saveData() {
             const type = document.getElementById('modalType').value;
             const inputs = document.querySelectorAll('#modalFields input:not([type=checkbox]):not(.s-qty):not(.yy):not(.mm):not(.dd), #modalFields select, #modalFields textarea');
-            const newData = { id: editingId || Date.now(), updatedAt: new Date() };
+            const newData = { id: editingId ||
+            Date.now(), updatedAt: new Date() };
             
             inputs.forEach(input => { 
                 const key = input.id.replace('f_', ''); 
@@ -1649,9 +1745,15 @@
                     newData.shipments.push({
                         dueDate: hiddenDate,
                         qty: row.querySelector('.s-qty').value,
+  
                         isShipped: row.querySelector('.s-ship').checked
                     });
                 });
+            }
+            // V3.5.7 Save Completed Date
+            if (type === 'tasks' && newData.completed) {
+                const compDate = document.getElementById('f_completedDate');
+                if(compDate) newData.completedDate = compDate.value;
             }
 
             if(['projects','masterList','orders','quotes','tasks'].includes(type) && !newData.project) return alert('Project 為必填');
@@ -1702,14 +1804,17 @@
                             const excelRow = (XLSX.utils.decode_range(sheet['!ref']).s.r) + 1 + rowIndex + 1;
 
                             for (const key in row) {
+                              
                                 const k = key.toLowerCase().replace(/[\s#]/g, '');
   
                                 let fieldName = '';
                                 if(k.includes('project')) { newItem.project = row[key]; fieldName = 'project'; }
-                           
+                 
                                 else if(k.includes('agent')) { newItem.agent = row[key]; fieldName = 'agent'; }
                                 else if(k.includes('enduser')) { newItem.endUser = row[key]; fieldName = 'endUser'; }
-                                else if(k.includes('model')) { newItem.model = row[key]; fieldName = 'model'; }
+        
+                                else if(k.includes('model')) { newItem.model = row[key]; fieldName = 'model';
+                                }
     
                                 else if(k.includes('size')) { newItem.size = row[key];
                                 fieldName = 'size'; }
@@ -1751,7 +1856,6 @@
                                 }
                             }
                             
-            
                             let existIdx = -1;
                             if(dbKey === 'projects' || dbKey === 'masterList' || dbKey === 'quotes') {
                                 existIdx = db[dbKey].findIndex(x => x.project === newItem.project);
@@ -1803,6 +1907,7 @@
                          
                                     'Size':'size','EAU':'eau','Application':'application','Contact':'contact',
                                     'PLM#':'plm','Price':'salesPrice','Sales Price':'salesPrice','FAE Price':'faePrice',
+                          
                                     'Phone':'phone','Address':'address','Code':'code','Remark':'remark',
                
                                     'Cus PN':'cusPN','當年預算':'budget'
@@ -1836,7 +1941,8 @@
                     const remarkStr = tasks.map(t => `${t.trackDate||t.startDate} ${t.taskType}: ${t.desc}`).join('\r\n');
                     return {
                         'Project': p.project, 'Agent': p.agent, 'End User': p.endUser, 
-                       'Size': p.size, 'Model': p.model, 'Price': lastQuote ? lastQuote.salesPrice : '',
+                     
+                        'Size': p.size, 'Model': p.model, 'Price': lastQuote ? lastQuote.salesPrice : '',
       
                         'Remark': remarkStr, '_comments': p.comments 
                     };
@@ -1857,6 +1963,7 @@
                 const quoteData = db.quotes.map(q => ({
                     'Project': q.project, 'Agent': q.agent, 'End User': q.endUser,
                     'Date': q.date, 'Model': q.model, 'Sales Price': q.salesPrice, 'FAE Price': q.faePrice,
+                    
                     'REF#': q.ref, 
                     'Desc': q.desc, '_comments': q.comments
                 }));
