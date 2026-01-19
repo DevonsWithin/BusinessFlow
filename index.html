@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BusinessFlow V3.5.7 - 業務工作流系統</title>
+    <title>BusinessFlow V3.5.71 - 業務工作流系統</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -317,7 +317,7 @@
                 <i class="fas fa-bars"></i>
             </button>
             <span class="font-bold text-lg tracking-wider 
-            italic logo-text text-orange-500">BusinessFlow <span class="text-xs bg-orange-600 text-white px-1 rounded ml-1 not-italic">V3.5.7</span></span>
+            italic logo-text text-orange-500">BusinessFlow <span class="text-xs bg-orange-600 text-white px-1 rounded ml-1 not-italic">V3.5.71</span></span>
         </div>
 
         <nav class="flex-1 overflow-y-auto custom-scrollbar flex flex-col mt-4">
@@ -1008,14 +1008,13 @@
       
                 ];
             } else if (currentView === 'quotes') {
+                sourceData = db.quotes;
+                // V3.5.5 Font Adjustment: text-xs for Project/Agent/End User
                 columns = [
                     { t: 'Project', w: '150px', k:'project', c: 'text-xs' }, 
                     { t: 'Agent', w: '100px', k:'agent', c: 'text-xs' }, 
                     { t: 'End User', w: '100px', k:'endUser', c: 'text-xs' },
-                    { t: '日期', w: '100px', k:'date' }, 
-                    { t: 'Model', w: '150px', k:'model', c: 'text-model text-[10px]' },
-             
-                    { t: '業務報價', w: '100px', c:'text-orange-300 font-bold', k:'salesPrice' },
+                    { t: '日期', w: '100px', k:'date' }, { t: '業務報價', w: '100px', c:'text-orange-300 font-bold', k:'salesPrice' },
                     { t: 'FAE報價', w: '100px', k:'faePrice' }, { t: 'REF#', w: '100px', k:'ref', c: 'text-xs text-gray-400' }, { t: '說明', w: '200px', k:'desc' }, { t: '操作', w: '60px', c:'sticky-right' }
                 ];
             } else if (currentView === 'contacts') {
@@ -1278,23 +1277,39 @@
                             <td>${genCell(item.plm, 'plm')}</td>
                             <td class="text-center sticky-right">${actionsHTML}</td>
                         `;
-                    } else if (currentView === 'tasks' || currentView === 'activities') {
-                         const isOverdue = !item.completed && new Date(item.trackDate) < new Date();
-                         const masterItem = db.masterList.find(m => m.project === item.project);
-                         const displayModel = masterItem ? masterItem.model : '';
-                         // V3.5.7: Add Completed Date Column
-                         cells = `<td class="sticky-col col-0 text-center"><div class="cell-content justify-center">${starHTML}</div></td>
-                        <td class="sticky-col col-1 text-small-gray">${genCell(item.project,'project')}</td>
-                        <td class="sticky-col col-2 text-small-gray">${genCell(item.agent,'agent')}</td>
-                        <td class="sticky-col col-3 text-small-gray">${genCell(item.endUser,'endUser')}</td>
-            
-                        <td class="text-model text-[10px]">${genCell(displayModel,'model')}</td>
-                        <td><span class="tag-badge tag-blue">${item.taskType||''}</span></td><td>${genCell(item.desc,'desc')}</td><td class="font-mono text-xs">${genCell(item.docNum,'docNum')}</td>
-                        <td class="${isOverdue?'text-red-500 font-bold':'text-gray-400'} text-xs"><div>起: ${item.startDate}</div><div>追: ${item.trackDate}</div></td>
-                        <td>${item.completed ?
-                        '<span class="text-gray-500">已完成</span>' : '<span class="text-green-500">進行中</span>'}</td>
-                        <td class="text-xs text-gray-400">${genCell(item.completedDate, 'completedDate')}</td>
-                        <td class="text-center sticky-right">${actionsHTML}</td>`;
+                    // 修改後的邏輯：加入未來日期顏色判定，並過濾未完成的日期顯示
+// 修改後的邏輯：加入未來日期顏色判定，並過濾未完成的日期顯示
+} else if (currentView === 'tasks' || currentView === 'activities') {
+                const todayStr = new Date().toISOString().split('T')[0];
+                const isOverdue = !item.completed && item.trackDate && item.trackDate < todayStr;
+                
+                // 定義未來任務：大於今天+7天
+                const futureTarget = new Date();
+                futureTarget.setDate(futureTarget.getDate() + 7);
+                const futureStr = futureTarget.toISOString().split('T')[0];
+                const isFuture = !item.completed && item.trackDate && item.trackDate > futureStr;
+                
+                let dateClass = 'text-gray-400';
+                if (isOverdue) dateClass = 'text-red-500 font-bold';
+                else if (isFuture) dateClass = 'text-[#22337C]'; // 改為指定顏色且不加粗
+
+                const masterItem = db.masterList.find(m => m.project === item.project);
+                const displayModel = masterItem ? masterItem.model : '';
+
+                // 未完成項目隱藏完成日
+                const displayCompDate = item.completed ? genCell(item.completedDate, 'completedDate') : '';
+
+                cells = `<td class="sticky-col col-0 text-center"><div class="cell-content justify-center">${starHTML}</div></td>
+                <td class="sticky-col col-1 text-small-gray">${genCell(item.project,'project')}</td>
+                <td class="sticky-col col-2 text-small-gray">${genCell(item.agent,'agent')}</td>
+                <td class="sticky-col col-3 text-small-gray">${genCell(item.endUser,'endUser')}</td>
+                <td class="text-model text-[10px]">${genCell(displayModel,'model')}</td>
+                <td><span class="tag-badge tag-blue">${item.taskType||''}</span></td><td>${genCell(item.desc,'desc')}</td><td class="font-mono text-xs">${genCell(item.docNum,'docNum')}</td>
+                
+                <td class="${dateClass} text-xs"><div>起: ${item.startDate}</div><div>追: ${item.trackDate}</div></td>
+                <td>${item.completed ? '<span class="text-gray-500">已完成</span>' : '<span class="text-green-500">進行中</span>'}</td>
+                <td class="text-xs text-gray-400">${displayCompDate}</td>
+                <td class="text-center sticky-right">${actionsHTML}</td>`;
                     } else if (currentView === 'orders') {
                         const ships = item.shipments && item.shipments.length ?
                         item.shipments : [{dueDate: item.dueDate, qty: item.qty, isShipped: item.isShipped}];
@@ -1309,9 +1324,9 @@
                             <td class="text-center text-xs"><div class="cell-content flex-col justify-center">${shippedHtml}</div></td>
                             <td>${genCell(item.statusDesc,'statusDesc')}</td><td class="text-center sticky-right">${actionsHTML}</td>`;
                     } else if (currentView === 'quotes') {
-                        cells = `<td class="text-xs">${genCell(item.project,'project')}</td><td class="text-xs">${genCell(item.agent,'agent')}</td><td class="text-xs">${genCell(item.endUser,'endUser')}</td><td>${item.date}</td><td class="text-model text-[10px]">${genCell(item.model,'model')}</td><td class="text-orange-300 font-bold">${genCell(item.salesPrice,'salesPrice')}</td>
-  
-                           <td>${genCell(item.faePrice,'faePrice')}</td><td class="text-xs text-gray-400">${genCell(item.ref,'ref')}</td><td>${genCell(item.desc,'desc')}</td><td class="text-center sticky-right">${actionsHTML}</td>`;
+                        // V3.5.5 Updated Quote Cells with text-xs logic
+                        cells = `<td class="text-xs">${genCell(item.project,'project')}</td><td class="text-xs">${genCell(item.agent,'agent')}</td><td class="text-xs">${genCell(item.endUser,'endUser')}</td><td>${item.date}</td><td class="text-orange-300 font-bold">${genCell(item.salesPrice,'salesPrice')}</td>
+                            <td>${genCell(item.faePrice,'faePrice')}</td><td class="text-xs text-gray-400">${genCell(item.ref,'ref')}</td><td>${genCell(item.desc,'desc')}</td><td class="text-center sticky-right">${actionsHTML}</td>`;
                     } else if (currentView === 'contacts') {
                         cells = `<td class="text-center"><div class="cell-content justify-center">${starHTML}</div></td><td>${genCell(item.agent,'agent')}</td><td>${genCell(item.endUser,'endUser')}</td><td>${genCell(item.position,'position')}</td><td>${genCell(item.phone,'phone')}</td>
                             <td class="text-xs text-gray-400">${genCell(item.address,'address')}</td><td class="text-xs">${genCell(item.remark,'remark')}</td><td>${item.active!==false?'Y':'N'}</td><td class="text-center sticky-right">${actionsHTML}</td>`;
@@ -1670,9 +1685,25 @@
                     ${editingId?`
                     <div class="mt-2 border-t border-white/10 pt-2">
                         <label class="flex items-center gap-2"><input type="checkbox" id="f_completed" ${data.completed?'checked':''} class="accent-orange-500" onchange="toggleTaskCompleteFields(this)"> 已完成</label>
-                        <div id="taskCompleteSection" class="${data.completed?'':'hidden'} mt-2 p-2 border border-green-500/30 rounded bg-green-900/10">
-                             <label class="text-xs text-green-400 block mb-1">完成日期</label>
-                             ${createDateInputGroup('f_completedDate', defCompDate)}
+                        <div id="taskCompleteSection" class="${data.completed?'':'hidden'} mt-2 p-2 border border-green-500/30 rounded bg-green-900/10 space-y-3">
+                            <div>
+                                <label class="text-xs text-green-400 block mb-1">完成日期</label>
+                                ${createDateInputGroup('f_completedDate', defCompDate)}
+                            </div>
+                            
+                            <div class="border-t border-green-500/30 pt-2">
+                                <label class="flex items-center gap-2 mb-2 cursor-pointer">
+                                    <input type="checkbox" id="f_followUp" class="accent-orange-500" onchange="document.getElementById('followUpDetails').classList.toggle('hidden', !this.checked)"> 
+                                    <span class="text-sm text-green-300 font-bold">後續追蹤</span>
+                                </label>
+                                <div id="followUpDetails" class="hidden pl-2 border-l-2 border-green-500/50 space-y-2">
+                                    <div>
+                                        <label class="text-xs text-gray-400">起始日期 (自動推算追蹤日+3天)</label>
+                                        ${createDateInputGroup('f_followUpDate', new Date().toISOString().split('T')[0])}
+                                    </div>
+                                    <input type="text" id="f_followUpDesc" class="input-dark text-sm" placeholder="後續任務說明...">
+                                </div>
+                            </div>
                         </div>
                     </div>`:''}`;
             } else if (type === 'quotes') {
@@ -1751,11 +1782,41 @@
                 });
             }
             // V3.5.7 Save Completed Date
+            // 第 472 行：擴充邏輯以支援「後續追蹤」自動新增
+// V3.5.71 Save Completed Date & Handle Follow Up
             if (type === 'tasks' && newData.completed) {
                 const compDate = document.getElementById('f_completedDate');
                 if(compDate) newData.completedDate = compDate.value;
-            }
 
+                // Handle Follow Up Task Creation
+                const followUpCheck = document.getElementById('f_followUp');
+                if(followUpCheck && followUpCheck.checked) {
+                    const fuDate = document.getElementById('f_followUpDate').value;
+                    const fuDesc = document.getElementById('f_followUpDesc').value;
+                    
+                    // Calc Track Date (+3 days)
+                    const d = new Date(fuDate);
+                    d.setDate(d.getDate() + 3);
+                    const fuTrack = d.toISOString().split('T')[0];
+
+                    const newTask = {
+                        id: Date.now() + 100, // Distinct ID
+                        updatedAt: new Date(),
+                        project: newData.project,
+                        agent: newData.agent,
+                        endUser: newData.endUser,
+                        model: newData.model,
+                        taskType: newData.taskType, // Inherit Type
+                        startDate: fuDate,
+                        trackDate: fuTrack,
+                        desc: fuDesc || '後續追蹤',
+                        docNum: '',
+                        active: true,
+                        comments: []
+                    };
+                    db.tasks.push(newTask);
+                }
+            }
             if(['projects','masterList','orders','quotes','tasks'].includes(type) && !newData.project) return alert('Project 為必填');
             const commentDivs = document.querySelectorAll('#commentsContainer > div');
             newData.comments = Array.from(commentDivs).map(div => ({ field: div.querySelector('select').value, text: div.querySelector('input').value })).filter(c => c.text);
