@@ -1574,7 +1574,6 @@ function renderCurrentView() {
             // 但為了精確，這裡先抓完全符合，若無則抓包含
             let match = db.masterList.find(m => m.project === val);
             if(!match && val.length > 3) match = db.masterList.find(m => (m.project||'').includes(val));
-
             if(match) {
                 const setVal = (id, v) => { const el = document.getElementById(id);
                 if(el) el.value = v || ''; };
@@ -1587,7 +1586,25 @@ function renderCurrentView() {
             }
         }
 
-        // 新增：處理輸入框建議
+        // 新增：透過 Model 反查 Project 與其他資訊
+        function autoFillInfoByModel(val) {
+            if(!val) return;
+            // 在 MasterList 中尋找完全符合的 Model
+            let match = db.masterList.find(m => m.model === val);
+            // 若 MasterList 找不到，嘗試從案子列表找
+            if(!match) match = db.projects.find(p => p.model === val);
+
+            if(match) {
+                const setVal = (id, v) => { const el = document.getElementById(id); if(el) el.value = v || ''; };
+                setVal('f_project', match.project);
+                setVal('f_agent', match.agent);
+                setVal('f_endUser', match.endUser);
+                setVal('f_size', match.size);
+                setVal('f_plm', match.plm);
+            }
+        }
+
+        // 新增：處理輸入框建議 (V3.6.1 修正：擴大模糊搜尋來源至全資料庫)
         function handleInputSuggestions(input, field) {
             const val = input.value.toLowerCase();
             const container = input.parentElement;
@@ -1595,18 +1612,29 @@ function renderCurrentView() {
             const old = container.querySelector('.suggestion-list');
             if(old) old.remove();
 
-            if(val.length < 2) return; // 輸入太少不顯示
+            if(val.length < 1) return; // 修正：輸入 1 個字元即開始搜尋，提升反應速度
 
             let source = [];
-            // 根據欄位決定搜尋來源
-            if(field === 'project') source = db.masterList.map(m=>m.project).concat(db.projects.map(p=>p.project));
-            else if(field === 'model') source = db.masterList.map(m=>m.model);
-            else if(field === 'agent') source = db.masterList.map(m=>m.agent).concat(db.contacts.map(c=>c.agent));
-            else if(field === 'endUser') source = db.masterList.map(m=>m.endUser).concat(db.contacts.map(c=>c.endUser));
+            
+            // 輔助函式：從所有相關資料表中提取指定欄位，確保資料來源完整
+            const collect = (key) => {
+                let arr = [];
+                // 遍歷所有可能含有資料的表
+                ['masterList', 'projects', 'orders', 'tasks', 'quotes', 'contacts', 'codes'].forEach(tbl => {
+                    if(db[tbl]) arr = arr.concat(db[tbl].map(item => item[key]));
+                });
+                return arr;
+            };
 
-            // 去除重複並過濾
-            const matches = [...new Set(source)].filter(s => s && s.toLowerCase().includes(val)).slice(0, 10);
+            // 根據欄位決定搜尋來源 (全面擴大來源，確保歷史資料也能被模糊搜尋到)
+            if(field === 'project') source = collect('project');
+            else if(field === 'model') source = collect('model');
+            else if(field === 'agent') source = collect('agent');
+            else if(field === 'endUser') source = collect('endUser');
 
+            // 去除重複、移除空值、執行模糊比對 (使用 includes 達成輸入 '9611' 匹配 'OJ#9611002')
+            const matches = [...new Set(source)].filter(s => s && s.toString().toLowerCase().includes(val)).slice(0, 10);
+            
             if(matches.length > 0) {
                 const ul = document.createElement('div');
                 ul.className = 'suggestion-list';
@@ -1618,6 +1646,8 @@ function renderCurrentView() {
                         input.value = m;
                         ul.remove();
                         if(field === 'project') autoFillProjectInfo(m);
+                        // 新增：若欄位是 model，則反查 project
+                        if(field === 'model') autoFillInfoByModel(m);
                     };
                     ul.appendChild(div);
                 });
@@ -1708,8 +1738,7 @@ function renderCurrentView() {
                 <div class="flex gap-2 mb-1">
                     <select class="input-dark text-xs w-1/3" onchange="updateComment(${i}, 'field', this.value)">
                          ${getAllFields(type).map(f => `<option value="${f.k}" ${f.k===c.field?'selected':''}>${f.l}</option>`).join('')}
-           
-                        </select>
+                    </select>
                     <textarea class="input-dark text-xs flex-1 h-8 pt-1" onchange="updateComment(${i}, 'text', this.value)">${c.text}</textarea>
                     <button onclick="removeComment(${i})" class="text-red-500"><i class="fas fa-times"></i></button>
                 </div>`).join('');
@@ -1724,29 +1753,23 @@ function renderCurrentView() {
                 new Date().toISOString().split('T')[0];
                 html = `
                     <div class="grid grid-cols-2 gap-4">
-                        <input class="input-dark" placeholder="Project" id="f_project" value="${data.project||''}" oninput="autoFillProjectInfo(this.value)">
-                        <input class="input-dark" placeholder="Agent" id="f_agent" value="${data.agent||''}">
-                
-                        <input class="input-dark" placeholder="End User" id="f_endUser" value="${data.endUser||''}">
+                        <div class="relative"><input class="input-dark" placeholder="Project" id="f_project" value="${data.project||''}" oninput="handleInputSuggestions(this, 'project'); autoFillProjectInfo(this.value)" autocomplete="off"></div>
+                        <div class="relative"><input class="input-dark" placeholder="Agent" id="f_agent" value="${data.agent||''}" oninput="handleInputSuggestions(this, 'agent')" autocomplete="off"></div>
+                        <div class="relative"><input class="input-dark" placeholder="End User" id="f_endUser" value="${data.endUser||''}" oninput="handleInputSuggestions(this, 'endUser')" autocomplete="off"></div>
                         <input class="input-dark" placeholder="PO#" id="f_po" value="${data.po||''}">
-                        <input class="input-dark" placeholder="Model" id="f_model" value="${data.model||''}">
-               
+                        <div class="relative"><input class="input-dark" placeholder="Model" id="f_model" value="${data.model||''}" oninput="handleInputSuggestions(this, 'model')" autocomplete="off"></div>
                      </div>
-           
                      <div class="bg-black/20 p-3 rounded mt-2 border border-white/5">
                          <div class="mb-2"><label class="text-orange-300 text-sm font-bold">訂單日期</label>${createDateInputGroup('f_orderDate', defaultOrderDate)}</div>
-                         <div id="shipmentsContainer"></div>
- 
+                          <div id="shipmentsContainer"></div>
                         <button onclick="addShipmentRow()" class="text-xs text-orange-400 
                          hover:text-white mt-2 font-bold flex items-center gap-1"><i class="fas fa-plus"></i> 追加交期/數量</button>
                     </div>
-                   
                     <textarea class="input-dark h-20 mt-2" placeholder="狀態說明" id="f_statusDesc">${data.statusDesc||''}</textarea>
                 `;
                 setTimeout(() => {
                     const ships = data.shipments && data.shipments.length ? data.shipments : (data.qty ? [{dueDate:data.dueDate, qty:data.qty, isShipped:data.isShipped}] : []);
                     if(ships.length === 0) addShipmentRow(); 
-    
                     else ships.forEach(s => addShipmentRow(s));
                 }, 0);
             } else if(type === 'projects') {
@@ -1756,75 +1779,62 @@ function renderCurrentView() {
                         <div class="relative suggestion-container"><input class="input-dark" placeholder="Agent" id="f_agent" value="${data.agent||''}" oninput="handleInputSuggestions(this, 'agent')" autocomplete="off"></div>
                         <div class="relative suggestion-container"><input class="input-dark" placeholder="End User" id="f_endUser" value="${data.endUser||''}" oninput="handleInputSuggestions(this, 'endUser')" autocomplete="off"></div>
                         <input class="input-dark" placeholder="Size" id="f_size" value="${data.size||''}">
-               
-                        <input class="input-dark text-model" placeholder="Model" id="f_model" value="${data.model||''}">
-          
+                        <div class="relative suggestion-container"><input class="input-dark text-model" placeholder="Model" id="f_model" value="${data.model||''}" oninput="handleInputSuggestions(this, 'model')" autocomplete="off"></div>
                         <input class="input-dark" type="number" placeholder="當年預算" id="f_budget" value="${data.budget||''}">
                         <input class="input-dark" placeholder="PLM#" id="f_plm" value="${data.plm||''}">
-                   
                     </div>
                     <div class="bg-black/20 p-3 rounded mt-2 border border-white/5">
-       
                         <label class="text-xs text-orange-300 block mb-2">最新動態 (手動覆蓋)</label>
                         <div class="flex gap-4">
-           
                                 <div class="flex-1">${genCheckboxGroup('grp_latestStatus', ['訂單','報價','RMA','規格','送樣'], data.manualLatestStatus)}</div>
-                     
-                         <div>${createDateInputGroup('f_manualLatestDate', data.manualLatestDate ||
-                        new Date().toISOString().split('T')[0])}</div>
+                                <div>${createDateInputGroup('f_manualLatestDate', data.manualLatestDate ||
+                                new Date().toISOString().split('T')[0])}</div>
                         </div>
                     </div>
                     <div class="bg-black/20 p-3 rounded mt-2 border border-white/5">
                         <label class="text-xs text-orange-300 block mb-2">標籤</label>
- 
                          ${genCheckboxGroup('grp_tags', ['量產','送樣','RMA','報價','規格'], data.tags)}
                     </div>
                     <textarea class="input-dark h-20 mt-2" placeholder="狀況概述" id="f_summary">${data.summary||''}</textarea>
                     <label class="flex items-center gap-2 mt-2"><input type="checkbox" id="f_active" ${data.active!==false?'checked':''} 
                     class="accent-orange-500"> Active</label>
-  
               `;
             } else if(type === 'masterList') {
                 html = `
                      <div class="grid grid-cols-3 gap-4">
-                        <input class="input-dark" placeholder="Project" id="f_project" value="${data.project||''}">
-                        <input 
-                         class="input-dark" placeholder="Agent" id="f_agent" value="${data.agent||''}">
-                        <input class="input-dark" placeholder="End User" id="f_endUser" value="${data.endUser||''}">
+                        <div class="relative"><input class="input-dark" placeholder="Project" id="f_project" value="${data.project||''}" oninput="handleInputSuggestions(this, 'project'); autoFillProjectInfo(this.value)" autocomplete="off"></div>
+                        <div class="relative"><input class="input-dark" placeholder="Agent" id="f_agent" value="${data.agent||''}" oninput="handleInputSuggestions(this, 'agent')" autocomplete="off"></div>
+                        <div class="relative"><input class="input-dark" placeholder="End User" id="f_endUser" value="${data.endUser||''}" oninput="handleInputSuggestions(this, 'endUser')" autocomplete="off"></div>
                         <input class="input-dark" placeholder="Application" id="f_application" value="${data.application||''}">
-               
                         <input class="input-dark" placeholder="EAU" id="f_eau" value="${data.eau||''}">
-            
                         <input class="input-dark" placeholder="Size" id="f_size" value="${data.size||''}">
-                        <input class="input-dark" placeholder="Model" id="f_model" value="${data.model||''}">
-                   
+                        <div class="relative"><input class="input-dark" placeholder="Model" id="f_model" value="${data.model||''}" oninput="handleInputSuggestions(this, 'model')" autocomplete="off"></div>
                         <input class="input-dark" placeholder="Price" id="f_salesPrice" value="${data.salesPrice||''}">
                         <input class="input-dark" placeholder="Contact" id="f_contact" 
                          value="${data.contact||''}">
                         <input class="input-dark" placeholder="Cus PN" id="f_cusPN" value="${data.cusPN||''}">
-         
                        <input class="input-dark" placeholder="PLM#" id="f_plm" value="${data.plm||''}">
                     </div>
                     <textarea class="input-dark h-20 
                     mt-2" placeholder="Remark" id="f_remark">${data.remark||''}</textarea>
-                
                     <label class="flex items-center gap-2 mt-2"><input type="checkbox" id="f_active" ${data.active!==false?'checked':''} class="accent-orange-500"> Active</label>
                 `;
             } else if (type === 'tasks') {
-                const defStart = data.startDate || new Date().toISOString().split('T')[0];
+                const defStart = data.startDate ||
+                new Date().toISOString().split('T')[0];
                 let defTrack = data.trackDate || '';
                 if(!editingId && !defTrack) {
                     const d = new Date(defStart);
                     d.setDate(d.getDate()+3);
                     defTrack = d.toISOString().split('T')[0];
                 }
-                const defCompDate = data.completedDate || new Date().toISOString().split('T')[0];
+                const defCompDate = data.completedDate ||
+                new Date().toISOString().split('T')[0];
 
-                // 任務列表：Project 非必填，加入 autocomplete 容器
-                // 新增 Model 單獨一行
                 html = `<div class="grid grid-cols-2 gap-4">
                     <div class="relative suggestion-container">
-                        <input class="input-dark" placeholder="Project" id="f_project" value="${data.project||''}" oninput="handleInputSuggestions(this, 'project'); autoFillProjectInfo(this.value)" autocomplete="off">
+                        <input class="input-dark" placeholder="Project" id="f_project" value="${data.project||''}" oninput="handleInputSuggestions(this, 'project'); autoFillProjectInfo(this.value)" 
+                        autocomplete="off">
                     </div>
                     <select class="input-dark" id="f_taskType">${['詢價','RMA','規格','送樣','交期','預測','合約','其他'].map(o=>`<option ${data.taskType===o?'selected':''}>${o}</option>`).join('')}</select>
                     
@@ -1837,7 +1847,7 @@ function renderCurrentView() {
                   
                   <div><label class="text-xs text-gray-400">起始</label>${createDateInputGroup('f_startDate', defStart)}</div>
                     <div><label class="text-xs text-gray-400">追蹤 (起始+3天)</label>${createDateInputGroup('f_trackDate', defTrack)}</div>
-                    <input class="input-dark" placeholder="文件#" id="f_docNum" value="${data.docNum||''}"></div>
+                  <input class="input-dark" placeholder="文件#" id="f_docNum" value="${data.docNum||''}"></div>
                     <textarea class="input-dark h-20" placeholder="說明" id="f_desc">${data.desc||''}</textarea>
      
                     ${editingId?`
@@ -1865,20 +1875,23 @@ function renderCurrentView() {
                         </div>
                     </div>`:''}`;
             } else if (type === 'quotes') {
-                html = `<div class="grid grid-cols-2 gap-4"><input class="input-dark" placeholder="Project" id="f_project" value="${data.project||''}" oninput="autoFillProjectInfo(this.value)"><input class="input-dark" placeholder="Agent" id="f_agent" value="${data.agent||''}"><input class="input-dark" placeholder="End User" id="f_endUser" value="${data.endUser||''}"><input class="input-dark" placeholder="Model" id="f_model" value="${data.model||''}">
+                html = `<div class="grid grid-cols-2 gap-4">
+                    <div class="relative"><input class="input-dark" placeholder="Project" id="f_project" value="${data.project||''}" oninput="handleInputSuggestions(this, 'project'); autoFillProjectInfo(this.value)" autocomplete="off"></div>
+                    <div class="relative"><input class="input-dark" placeholder="Agent" id="f_agent" value="${data.agent||''}" oninput="handleInputSuggestions(this, 'agent')" autocomplete="off"></div>
+                    <div class="relative"><input class="input-dark" placeholder="End User" id="f_endUser" value="${data.endUser||''}" oninput="handleInputSuggestions(this, 'endUser')" autocomplete="off"></div>
+                    <div class="relative"><input class="input-dark" placeholder="Model" id="f_model" value="${data.model||''}" oninput="handleInputSuggestions(this, 'model')" autocomplete="off"></div>
          
                    <div><label class="text-xs text-gray-400">日期</label>${createDateInputGroup('f_date', data.date||new Date().toISOString().split('T')[0])}</div>
-   
-                     <textarea class="input-dark h-16" placeholder="業務報價 (Enter 換行)" id="f_salesPrice">${data.salesPrice||''}</textarea>
+                    <textarea class="input-dark h-16" placeholder="業務報價 (Enter 換行)" id="f_salesPrice">${data.salesPrice||''}</textarea>
                     <textarea class="input-dark h-16" placeholder="FAE報價 (Enter 換行)" id="f_faePrice">${data.faePrice||''}</textarea>
                     <input class="input-dark" placeholder="REF#" id="f_ref" value="${data.ref||''}"></div>
      
                     <textarea class="input-dark h-20" placeholder="說明" id="f_desc">${data.desc||''}</textarea>`;
             } else if (type === 'contacts') {
-                // 新增 Name, Email，並加入 suggestion
                 html = `<div class="grid grid-cols-2 gap-4">
                     <div class="relative suggestion-container"><input class="input-dark" placeholder="Agent" id="f_agent" value="${data.agent||''}" oninput="handleInputSuggestions(this, 'agent')" autocomplete="off"></div>
-                    <div class="relative suggestion-container"><input class="input-dark" placeholder="End User" id="f_endUser" value="${data.endUser||''}" oninput="handleInputSuggestions(this, 'endUser')" autocomplete="off"></div>
+                    <div class="relative suggestion-container"><input class="input-dark" 
+                    placeholder="End User" id="f_endUser" value="${data.endUser||''}" oninput="handleInputSuggestions(this, 'endUser')" autocomplete="off"></div>
                     
                     <input class="input-dark" placeholder="Name" id="f_name" value="${data.name||''}">
                     <input class="input-dark" placeholder="Email" id="f_email" value="${data.email||''}">
@@ -1888,7 +1901,12 @@ function renderCurrentView() {
                     <input class="input-dark col-span-2" placeholder="Address" id="f_address" value="${data.address||''}"></div>
                     <textarea class="input-dark h-16" placeholder="Remark" id="f_remark">${data.remark||''}</textarea><label class="flex items-center gap-2"><input type="checkbox" id="f_active" ${data.active!==false?'checked':''} class="accent-orange-500"> Active</label>`;
             } else if (type === 'codes') {
-                html = `<div class="grid grid-cols-2 gap-4"><input class="input-dark" placeholder="Agent" id="f_agent" value="${data.agent||''}"><input class="input-dark" placeholder="End User" id="f_endUser" value="${data.endUser||''}"><input class="input-dark" placeholder="Code" id="f_code" value="${data.code||''}"><input class="input-dark" placeholder="Pricing" id="f_pricing" value="${data.pricing||''}"><input class="input-dark" placeholder="Logistics" id="f_logistics" value="${data.logistics||''}"></div>
+                html = `<div class="grid grid-cols-2 gap-4">
+                    <div class="relative"><input class="input-dark" placeholder="Agent" id="f_agent" value="${data.agent||''}" oninput="handleInputSuggestions(this, 'agent')" autocomplete="off"></div>
+                    <div class="relative"><input class="input-dark" placeholder="End User" id="f_endUser" value="${data.endUser||''}" oninput="handleInputSuggestions(this, 'endUser')" autocomplete="off"></div>
+                    <input class="input-dark" placeholder="Code" id="f_code" value="${data.code||''}">
+                    <input class="input-dark" placeholder="Pricing" id="f_pricing" value="${data.pricing||''}">
+                    <input class="input-dark" placeholder="Logistics" id="f_logistics" value="${data.logistics||''}"></div>
                     <textarea class="input-dark h-16" placeholder="Remark" id="f_remark">${data.remark||''}</textarea><label class="flex items-center gap-2"><input type="checkbox" id="f_active" ${data.active!==false?'checked':''} class="accent-orange-500"> Active</label>`;
             }
             container.innerHTML = html;
