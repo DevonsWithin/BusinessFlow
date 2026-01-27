@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BusinessFlow V3.5.71 - 業務工作流系統</title>
+    <title>BusinessFlow V3.6 - 業務工作流系統</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -238,32 +238,44 @@
         .checkbox-group input { margin-right: 6px;
             accent-color: var(--orange-primary); }
 
-        /* 浮動視窗樣式 */
-        .float-window {
-            position: fixed;
-            z-index: 200; display: none;
-            padding: 12px; border-radius: 6px;
-            box-shadow: 0 5px 20px rgba(0,0,0,0.5);
-            font-size: 0.9rem;
-            pointer-events: auto; white-space: pre-wrap;
-            word-break: break-all;
+        /* 自動建議列表樣式 */
+        .suggestion-list {
+            position: absolute; background: #222; border: 1px solid #444;
+            max-height: 200px; overflow-y: auto; z-index: 1000; width: 100%;
+            border-radius: 0 0 4px 4px; box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+        }
+        .suggestion-item { padding: 8px 12px; cursor: pointer; color: #ccc; font-size: 0.9rem; }
+        .suggestion-item:hover { background-color: var(--orange-primary); color: white; }
+
+        /* 浮動視窗容器 (隱形外殼) - V3.5.74 z-index 9999 */
+        .float-container {
+            position: fixed; z-index: 9999; display: none;
+            flex-direction: column; gap: 4px;
+            pointer-events: none; 
             max-width: 512px;
         }
-        
-        /* 內容浮動視窗 */
-        .float-window-content { 
+
+        /* 通用 Box 樣式 */
+        .float-box {
+            padding: 10px 12px; border-radius: 6px;
+            font-size: 0.9rem; white-space: pre-wrap; word-break: break-all;
+            pointer-events: auto; /* 恢復滑鼠互動 */
+            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+            line-height: 1.5;
+        }
+
+        /* 內容樣式 (橘框灰底) */
+        .float-content-box { 
             background-color: #222;
             border: 1px solid rgba(255, 110, 37, 0.5);
             color: #e5e7eb;
-            line-height: 1.625;
-            backdrop-filter: blur(4px);
         }
 
-        /* 註解浮動視窗 */
-        .float-window-comment { 
+        /* 註解樣式 (藍框藍底) */
+        .float-comment-box { 
             background-color: var(--deep-blue-solid);
             border: 1px solid #4a5568;
-            color: #eee;
+            color: #A1B0F6;
         }
 
         .toast-msg {
@@ -317,7 +329,7 @@
                 <i class="fas fa-bars"></i>
             </button>
             <span class="font-bold text-lg tracking-wider 
-            italic logo-text text-orange-500">BusinessFlow <span class="text-xs bg-orange-600 text-white px-1 rounded ml-1 not-italic">V3.5.71</span></span>
+            italic logo-text text-orange-500">BusinessFlow <span class="text-xs bg-orange-600 text-white px-1 rounded ml-1 not-italic">V3.6</span></span>
         </div>
 
         <nav class="flex-1 overflow-y-auto custom-scrollbar flex flex-col mt-4">
@@ -494,7 +506,10 @@
         </div>
     </div>
 
-    <div id="floatWindow" class="float-window" onmousedown="handleLongPressCopy(this)" onmouseenter="cancelFloatCloseTimer()" onmouseleave="startFloatCloseTimer()"></div>
+    <div id="floatContainer" class="float-container" onmouseenter="cancelFloatCloseTimer()" onmouseleave="startFloatCloseTimer()">
+        <div id="floatContent" class="float-box float-content-box hidden" onmousedown="handleLongPressCopy(this)"></div>
+        <div id="floatComment" class="float-box float-comment-box hidden" onmousedown="handleLongPressCopy(this)"></div>
+    </div>
     <div id="toast" class="toast-msg">已複製</div>
     
     <div id="actionToast" class="action-toast">
@@ -666,19 +681,48 @@
              });
         }
 
-        function showFloatWindow(content, el, type = 'content') {
-            const fw = document.getElementById('floatWindow');
-            fw.className = `float-window ${type === 'comment' ? 'float-window-comment' : 'float-window-content'}`;
-            fw.innerText = content;
+        function showFloatWindow(content, comment, el) {
+            const container = document.getElementById('floatContainer');
+            const boxContent = document.getElementById('floatContent');
+            const boxComment = document.getElementById('floatComment');
+
+            // 設置內容
+            if (content) {
+                boxContent.innerText = content;
+                boxContent.classList.remove('hidden');
+            } else {
+                boxContent.classList.add('hidden');
+            }
+
+            // 設置註解
+            if (comment) {
+                boxComment.innerText = comment;
+                boxComment.classList.remove('hidden');
+            } else {
+                boxComment.classList.add('hidden');
+            }
+
+            // 如果都沒有，隱藏容器
+            if (!content && !comment) {
+                container.style.display = 'none';
+                return;
+            }
+
+            // 計算位置
+            container.style.display = 'flex';
             const rect = el.getBoundingClientRect();
-            const w = 500;
+            const w = 500; 
             let left = rect.left;
             let top = rect.bottom + 5;
+            
+            // 邊界檢查
             if (left + w > window.innerWidth) left = window.innerWidth - w - 20;
-            if (top + fw.offsetHeight > window.innerHeight) top = rect.top - fw.offsetHeight - 5;
-            fw.style.left = left + 'px';
-            fw.style.top = top + 'px';
-            fw.style.display = 'block';
+            // 檢查是否超出底部 (大略計算高度，因為 display:flex 後高度才確定)
+            if (top + 200 > window.innerHeight) top = rect.top - 100; // 簡易往上調整
+            
+            container.style.left = left + 'px';
+            container.style.top = top + 'px';
+            
             cancelFloatCloseTimer();
         }
 
@@ -693,14 +737,17 @@
         }
 
         function handleGlobalClick(e) {
-            const fw = document.getElementById('floatWindow');
-            if (fw.style.display === 'block' && 
-                !fw.contains(e.target) && 
-                !e.target.closest('.cell-content') && 
-                !e.target.closest('.has-comment')) {
+            const fw = document.getElementById('floatContainer');
+            // 點擊非浮動視窗區域即關閉
+            if (fw.style.display === 'flex' && !fw.contains(e.target)) {
                 fw.style.display = 'none';
             }
             
+            // 關閉建議選單
+            if(!e.target.closest('.suggestion-container')) {
+                document.querySelectorAll('.suggestion-list').forEach(el => el.remove());
+            }
+
             // V3.5.7: 修正 - 篩選視窗只允許點擊 X 關閉，避免誤觸或閃爍
             // 移除舊的自動關閉邏輯
             /* const fm = document.getElementById('filterMenu');
@@ -745,12 +792,42 @@
             </a>`;
         }
 
+
+// V3.5.74 動態更新排序選項
+        function updateSortOptions(view) {
+            const select = document.getElementById('sortSelect');
+            const opts = select.options;
+            // 先顯示所有選項
+            for(let i=0; i<opts.length; i++) opts[i].style.display = 'block';
+            
+            // 重置為第一項
+            select.value = 'date_new'; 
+
+            if (view === 'tasks' || view === 'activities') {
+                // 任務/活動：隱藏 A-Z, Z-A，預設改為 舊->新 (近->遠)
+                // index 2(az), 3(za)
+                opts[2].style.display = 'none';
+                opts[3].style.display = 'none';
+                select.value = 'date_old'; // 預設 近->遠
+            } else if (view === 'masterList') {
+                // 總表：隱藏 日期排序
+                // index 0(new), 1(old)
+                opts[0].style.display = 'none';
+                opts[1].style.display = 'none';
+                select.value = 'az';
+            } else if (view === 'projects') {
+                // 案子列表：全開，預設 新->舊
+                select.value = 'date_new';
+            }
+        }
+
         function switchView(view) {
             currentView = view;
             exitSelectionMode();
             isAddToProjectMode = false;
             selectedMasterIds.clear();
             activeSort = null; // Reset Sort
+            updateSortOptions(view); // V3.5.74 更新排序選單
             const btn = document.getElementById('btnAddToProj');
             btn.classList.add('hidden');
             btn.classList.remove('btn-glow-red', 'btn-glow-green');
@@ -925,12 +1002,12 @@
             renderCurrentView();
         }
 
-        function renderCurrentView() {
+
+function renderCurrentView() {
             const thead = document.getElementById('tableHead');
             const tbody = document.getElementById('tableBody');
             const search = document.getElementById('searchInput').value.toLowerCase();
             const sortMode = document.getElementById('sortSelect').value;
-            // Global Sort
 
             tbody.innerHTML = '';
             let columns = [];
@@ -939,6 +1016,7 @@
             const commonOps = { t: '操作', w: '80px', k:'ops', c: 'sticky-right' };
             const projectColW = '80px';
             const modelColSpec = { t: 'Model', w: '150px', k:'model', c: 'sticky-col col-5 text-model text-[10px]' };
+            
             if(currentView === 'projects') {
                 sourceData = db.projects;
                 columns = [
@@ -946,18 +1024,18 @@
                     { t: 'Project', w: projectColW, k:'project', c: 'sticky-col col-1 text-small-gray' },
                     { t: 'Agent', w: '80px', k:'agent', c: 'sticky-col col-2 text-small-gray' },
                     { t: 'End User', w: '80px', k:'endUser', c: 'sticky-col col-3 text-small-gray' },
-                    { t: 'Size', w: '60px', k:'size', c: 'sticky-col col-4' },
+                    // [修正] Size: 表頭置中 (text-center)
+                    { t: 'Size', w: '60px', k:'size', c: 'sticky-col col-4 text-center' },
                     modelColSpec,
                     { t: '<i class="fas fa-history mr-1"></i>最新動態', w: '120px', k:'latestStatus', c: 'sticky-col col-6 col-latest' },
                     { t: '標籤', w: '150px', k:'tags' },
                     { t: '狀況概述', w: '250px', k:'summary' },
                     { t: '達成數量', w: '80px', k:'achievement' },
-              
-                    { t: '當年預算', w: '80px', k:'budget', c: 'text-right' },
+                    // [修正] 當年預算: 表頭置中
+                    { t: '當年預算', w: '80px', k:'budget', c: 'text-center' },
                     { t: 'Active', w: '60px', k:'active' },
                     { t: 'PLM#', w: '80px', k:'plm' },
                     commonOps
-                
                 ];
             } else if (currentView === 'masterList') {
                 sourceData = db.masterList;
@@ -965,12 +1043,12 @@
                     { t: '', w: '40px', c: 'sticky-col col-0' },
                     { t: 'Project', w: '120px', k:'project', c: 'sticky-col col-1 text-small-gray' },
                     { t: 'Agent', w: '80px', k:'agent', c: 'sticky-col col-2 text-small-gray' },
-          
                     { t: 'End User', w: '80px', k:'endUser', c: 'sticky-col col-3 text-small-gray' },
                     { t: 'Application', w: '100px', k:'application' },
-                    { t: 'EAU', w: '80px', k:'eau', c: 'text-right' },
-                    { t: 'Size', w: '60px', k:'size' },
- 
+                    // [修正] EAU: 表頭置中
+                    { t: 'EAU', w: '80px', k:'eau', c: 'text-center' },
+                    // [修正] Size: 表頭置中
+                    { t: 'Size', w: '60px', k:'size', c: 'text-center' },
                     { t: 'Model', w: '150px', k:'model', c:'text-model text-[10px]' },
                     { t: 'Price', w: '80px', k:'salesPrice' },
                     { t: 'Remark', w: '200px', k:'remark' },
@@ -978,12 +1056,11 @@
                     { t: 'Cus PN', w: '100px', k:'cusPN' },
                     { t: 'Active', w: '60px', k:'active' },
                     { t: 'PLM#', w: '80px', k:'plm' },
-                
                     commonOps
                 ];
             } else if (currentView === 'tasks' || currentView === 'activities') {
                 sourceData = currentView === 'tasks' ?
-                db.tasks.filter(t => !t.completed) : db.tasks;
+                    db.tasks.filter(t => !t.completed) : db.tasks;
                 columns = [
                     { t: '★', w: '40px', c: 'sticky-col col-0 text-center' }, 
                     { t: 'Project', w: '150px', k: 'project', c: 'sticky-col col-1 text-small-gray' }, 
@@ -996,24 +1073,21 @@
                     { t: '完成日', w: '100px', k: 'completedDate' },
                     commonOps
                 ];
-                columns[4].c = 'text-model text-[10px]';
             } else if (currentView === 'orders') {
                 sourceData = db.orders;
                 columns = [
                     { t: '★', w: '40px' }, { t: 'Project', w: '120px', k:'project' }, { t: 'Agent', w: '80px', k:'agent' }, { t: 'End User', w: '80px', k:'endUser' },
-       
                     { t: 'Model', w: '100px', c:'text-model', k:'model' }, 
                     { t: 'PO#', w: '100px', k:'po' }, { t: 'Qty', w: '60px', k:'qty' },
                     { t: '交期', w: '100px', k:'dueDate' }, { t: '出貨', w: '60px' }, { t: '狀態說明', w: '150px', k:'statusDesc' }, commonOps
-      
                 ];
             } else if (currentView === 'quotes') {
                 sourceData = db.quotes;
-                // V3.5.5 Font Adjustment: text-xs for Project/Agent/End User
                 columns = [
                     { t: 'Project', w: '150px', k:'project', c: 'text-xs' }, 
                     { t: 'Agent', w: '100px', k:'agent', c: 'text-xs' }, 
                     { t: 'End User', w: '100px', k:'endUser', c: 'text-xs' },
+                    { t: 'Model', w: '100px', k:'model', c: 'text-model text-[10px]' },
                     { t: '日期', w: '100px', k:'date' }, { t: '業務報價', w: '100px', c:'text-orange-300 font-bold', k:'salesPrice' },
                     { t: 'FAE報價', w: '100px', k:'faePrice' }, { t: 'REF#', w: '100px', k:'ref', c: 'text-xs text-gray-400' }, { t: '說明', w: '200px', k:'desc' }, { t: '操作', w: '60px', c:'sticky-right' }
                 ];
@@ -1021,17 +1095,16 @@
                 sourceData = db.contacts;
                 columns = [
                     { t: '★', w: '40px' }, { t: 'Agent', w: '120px', k:'agent' }, { t: 'End User', w: '120px', k:'endUser' },
+                    { t: 'Name', w: '100px', k:'name' }, { t: 'Email', w: '150px', k:'email' },
                     { t: 'Position', w: '120px', k:'position' }, { t: 'Phone', w: '120px', k:'phone' }, { t: 'Address', w: '200px', k:'address' },
-                  
-                    { t: 'Remark', w: '150px', k:'remark' }, { t: 'Active', w: '60px', k:'active' }, commonOps
+                    { t: 'Remark', w: '150px', k:'remark' }, commonOps
                 ];
             } else if (currentView === 'codes') {
                 sourceData = db.codes;
                 columns = [
                     { t: 'Agent', w: '150px', k:'agent' }, { t: 'End User', w: '150px', k:'endUser' }, { t: 'Code', w: '100px', c:'text-model', k:'code' },
                     { t: 'Pricing', w: '100px', k:'pricing' }, { t: 'Logistics', w: '100px', k:'logistics' }, { t: 'Remark', w: '200px', k:'remark' },
-                
-                    { t: 'Active', w: '60px', k:'active' }, { t: '操作', w: '60px', c:'sticky-right' }
+                    { t: '操作', w: '60px', c:'sticky-right' }
                 ];
             }
 
@@ -1046,43 +1119,43 @@
                 columns[0] = { 
                     t: '<input type="checkbox" onchange="toggleAddMasterSelectAll(this)" class="accent-orange-500 cursor-pointer">', 
                     w: '40px', c:'sticky-col col-0 text-center' 
-             
-               };
+                };
             }
 
-            // V3.5.6: Filter Icon logic
+            // 產生表頭 HTML
             thead.innerHTML = `<tr>${columns.map(c => {
                 const isFiltered = activeFilters[currentView] && activeFilters[currentView][c.k];
                 const filterIcon = isFiltered ? '<i class="fas fa-filter text-orange-500 ml-1 text-[10px]"></i>' : '';
-               
                 return `<th style="width:${c.w}; min-width:${c.w}" 
                             class="${c.c||''}"
                             onmousedown="startHeaderLongPress(event, '${c.k}')"
                             onmouseup="cancelHeaderLongPress()"
-          
-                  >${c.t}${filterIcon}</th>`
+                    >${c.t}${filterIcon}</th>`
             }).join('')}</tr>`;
-            // Apply Filters
+            
+            // 執行篩選
             let filtered = sourceData;
             if(activeFilters[currentView]) {
                 Object.keys(activeFilters[currentView]).forEach(key => {
                     const validSet = activeFilters[currentView][key];
                     if(validSet) {
                         filtered = filtered.filter(item => {
-         
-                           if(key === 'star') return validSet.has(item.star ? 'true' : 'false');
-                            if(key === 'latestStatus') {
-                                const st = getLatestStatus(item);
-       
-                                 return validSet.has(st.text);
+                            if(key === 'star') return validSet.has(item.star ? 'true' : 'false');
+                            if(key === 'tags') {
+                               if(!item.tags) return false;
+                               const itemTags = item.tags.split(/[,，]/).map(t=>t.trim());
+                               return [...validSet].some(filterTag => itemTags.includes(filterTag));
                             }
+                            if(key === 'latestStatus') {
+                                 const st = getLatestStatus(item);
+                                 return validSet.has(st.text);
+                             }
                             if(key === 'dueDate' && currentView === 'orders') {
-           
-                                const ships = item.shipments && item.shipments.length ? item.shipments : [{dueDate:item.dueDate}];
+                                const ships = item.shipments && item.shipments.length ?
+                                    item.shipments : [{dueDate:item.dueDate}];
                                 return ships.some(s => validSet.has(s.dueDate||'-'));
                             }
-                            const val = item[key] ?
-                            item[key].toString() : '';
+                            const val = item[key] ? item[key].toString() : '';
                             return validSet.has(val); 
                         });
                     }
@@ -1090,22 +1163,31 @@
             }
 
             filtered = filtered.filter(item => Object.values(item).join(' ').toLowerCase().includes(search));
-            // V3.5.6 Sorting Logic Override
+            
+            // [修正] 排序功能核心
             const doSort = (a, b) => {
-                // 1. Check Active Column Sort
+                // 安全的時間轉換，空值視為 0
+                const safeTime = (d) => d ? new Date(d).getTime() : 0;
+
+                // 0. Active false 沉底
+                if (a.active !== false && b.active === false) return -1;
+                if (a.active === false && b.active !== false) return 1;
+
+                // 1. 指定欄位排序 (Header Click - activeSort)
                 if(activeSort) {
                     const { col, order } = activeSort;
                     let valA, valB;
-
                     if(col === 'latestStatus') {
-                        // V3.5.7 Fix: Sort by Date properly
                         valA = getLatestStatus(a).date || '';
                         valB = getLatestStatus(b).date || '';
-                        const getMs = (d) => d ? new Date(d).getTime() : 0;
-                        if(order === 'new') return getMs(valB) - getMs(valA);
-                        if(order === 'old') return getMs(valA) - getMs(valB);
+                        if(order === 'new') return safeTime(valB) - safeTime(valA);
+                        if(order === 'old') return safeTime(valA) - safeTime(valB);
+                    } else if (col === 'trackDate') { 
+                        valA = a.trackDate || a.startDate || '';
+                        valB = b.trackDate || b.startDate || '';
+                        if(order === 'new') return safeTime(valB) - safeTime(valA);
+                        if(order === 'old') return safeTime(valA) - safeTime(valB);
                     } else if (col === 'achievement') {
-                        // Sort by PERCENT
                         const achA = calculateAchievement(a).percent;
                         const achB = calculateAchievement(b).percent;
                         valA = parseFloat(achA) || 0;
@@ -1131,27 +1213,63 @@
                     if(order === 'za') return valB.toString().localeCompare(valA.toString());
                 }
 
-                // 2. Global Sort Fallback
-                const valA = a.updatedAt || a.date || a.startDate || ''; 
-                const valB = b.updatedAt || b.date || b.startDate || '';
+                // 2. 全域預設排序 (Global Dropdown)
+                // [修正] 案子列表：依最新動態日期排序
+                if (currentView === 'projects' && (sortMode === 'date_new' || sortMode === 'date_old')) {
+                    const dateA = getLatestStatus(a).date || '';
+                    const dateB = getLatestStatus(b).date || '';
+                    if(sortMode === 'date_new') return safeTime(dateB) - safeTime(dateA); // 新 -> 舊 (Desc)
+                    if(sortMode === 'date_old') return safeTime(dateA) - safeTime(dateB); // 舊 -> 新 (Asc)
+                } 
+                
+                // 其他預設 (Tasks 走下方特殊邏輯，此處備用)
+                let valA = a.updatedAt || a.date || a.startDate || ''; 
+                let valB = b.updatedAt || b.date || b.startDate || '';
+
                 if(sortMode === 'date_new') return new Date(valB) - new Date(valA);
                 if(sortMode === 'date_old') return new Date(valA) - new Date(valB);
                 if(sortMode === 'az') return (a.project || a.agent || '').localeCompare(b.project || b.agent || '');
                 if(sortMode === 'za') return (b.project || b.agent || '').localeCompare(a.project || a.agent || '');
                 return 0;
             };
-            // V3.5.7 Task/Activity Special Overdue Sort
+
+            // [修正] 任務/活動：特殊排序邏輯 (過期置頂 + 預設排序)
             if(currentView === 'tasks' || currentView === 'activities') {
                 const today = new Date().toISOString().split('T')[0];
-                const isOverdue = (t) => !t.completed && t.trackDate && t.trackDate < today;
+                const getMs = (d) => d ? new Date(d).getTime() : 9999999999999;
+                
+                // 判定過期：未完成、Active、TrackDate < Today
+                const isOverdue = (t) => !t.completed && t.active !== false && t.trackDate && t.trackDate < today;
                 
                 const overdueItems = filtered.filter(isOverdue);
                 const normalItems = filtered.filter(t => !isOverdue(t));
                 
-                // Overdue: always Old -> New (Oldest overdue first)
-                overdueItems.sort((a,b) => new Date(a.trackDate) - new Date(b.trackDate));
-                // Normal: use active sort
-                normalItems.sort(doSort);
+                // 1. 過期區塊：永遠置頂，依 trackDate 遠 -> 近 (舊 -> 新, 最急的在最上面)
+                overdueItems.sort((a,b) => getMs(a.trackDate) - getMs(b.trackDate));
+                
+                // 2. 未過期區塊：
+                // 如果沒有指定 Header 排序 (activeSort)
+                if (!activeSort) {
+                    if (sortMode === 'date_new') {
+                        // 使用者選擇「新→舊」 (Far -> Near, 降冪)
+                        normalItems.sort((a, b) => {
+                             if (a.active !== false && b.active === false) return -1;
+                             if (a.active === false && b.active !== false) return 1;
+                             return getMs(b.trackDate) - getMs(a.trackDate);
+                        });
+                    } else {
+                        // 使用者選擇「舊→新」 OR 預設狀態 (Near -> Far, 升冪)
+                        normalItems.sort((a, b) => {
+                             if (a.active !== false && b.active === false) return -1;
+                             if (a.active === false && b.active !== false) return 1;
+                             return getMs(a.trackDate) - getMs(b.trackDate);
+                        });
+                    }
+                } else {
+                    // 若有選 Header 排序，則依 doSort
+                    normalItems.sort(doSort);
+                }
+                
                 filtered = [...overdueItems, ...normalItems];
             } else {
                 filtered.sort(doSort);
@@ -1166,79 +1284,65 @@
                     tr.className = 'table-row';
                     tr.dataset.id = item.id;
                     
-                      tr.onmousedown = (e) => {
-                        if(e.target.closest('.cell-content') || e.target.closest('.sticky-col')) 
-                        {
+                    tr.onmousedown = (e) => {
+                        if(e.target.closest('.cell-content') || e.target.closest('.sticky-col')) {
                         } else {
-         
-                             startLongPress(tr); 
+                            startLongPress(tr); 
                         }
                     };
                     tr.onmouseup = cancelLongPress;
-             
                     tr.onmouseleave = cancelLongPress;
                     if(item.active === false || item.completed) tr.style.opacity = '0.5';
 
                     const isSel = selectedIds.has(item.id);
                     const starClass = item.star ? 'star-active text-yellow-400' : 'star-inactive text-gray-600';
-            
                     const starHTML = `<i class="fas fa-star ${starClass} hover:scale-125 transition-transform cursor-pointer" onclick="toggleStar('${currentView}', ${item.id})"></i>`;
                     const actionsHTML = `<div class="flex justify-center gap-2 h-full items-center"><button onclick="openModal('edit', ${item.id})" class="text-gray-400 hover:text-white"><i class="fas fa-edit"></i></button><button onclick="deleteItem(${item.id})" class="text-red-900 hover:text-red-500"><i class="fas fa-trash-alt"></i></button></div>`;
                     const checkHTML = `<input type="checkbox" class="accent-orange-500 row-check cursor-pointer transform scale-125" value="${item.id}" ${isSel?'checked':''} onchange="toggleSelectRow(${item.id})">`;
-                    const genCell = (val, fieldName) => {
+                    
+                    // [修正] genCell 增加 alignClass，確保 Flexbox 內容對齊
+                    const genCell = (val, fieldName, alignClass = '') => {
                         const comment = (item.comments || []).find(c => c.field === fieldName);
                         const hasCommentClass = comment ? 'has-comment' : '';
                         const displayVal = val || '';
-                        const commentText = comment ?
-                        comment.text.replace(/'/g, "&#39;") : '';
-                        return `<div class="cell-content ${hasCommentClass}" 
-                        onmouseleave="startFloatCloseTimer()"
-                                    onmouseenter="handleCellHover(this, '${commentText}', '${displayVal}')"
-                              
+                        const commentText = comment ? comment.text.replace(/'/g, "&#39;").replace(/\n/g, "\\n") : '';
+                        return `<div class="cell-content ${hasCommentClass} ${alignClass}" 
+                                    onmouseleave="startFloatCloseTimer()"
+                                    onmouseenter="handleCellHover(this, '${commentText}', '${displayVal}', false)"
+                                    onclick="handleCellHover(this, '${commentText}', '${displayVal}', true)"
                                     onmousedown="handleLongPressCopy(this)">
-                                       ${displayVal}
-                                 </div>`;
+                                    ${displayVal}
+                                </div>`;
                     };
 
                     let cells = '';
                     if(currentView === 'projects') {
                         const ach = calculateAchievement(item);
                         const latest = getLatestStatus(item);
-                        // V3.5.5 Budget Comma Separator
-                        const displayBudget = item.budget ?
-                        parseFloat(item.budget.toString().replace(/,/g,'')).toLocaleString() : '';
-
+                        const displayBudget = item.budget ? parseFloat(item.budget.toString().replace(/,/g,'')).toLocaleString() : '';
                         cells = `
                             <td class="sticky-col col-0 text-center"><div class="cell-content justify-center">${starHTML}</div></td>
                             <td class="sticky-col col-1 text-small-gray">${genCell(item.project, 'project')}</td>
-                            <td class="sticky-col 
-                            col-2 text-small-gray">${genCell(item.agent, 'agent')}</td>
+                            <td class="sticky-col col-2 text-small-gray">${genCell(item.agent, 'agent')}</td>
                             <td class="sticky-col col-3 text-small-gray">${genCell(item.endUser, 'endUser')}</td>
-                            <td class="sticky-col col-4">${genCell(item.size, 'size')}</td>
+                            <td class="sticky-col col-4 text-center">${genCell(item.size, 'size', 'justify-center')}</td>
                             <td class="sticky-col col-5 text-model text-[10px]">${genCell(item.model, 'model')}</td>
-  
-                           <td class="sticky-col col-6 col-latest">
+                            <td class="sticky-col col-6 col-latest">
                                 <div class="flex flex-col leading-tight justify-center h-full px-2">
-                                 
                                     <span class="text-white font-bold text-xs mb-1">${renderTags(latest.text)}</span>
                                     <span class="text-[10px] text-gray-400">${latest.date}</span>
                                 </div>
-                       
                             </td>
                             <td>${renderTags(item.tags)}</td>
                             <td>${genCell(item.summary, 'summary')}</td>
                             <td class="text-center">
-         
                                 <div class="cell-content flex-col justify-center leading-tight">
                                     <span class="text-orange-400 font-bold">${ach.qty}</span>
-                                   
                                     <span class="text-[10px] text-gray-500">${ach.percent}</span>
                                 </div>
                             </td>
-                            <td class="text-right">${genCell(displayBudget, 'budget')}</td>
-        
-                            <td class="text-center"><div class="cell-content justify-center">${item.active!==false ?
-                            'Y' : 'N'}</div></td>
+                            <td class="text-right">${genCell(displayBudget, 'budget', 'justify-end')}</td>
+                            <td class="text-center"><div class="cell-content justify-center">${item.active!==false ? 'Y' : 'N'}</div></td>
                             <td>${genCell(item.plm, 'plm')}</td>
                             <td class="text-center sticky-right">${actionsHTML}</td>
                         `;
@@ -1254,85 +1358,73 @@
                                 col0Content = `<input type="checkbox" class="accent-orange-500 master-add-check cursor-pointer transform scale-125" value="${item.id}" ${isChecked?'checked':''} onchange="toggleAddMasterSelect(${item.id})">`;
                             }
                         }
-
+                        
                         cells = `
                             <td class="sticky-col col-0 text-center"><div class="cell-content justify-center">${col0Content}</div></td>
-                 
-                           <td class="sticky-col col-1 text-small-gray">${genCell(item.project, 'project')}</td>
+                            <td class="sticky-col col-1 text-small-gray">${genCell(item.project, 'project')}</td>
                             <td class="sticky-col col-2 text-small-gray">${genCell(item.agent, 'agent')}</td>
                             <td class="sticky-col col-3 text-small-gray">${genCell(item.endUser, 'endUser')}</td>
-                     
                             <td>${genCell(item.application, 'application')}</td>
-                            <td class="text-right">${genCell(displayEau, 'eau')}</td>
-                            <td>${genCell(item.size, 'size')}</td>
+                            <td class="text-right">${genCell(displayEau, 'eau', 'justify-end')}</td>
+                            <td class="text-center">${genCell(item.size, 'size', 'justify-center')}</td>
                             <td class="text-model text-[10px]">${genCell(item.model, 'model')}</td>
-   
-                             <td>${genCell(displayPrice, 'salesPrice')}</td>
+                            <td>${genCell(displayPrice, 'salesPrice')}</td>
                             <td>${genCell(item.remark, 'remark')}</td>
                             <td>${genCell(item.contact, 'contact')}</td>
-                
-                             <td>${genCell(item.cusPN, 'cusPN')}</td>
-                            <td class="text-center"><div class="cell-content justify-center">${item.active!==false ?
-                             'Y' : 'N'}</div></td>
+                            <td>${genCell(item.cusPN, 'cusPN')}</td>
+                            <td class="text-center"><div class="cell-content justify-center">${item.active!==false ? 'Y' : 'N'}</div></td>
                             <td>${genCell(item.plm, 'plm')}</td>
                             <td class="text-center sticky-right">${actionsHTML}</td>
                         `;
-                    // 修改後的邏輯：加入未來日期顏色判定，並過濾未完成的日期顯示
-// 修改後的邏輯：加入未來日期顏色判定，並過濾未完成的日期顯示
-} else if (currentView === 'tasks' || currentView === 'activities') {
-                const todayStr = new Date().toISOString().split('T')[0];
-                const isOverdue = !item.completed && item.trackDate && item.trackDate < todayStr;
-                
-                // 定義未來任務：大於今天+7天
-                const futureTarget = new Date();
-                futureTarget.setDate(futureTarget.getDate() + 7);
-                const futureStr = futureTarget.toISOString().split('T')[0];
-                const isFuture = !item.completed && item.trackDate && item.trackDate > futureStr;
-                
-                let dateClass = 'text-gray-400';
-                if (isOverdue) dateClass = 'text-red-500 font-bold';
-                else if (isFuture) dateClass = 'text-[#22337C]'; // 改為指定顏色且不加粗
-
-                const masterItem = db.masterList.find(m => m.project === item.project);
-                const displayModel = masterItem ? masterItem.model : '';
-
-                // 未完成項目隱藏完成日
-                const displayCompDate = item.completed ? genCell(item.completedDate, 'completedDate') : '';
-
-                cells = `<td class="sticky-col col-0 text-center"><div class="cell-content justify-center">${starHTML}</div></td>
-                <td class="sticky-col col-1 text-small-gray">${genCell(item.project,'project')}</td>
-                <td class="sticky-col col-2 text-small-gray">${genCell(item.agent,'agent')}</td>
-                <td class="sticky-col col-3 text-small-gray">${genCell(item.endUser,'endUser')}</td>
-                <td class="text-model text-[10px]">${genCell(displayModel,'model')}</td>
-                <td><span class="tag-badge tag-blue">${item.taskType||''}</span></td><td>${genCell(item.desc,'desc')}</td><td class="font-mono text-xs">${genCell(item.docNum,'docNum')}</td>
-                
-                <td class="${dateClass} text-xs"><div>起: ${item.startDate}</div><div>追: ${item.trackDate}</div></td>
-                <td>${item.completed ? '<span class="text-gray-500">已完成</span>' : '<span class="text-green-500">進行中</span>'}</td>
-                <td class="text-xs text-gray-400">${displayCompDate}</td>
-                <td class="text-center sticky-right">${actionsHTML}</td>`;
+                    } else if (currentView === 'tasks' || currentView === 'activities') {
+                        const todayStr = new Date().toISOString().split('T')[0];
+                        const isOverdue = !item.completed && item.trackDate && item.trackDate < todayStr;
+                        const futureTarget = new Date();
+                        futureTarget.setDate(futureTarget.getDate() + 7);
+                        const futureStr = futureTarget.toISOString().split('T')[0];
+                        const isFuture = !item.completed && item.trackDate && item.trackDate > futureStr;
+                        let dateClass = 'text-gray-400';
+                        if (isOverdue) dateClass = 'text-red-500 font-bold';
+                        else if (isFuture) dateClass = 'text-[#22337C]';
+                        
+                        const masterItem = db.masterList.find(m => m.project === item.project);
+                        const displayModel = masterItem ? masterItem.model : '';
+                        const displayCompDate = item.completed ? genCell(item.completedDate, 'completedDate') : '';
+                        cells = `<td class="sticky-col col-0 text-center"><div class="cell-content justify-center">${starHTML}</div></td>
+                        <td class="sticky-col col-1 text-small-gray">${genCell(item.project,'project')}</td>
+                        <td class="sticky-col col-2 text-small-gray">${genCell(item.agent,'agent')}</td>
+                        <td class="sticky-col col-3 text-small-gray">${genCell(item.endUser,'endUser')}</td>
+                        <td class="text-model text-[10px]">${genCell(displayModel,'model')}</td>
+                        <td><span class="tag-badge tag-blue">${item.taskType||''}</span></td><td>${genCell(item.desc,'desc')}</td><td class="font-mono text-xs">${genCell(item.docNum,'docNum')}</td>
+                        <td class="${dateClass} text-xs"><div>起: ${item.startDate}</div><div>追: ${item.trackDate}</div></td>
+                        <td>${item.completed ? '<span class="text-gray-500">已完成</span>' : '<span class="text-green-500">進行中</span>'}</td>
+                        <td class="text-xs text-gray-400">${displayCompDate}</td>
+                        <td class="text-center sticky-right">${actionsHTML}</td>`;
                     } else if (currentView === 'orders') {
                         const ships = item.shipments && item.shipments.length ?
-                        item.shipments : [{dueDate: item.dueDate, qty: item.qty, isShipped: item.isShipped}];
+                            item.shipments : [{dueDate: item.dueDate, qty: item.qty, isShipped: item.isShipped}];
                         const qtysHtml = ships.map(s => `<div>${s.qty||0}</div>`).join('');
                         const datesHtml = ships.map(s => `<div>${s.dueDate||'-'}</div>`).join('');
                         const shippedHtml = ships.map(s => s.isShipped ? '<span class="text-green-500">✓</span>' : '<span class="text-gray-600">-</span>').join('<br>');
                         cells = `<td class="text-center"><div class="cell-content justify-center">${starHTML}</div></td><td>${genCell(item.project,'project')}</td><td>${genCell(item.agent,'agent')}</td><td>${genCell(item.endUser,'endUser')}</td><td class="text-model">${genCell(item.model,'model')}</td>
                             <td>${genCell(item.po,'po')}</td>
                             <td class="font-mono text-xs"><div class="cell-content flex-col justify-center items-start">${qtysHtml}</div></td>
-                            <td class="text-xs"><div class="cell-content flex-col 
-                            justify-center items-start">${datesHtml}</div></td>
+                            <td class="text-xs"><div class="cell-content flex-col justify-center items-start">${datesHtml}</div></td>
                             <td class="text-center text-xs"><div class="cell-content flex-col justify-center">${shippedHtml}</div></td>
                             <td>${genCell(item.statusDesc,'statusDesc')}</td><td class="text-center sticky-right">${actionsHTML}</td>`;
                     } else if (currentView === 'quotes') {
-                        // V3.5.5 Updated Quote Cells with text-xs logic
-                        cells = `<td class="text-xs">${genCell(item.project,'project')}</td><td class="text-xs">${genCell(item.agent,'agent')}</td><td class="text-xs">${genCell(item.endUser,'endUser')}</td><td>${item.date}</td><td class="text-orange-300 font-bold">${genCell(item.salesPrice,'salesPrice')}</td>
-                            <td>${genCell(item.faePrice,'faePrice')}</td><td class="text-xs text-gray-400">${genCell(item.ref,'ref')}</td><td>${genCell(item.desc,'desc')}</td><td class="text-center sticky-right">${actionsHTML}</td>`;
+                        cells = `<td class="text-xs">${genCell(item.project,'project')}</td><td class="text-xs">${genCell(item.agent,'agent')}</td><td class="text-xs">${genCell(item.endUser,'endUser')}</td>
+                        <td class="text-model text-[10px]">${genCell(item.model,'model')}</td>
+                        <td>${item.date}</td><td class="text-orange-300 font-bold">${genCell(item.salesPrice,'salesPrice')}</td>
+                        <td>${genCell(item.faePrice,'faePrice')}</td><td class="text-xs text-gray-400">${genCell(item.ref,'ref')}</td><td>${genCell(item.desc,'desc')}</td><td class="text-center sticky-right">${actionsHTML}</td>`;
                     } else if (currentView === 'contacts') {
-                        cells = `<td class="text-center"><div class="cell-content justify-center">${starHTML}</div></td><td>${genCell(item.agent,'agent')}</td><td>${genCell(item.endUser,'endUser')}</td><td>${genCell(item.position,'position')}</td><td>${genCell(item.phone,'phone')}</td>
-                            <td class="text-xs text-gray-400">${genCell(item.address,'address')}</td><td class="text-xs">${genCell(item.remark,'remark')}</td><td>${item.active!==false?'Y':'N'}</td><td class="text-center sticky-right">${actionsHTML}</td>`;
+                        cells = `<td class="text-center"><div class="cell-content justify-center">${starHTML}</div></td><td>${genCell(item.agent,'agent')}</td><td>${genCell(item.endUser,'endUser')}</td>
+                            <td>${genCell(item.name,'name')}</td><td>${genCell(item.email,'email')}</td>
+                            <td>${genCell(item.position,'position')}</td><td>${genCell(item.phone,'phone')}</td>
+                            <td class="text-xs text-gray-400">${genCell(item.address,'address')}</td><td class="text-xs">${genCell(item.remark,'remark')}</td><td class="text-center sticky-right">${actionsHTML}</td>`;
                     } else if (currentView === 'codes') {
                         cells = `<td>${genCell(item.agent,'agent')}</td><td>${genCell(item.endUser,'endUser')}</td><td class="font-mono text-model">${genCell(item.code,'code')}</td><td>${genCell(item.pricing,'pricing')}</td><td>${genCell(item.logistics,'logistics')}</td>
-                            <td class="text-xs">${genCell(item.remark,'remark')}</td><td>${item.active!==false?'Y':'N'}</td><td class="text-center sticky-right">${actionsHTML}</td>`;
+                            <td class="text-xs">${genCell(item.remark,'remark')}</td><td class="text-center sticky-right">${actionsHTML}</td>`;
                     }
 
                     if(isSelectionMode) {
@@ -1345,14 +1437,25 @@
             }
         }
 
-        function handleCellHover(el, commentText, cellValue) {
+        function handleCellHover(el, commentText, cellValue, isClick = false) {
             cancelFloatCloseTimer();
+            
+            let contentToShow = null;
+            let commentToShow = null;
+
+            // 判斷是否顯示內容：點擊(強制顯示) 或 溢位(Hover顯示)
+            const isOverflow = el.scrollWidth > el.clientWidth;
+            if ((isClick || isOverflow) && cellValue) {
+                contentToShow = cellValue;
+            }
+
+            // 判斷是否顯示註解：有點擊或Hover，且有註解就顯示
             if (commentText) {
-                showFloatWindow(commentText, el, 'comment');
-            } else {
-                if (el.scrollWidth > el.clientWidth && cellValue) {
-                    showFloatWindow(cellValue, el, 'content');
-                }
+                commentToShow = commentText;
+            }
+
+            if (contentToShow || commentToShow) {
+                showFloatWindow(contentToShow, commentToShow, el);
             }
         }
 
@@ -1467,7 +1570,11 @@
 
         function autoFillProjectInfo(val) {
             if(!val) return;
-            const match = db.masterList.find(m => m.project === val);
+            // 模糊對應：只要 Project 包含輸入值 (且長度足夠避免誤判) 就抓第一筆
+            // 但為了精確，這裡先抓完全符合，若無則抓包含
+            let match = db.masterList.find(m => m.project === val);
+            if(!match && val.length > 3) match = db.masterList.find(m => (m.project||'').includes(val));
+
             if(match) {
                 const setVal = (id, v) => { const el = document.getElementById(id);
                 if(el) el.value = v || ''; };
@@ -1475,8 +1582,50 @@
                 setVal('f_endUser', match.endUser);
                 setVal('f_size', match.size);
                 setVal('f_plm', match.plm);
+                // 訂單、報價、任務 自動帶入 Model
+                setVal('f_model', match.model);
             }
         }
+
+        // 新增：處理輸入框建議
+        function handleInputSuggestions(input, field) {
+            const val = input.value.toLowerCase();
+            const container = input.parentElement;
+            // 清除舊建議
+            const old = container.querySelector('.suggestion-list');
+            if(old) old.remove();
+
+            if(val.length < 2) return; // 輸入太少不顯示
+
+            let source = [];
+            // 根據欄位決定搜尋來源
+            if(field === 'project') source = db.masterList.map(m=>m.project).concat(db.projects.map(p=>p.project));
+            else if(field === 'model') source = db.masterList.map(m=>m.model);
+            else if(field === 'agent') source = db.masterList.map(m=>m.agent).concat(db.contacts.map(c=>c.agent));
+            else if(field === 'endUser') source = db.masterList.map(m=>m.endUser).concat(db.contacts.map(c=>c.endUser));
+
+            // 去除重複並過濾
+            const matches = [...new Set(source)].filter(s => s && s.toLowerCase().includes(val)).slice(0, 10);
+
+            if(matches.length > 0) {
+                const ul = document.createElement('div');
+                ul.className = 'suggestion-list';
+                matches.forEach(m => {
+                    const div = document.createElement('div');
+                    div.className = 'suggestion-item';
+                    div.innerText = m;
+                    div.onclick = () => {
+                        input.value = m;
+                        ul.remove();
+                        if(field === 'project') autoFillProjectInfo(m);
+                    };
+                    ul.appendChild(div);
+                });
+                container.appendChild(ul);
+            }
+        }
+
+        // V3.5.73: copyMasterToTask function removed.
 
         // V3.5.5 Fix: Added setTimeout to handleDateSegment to prevent auto-jump glitch
         function createDateInputGroup(id, value, extraClass = '') {
@@ -1561,7 +1710,7 @@
                          ${getAllFields(type).map(f => `<option value="${f.k}" ${f.k===c.field?'selected':''}>${f.l}</option>`).join('')}
            
                         </select>
-                    <input type="text" class="input-dark text-xs flex-1" value="${c.text}" onchange="updateComment(${i}, 'text', this.value)">
+                    <textarea class="input-dark text-xs flex-1 h-8 pt-1" onchange="updateComment(${i}, 'text', this.value)">${c.text}</textarea>
                     <button onclick="removeComment(${i})" class="text-red-500"><i class="fas fa-times"></i></button>
                 </div>`).join('');
             const genCheckboxGroup = (id, options, currentVal) => {
@@ -1603,10 +1752,9 @@
             } else if(type === 'projects') {
                 html = `
                     <div class="grid grid-cols-3 gap-4">
-                        <input class="input-dark" placeholder="Project (必填)" id="f_project" value="${data.project||''}" oninput="autoFillProjectInfo(this.value)">
-                        
-                        <input class="input-dark" placeholder="Agent" id="f_agent" value="${data.agent||''}">
-                        <input class="input-dark" placeholder="End User" id="f_endUser" value="${data.endUser||''}">
+                        <div class="relative suggestion-container"><input class="input-dark" placeholder="Project (必填)" id="f_project" value="${data.project||''}" oninput="handleInputSuggestions(this, 'project'); autoFillProjectInfo(this.value)" autocomplete="off"></div>
+                        <div class="relative suggestion-container"><input class="input-dark" placeholder="Agent" id="f_agent" value="${data.agent||''}" oninput="handleInputSuggestions(this, 'agent')" autocomplete="off"></div>
+                        <div class="relative suggestion-container"><input class="input-dark" placeholder="End User" id="f_endUser" value="${data.endUser||''}" oninput="handleInputSuggestions(this, 'endUser')" autocomplete="off"></div>
                         <input class="input-dark" placeholder="Size" id="f_size" value="${data.size||''}">
                
                         <input class="input-dark text-model" placeholder="Model" id="f_model" value="${data.model||''}">
@@ -1663,8 +1811,7 @@
                     <label class="flex items-center gap-2 mt-2"><input type="checkbox" id="f_active" ${data.active!==false?'checked':''} class="accent-orange-500"> Active</label>
                 `;
             } else if (type === 'tasks') {
-                const defStart = data.startDate ||
-                new Date().toISOString().split('T')[0];
+                const defStart = data.startDate || new Date().toISOString().split('T')[0];
                 let defTrack = data.trackDate || '';
                 if(!editingId && !defTrack) {
                     const d = new Date(defStart);
@@ -1673,11 +1820,22 @@
                 }
                 const defCompDate = data.completedDate || new Date().toISOString().split('T')[0];
 
-                html = `<div class="grid grid-cols-2 gap-4"><input class="input-dark" placeholder="Project" id="f_project" value="${data.project||''}" oninput="autoFillProjectInfo(this.value)"><select class="input-dark" id="f_taskType">${['詢價','RMA','規格','送樣','交期','預測','合約','其他'].map(o=>`<option ${data.taskType===o?'selected':''}>${o}</option>`).join('')}</select>
-                    <input class="input-dark" placeholder="Agent" id="f_agent" value="${data.agent||''}"><input class="input-dark" placeholder="End User" id="f_endUser" value="${data.endUser||''}">
-                    <div></div><div></div>
+                // 任務列表：Project 非必填，加入 autocomplete 容器
+                // 新增 Model 單獨一行
+                html = `<div class="grid grid-cols-2 gap-4">
+                    <div class="relative suggestion-container">
+                        <input class="input-dark" placeholder="Project" id="f_project" value="${data.project||''}" oninput="handleInputSuggestions(this, 'project'); autoFillProjectInfo(this.value)" autocomplete="off">
+                    </div>
+                    <select class="input-dark" id="f_taskType">${['詢價','RMA','規格','送樣','交期','預測','合約','其他'].map(o=>`<option ${data.taskType===o?'selected':''}>${o}</option>`).join('')}</select>
+                    
+                    <div class="relative suggestion-container"><input class="input-dark" placeholder="Agent" id="f_agent" value="${data.agent||''}" oninput="handleInputSuggestions(this, 'agent')" autocomplete="off"></div>
+                    <div class="relative suggestion-container"><input class="input-dark" placeholder="End User" id="f_endUser" value="${data.endUser||''}" oninput="handleInputSuggestions(this, 'endUser')" autocomplete="off"></div>
+                    
+                    <div class="col-span-2 relative suggestion-container">
+                         <input class="input-dark text-model" placeholder="Model (自動帶入)" id="f_model" value="${data.model||''}" oninput="handleInputSuggestions(this, 'model')" autocomplete="off">
+                    </div>
                   
-                    <div><label class="text-xs text-gray-400">起始</label>${createDateInputGroup('f_startDate', defStart)}</div>
+                  <div><label class="text-xs text-gray-400">起始</label>${createDateInputGroup('f_startDate', defStart)}</div>
                     <div><label class="text-xs text-gray-400">追蹤 (起始+3天)</label>${createDateInputGroup('f_trackDate', defTrack)}</div>
                     <input class="input-dark" placeholder="文件#" id="f_docNum" value="${data.docNum||''}"></div>
                     <textarea class="input-dark h-20" placeholder="說明" id="f_desc">${data.desc||''}</textarea>
@@ -1717,7 +1875,17 @@
      
                     <textarea class="input-dark h-20" placeholder="說明" id="f_desc">${data.desc||''}</textarea>`;
             } else if (type === 'contacts') {
-                html = `<div class="grid grid-cols-2 gap-4"><input class="input-dark" placeholder="Agent" id="f_agent" value="${data.agent||''}"><input class="input-dark" placeholder="End User" id="f_endUser" value="${data.endUser||''}"><input class="input-dark" placeholder="Position" id="f_position" value="${data.position||''}"><input class="input-dark" placeholder="Phone" id="f_phone" value="${data.phone||''}"><input class="input-dark col-span-2" placeholder="Address" id="f_address" value="${data.address||''}"></div>
+                // 新增 Name, Email，並加入 suggestion
+                html = `<div class="grid grid-cols-2 gap-4">
+                    <div class="relative suggestion-container"><input class="input-dark" placeholder="Agent" id="f_agent" value="${data.agent||''}" oninput="handleInputSuggestions(this, 'agent')" autocomplete="off"></div>
+                    <div class="relative suggestion-container"><input class="input-dark" placeholder="End User" id="f_endUser" value="${data.endUser||''}" oninput="handleInputSuggestions(this, 'endUser')" autocomplete="off"></div>
+                    
+                    <input class="input-dark" placeholder="Name" id="f_name" value="${data.name||''}">
+                    <input class="input-dark" placeholder="Email" id="f_email" value="${data.email||''}">
+                    
+                    <input class="input-dark" placeholder="Position" id="f_position" value="${data.position||''}">
+                    <input class="input-dark" placeholder="Phone" id="f_phone" value="${data.phone||''}">
+                    <input class="input-dark col-span-2" placeholder="Address" id="f_address" value="${data.address||''}"></div>
                     <textarea class="input-dark h-16" placeholder="Remark" id="f_remark">${data.remark||''}</textarea><label class="flex items-center gap-2"><input type="checkbox" id="f_active" ${data.active!==false?'checked':''} class="accent-orange-500"> Active</label>`;
             } else if (type === 'codes') {
                 html = `<div class="grid grid-cols-2 gap-4"><input class="input-dark" placeholder="Agent" id="f_agent" value="${data.agent||''}"><input class="input-dark" placeholder="End User" id="f_endUser" value="${data.endUser||''}"><input class="input-dark" placeholder="Code" id="f_code" value="${data.code||''}"><input class="input-dark" placeholder="Pricing" id="f_pricing" value="${data.pricing||''}"><input class="input-dark" placeholder="Logistics" id="f_logistics" value="${data.logistics||''}"></div>
@@ -1733,7 +1901,7 @@
                 'tasks': [{k:'project',l:'Project'},{k:'agent',l:'Agent'},{k:'model',l:'Model'},{k:'taskType',l:'任務'},{k:'desc',l:'說明'},{k:'docNum',l:'文件#'}],
                 'quotes': [{k:'project',l:'Project'},{k:'salesPrice',l:'業務報價'},{k:'faePrice',l:'FAE報價'},{k:'ref',l:'REF#'},{k:'desc',l:'說明'},{k:'model',l:'Model'}],
     
-                'contacts': [{k:'agent',l:'Agent'},{k:'address',l:'Address'},{k:'phone',l:'Phone'},{k:'remark',l:'Remark'}],
+                'contacts': [{k:'agent',l:'Agent'},{k:'name',l:'Name'},{k:'email',l:'Email'},{k:'address',l:'Address'},{k:'phone',l:'Phone'},{k:'remark',l:'Remark'}],
                 'codes': [{k:'code',l:'Code'},{k:'pricing',l:'Pricing'},{k:'logistics',l:'Logistics'},{k:'remark',l:'Remark'}],
                 'orders': [{k:'po',l:'PO#'},{k:'statusDesc',l:'狀態說明'},{k:'model',l:'型號'},{k:'orderDate',l:'訂單日期'}]
             };
@@ -1745,9 +1913,9 @@
             const container = document.getElementById('commentsContainer');
             const div = document.createElement('div');
             div.className = "flex gap-2 mb-1";
-            div.innerHTML = `<select class="input-dark text-xs w-1/3">${getAllFields(type).map(f => `<option value="${f.k}">${f.l}</option>`).join('')}</select><input type="text" class="input-dark text-xs flex-1"><button onclick="this.parentElement.remove()" class="text-red-500"><i class="fas fa-times"></i></button>`;
+            div.innerHTML = `<select class="input-dark text-xs w-1/3">${getAllFields(type).map(f => `<option value="${f.k}">${f.l}</option>`).join('')}</select><textarea class="input-dark text-xs flex-1 h-8 pt-1"></textarea><button onclick="this.parentElement.remove()" class="text-red-500"><i class="fas fa-times"></i></button>`;
             container.appendChild(div);
-        }
+}
 
         function saveData() {
             const type = document.getElementById('modalType').value;
@@ -1783,7 +1951,7 @@
             }
             // V3.5.7 Save Completed Date
             // 第 472 行：擴充邏輯以支援「後續追蹤」自動新增
-// V3.5.71 Save Completed Date & Handle Follow Up
+// V3.6 Save Completed Date & Handle Follow Up
             if (type === 'tasks' && newData.completed) {
                 const compDate = document.getElementById('f_completedDate');
                 if(compDate) newData.completedDate = compDate.value;
@@ -1817,9 +1985,24 @@
                     db.tasks.push(newTask);
                 }
             }
-            if(['projects','masterList','orders','quotes','tasks'].includes(type) && !newData.project) return alert('Project 為必填');
+            // 任務移除必填 Project 限制
+            if(['projects','masterList','orders','quotes'].includes(type) && !newData.project) return alert('Project 為必填');
+            
             const commentDivs = document.querySelectorAll('#commentsContainer > div');
-            newData.comments = Array.from(commentDivs).map(div => ({ field: div.querySelector('select').value, text: div.querySelector('input').value })).filter(c => c.text);
+            newData.comments = Array.from(commentDivs).map(div => ({ field: div.querySelector('select').value, text: div.querySelector('textarea').value })).filter(c => c.text);
+            
+            // 案子列表自動標籤：若有訂單更新，自動加上「訂單」標籤
+            if(type === 'projects') {
+                 // 檢查該 Project 是否有訂單
+                 const hasOrder = db.orders.some(o => o.project === newData.project);
+                 if(hasOrder) {
+                     let currentTags = newData.tags ? newData.tags.split(',') : [];
+                     if(!currentTags.includes('訂單')) {
+                         currentTags.push('訂單');
+                         newData.tags = currentTags.join(',');
+                     }
+                 }
+            }
             if(editingId) {
                 const idx = db[type].findIndex(i => i.id === editingId);
                 if(idx >= 0) db[type][idx] = { ...db[type][idx], ...newData };
@@ -1895,6 +2078,8 @@
                                 fieldName = 'phone'; }
                                 else if(k.includes('address')) { newItem.address = row[key];
                                 fieldName = 'address'; }
+                                else if(k.includes('name')) { newItem.name = row[key]; fieldName = 'name'; }
+                                else if(k.includes('email')) { newItem.email = row[key]; fieldName = 'email'; }
                                 else if(k.includes('code')) { newItem.code = row[key];
                                 fieldName = 'code'; }
                                 else if(k.includes('remark')) { newItem.remark = row[key];
@@ -2032,7 +2217,9 @@
 
                 // 4. Contacts
                 const contactData = db.contacts.map(c => ({
-                    'Agent': c.agent, 'End User': c.endUser, 'Position': c.position,
+                    'Agent': c.agent, 'End User': c.endUser, 
+                    'Name': c.name, 'Email': c.email,
+                    'Position': c.position,
                     'Phone': c.phone, 'Address': c.address, 'Remark': c.remark, '_comments': c.comments
                 }));
                 addSheet("聯絡人清單", contactData);
