@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BusinessFlow V3.6 - 業務工作流系統</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         :root { 
@@ -2148,7 +2148,8 @@ function renderCurrentView() {
             
             const processSheet = (ws, data) => {
                 ws['!cols'] = Object.keys(data[0]||{}).map(() => ({wch: 15}));
-                ws['!freeze'] = { xSplit: "0", ySplit: "1", topLeftCell: "A2", activePane: "bottomRight", state: "frozen" };
+                // 修正：xSplit 與 ySplit 必須是數字，凍結窗格才會生效
+                ws['!freeze'] = { xSplit: 0, ySplit: 1, topLeftCell: "A2", activePane: "bottomRight", state: "frozen" };
                 const range = XLSX.utils.decode_range(ws['!ref']);
                 for(let R = range.s.r; R <= range.e.r; ++R) {
                     for(let C = range.s.c; C <= range.e.c; ++C) {
@@ -2157,10 +2158,15 @@ function renderCurrentView() {
                         if(!cell) continue;
 
                         if(!cell.s) cell.s = {};
+                        // 設定：自動換行與靠上對齊
+                        cell.s.alignment = { wrapText: true, vertical: 'top' };
                         cell.s.font = { name: "Arial", sz: 10 };
+                        
                         if(R === 0) { 
+                            // 標題樣式：RGB(11,83,148) + 下框線 RGB(255,192,0)
                             cell.s.font = { name: "Arial", sz: 11, bold: true, color: { rgb: "0B5394" } };
                             cell.s.border = { bottom: { style: "thick", color: { rgb: "FFC000" } } };
+                            cell.s.alignment = { horizontal: 'center', vertical: 'center', wrapText: true };
                         } else {
                             const item = data[R-1];
                             const headerCell = ws[XLSX.utils.encode_cell({r:0, c:C})];
@@ -2168,14 +2174,11 @@ function renderCurrentView() {
                             if(item && item._comments) {
                                 const mapping = {
                                     'Project':'project','Agent':'agent','End User':'endUser','Model':'model',
-                         
                                     'Size':'size','EAU':'eau','Application':'application','Contact':'contact',
                                     'PLM#':'plm','Price':'salesPrice','Sales Price':'salesPrice','FAE Price':'faePrice',
-                          
                                     'Phone':'phone','Address':'address','Code':'code','Remark':'remark',
-               
                                     'Cus PN':'cusPN','當年預算':'budget'
-                                };
+                                    };
                                 const fieldKey = mapping[headerName];
                                 const cmt = item._comments.find(c => c.field === fieldKey);
                                 if(cmt) {
@@ -2217,7 +2220,7 @@ function renderCurrentView() {
                 const masterData = db.masterList.map(m => ({
                     'Project': m.project, 'Agent': m.agent, 'End User': m.endUser,
                     'Application': m.application, 'EAU': m.eau, 'Size': m.size,
-                    'Model': m.model, 'Price': 
+                   'Model': m.model, 'Price': 
                     m.salesPrice, 'Remark': m.remark,
                     'Contact': m.contact, 'Cus PN': m.cusPN, 'PLM#': m.plm, '_comments': m.comments
                 }));
@@ -2238,6 +2241,7 @@ function renderCurrentView() {
                     'Agent': c.agent, 'End User': c.endUser, 
                     'Name': c.name, 'Email': c.email,
                     'Position': c.position,
+      
                     'Phone': c.phone, 'Address': c.address, 'Remark': c.remark, '_comments': c.comments
                 }));
                 addSheet("聯絡人清單", contactData);
@@ -2251,11 +2255,21 @@ function renderCurrentView() {
 
                 XLSX.writeFile(wb, `LIST(業務管理表)_${dateStr}.xlsx`, { cellStyles: true });
             } else {
-                const data = db.tasks.map(t => ({
-                    '客戶': `${t.agent||''} / ${t.endUser||''}`, '日期': t.trackDate, 
-                    '議題': '', '業務事項': t.taskType, '進度狀況': t.desc, '備註': t.docNum
-                
+                // Daily 邏輯：僅匯出已完成 (completed: true)，顯示 completedDate
+                const data = db.tasks.filter(t => t.completed).map(t => ({
+                    '客戶': `${t.agent||''} / ${t.endUser||''}`, 
+                    '日期': t.completedDate || t.trackDate, 
+                    '議題': '', 
+                    '業務事項': t.taskType, 
+                    '進度狀況': t.desc, 
+                    '備註': t.docNum
                 }));
+                
+                if (data.length === 0) {
+                    alert('目前沒有已完成的任務可匯出');
+                    return;
+                }
+
                 const ws = XLSX.utils.json_to_sheet(data);
                 processSheet(ws, data);
                 XLSX.utils.book_append_sheet(wb, ws, "進度狀況");
