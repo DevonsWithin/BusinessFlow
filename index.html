@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
@@ -60,9 +61,16 @@
             position: sticky; top: 0; z-index: 40;
             padding: 12px 10px; text-align: left; 
             font-size: 0.8rem; color: #aaa; letter-spacing: 1px; font-weight: 600;
-            border-bottom: 2px solid var(--orange-primary);
+            /* 修正：移除 border-bottom，改用 ::after 偽元素繪製底線，解決 Sticky 狀態下線條斷裂問題 */
+            /* border-bottom: 2px solid var(--orange-primary); */
             box-shadow: 0 2px 5px rgba(0,0,0,0.5); white-space: nowrap;
             border-right: none;
+        }
+        /* 新增：透過偽元素繪製穩定的橘色表頭底線 */
+        th::after {
+            content: ''; position: absolute; left: 0; bottom: 0;
+            width: 100%; height: 2px; background-color: var(--orange-primary);
+            z-index: 45;
         }
         td { 
             padding: 0;
@@ -355,7 +363,7 @@
                     class="hidden bg-black/20 border-l-2 border-blue-500/30 ml-6">
     
                     <div onclick="exportExcel('LIST')" class="p-3 pl-8 hover:bg-white/10 cursor-pointer text-sm text-gray-300"><i class="fas fa-table mr-2"></i>LIST (業務管理)</div>
-                        <div onclick="exportExcel('DAILY')" class="p-3 pl-8 hover:bg-white/10 cursor-pointer text-sm text-gray-300"><i class="fas fa-clock mr-2"></i>Daily (業務進度)</div>
+                    <div onclick="openExportModal()" class="p-3 pl-8 hover:bg-white/10 cursor-pointer text-sm text-gray-300"><i class="fas fa-clock mr-2"></i>Daily (業務進度)</div>
                     </div>
       
                 </div>
@@ -521,6 +529,18 @@
         <p>ˇ當年預算預設為EAU，視需要更新數值</p>
     </div>
 
+<div id="exportModal" class="fixed inset-0 bg-black/90 hidden items-center justify-center z-[700] backdrop-blur-sm" onclick="closeExportModal()">
+        <div class="bg-[#202020] border border-orange-500/50 p-6 rounded-xl shadow-2xl flex flex-col gap-4 w-80" onclick="event.stopPropagation()">
+            <h3 class="text-orange-400 font-bold text-lg text-center mb-2"><i class="fas fa-file-export mr-2"></i>選擇匯出範圍</h3>
+            <button onclick="exportExcel('DAILY', 10); closeExportModal()" class="btn-orange px-4 py-3 rounded text-white font-bold hover:scale-105 transition-transform shadow-lg">
+                <i class="fas fa-calendar-week mr-2"></i>近 10 天
+            </button>
+            <button onclick="exportExcel('DAILY', 'ALL'); closeExportModal()" class="bg-[#333] border border-gray-600 hover:bg-[#444] hover:text-white text-gray-300 px-4 py-3 rounded font-bold transition-colors">
+                <i class="fas fa-history mr-2"></i>全部時間
+            </button>
+        </div>
+    </div>
+
     <div id="filterMenu" class="fixed z-[600] hidden bg-[#202020] border border-orange-500/50 rounded-lg shadow-2xl flex-col w-64 max-h-[450px]" onclick="event.stopPropagation()">
         <div class="p-3 border-b border-white/10 flex justify-between items-center bg-[#252525]">
             <span class="text-orange-400 font-bold text-sm"><i class="fas fa-filter mr-2"></i>篩選與排序</span>
@@ -547,6 +567,30 @@
            <button onclick="applyFilter()" class="btn-orange px-3 py-1 rounded text-xs font-bold">套用</button>
         </div>
     </div>
+
+    <div id="reminderModal" class="fixed inset-0 bg-black/90 hidden items-center justify-center z-[800] backdrop-blur-sm">
+        <div class="bg-[#202020] border-2 border-orange-500 p-6 rounded-xl shadow-2xl flex flex-col gap-4 w-96 transform transition-all scale-100">
+            <h3 class="text-orange-500 font-bold text-xl text-center"><i class="fas fa-exclamation-triangle mr-2"></i>重要提醒</h3>
+            
+            <div id="reminderContent" class="bg-[#151515] p-4 rounded text-gray-300 text-sm border border-gray-700 max-h-60 overflow-y-auto">
+                </div>
+
+            <div class="flex gap-3 mt-2">
+                <button onclick="confirmSave()" class="flex-1 bg-green-600 hover:bg-green-500 text-white py-2 rounded font-bold transition-all shadow-lg hover:shadow-green-500/50">
+                    <i class="fas fa-check mr-2"></i>確認變更
+                </button>
+                <button onclick="closeReminderModal()" class="flex-1 bg-gray-600 hover:bg-gray-500 text-white py-2 rounded font-bold">
+                    <i class="fas fa-edit mr-2"></i>繼續編輯
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="confirmedToast" class="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-green-600 text-white px-8 py-4 rounded-xl shadow-[0_0_30px_rgba(34,197,94,0.8)] z-[900] hidden flex-col items-center justify-center transition-all opacity-0 scale-90">
+        <i class="fas fa-check-circle text-5xl mb-2 text-white drop-shadow-md"></i>
+        <span class="text-2xl font-bold tracking-wider drop-shadow-md">已確認</span>
+    </div>
+
 
     <script>
         let db = { projects: [], masterList: [], orders: [], tasks: [], quotes: [], contacts: [], codes: [] };
@@ -653,7 +697,12 @@
                         btn.classList.remove('btn-glow-red');
                         btn.classList.add('btn-glow-green');
                         const toast = document.getElementById('actionToast');
-                        toast.style.display = 'flex';
+                        
+                        toast.querySelector('h3').innerText = '已新增資料';
+                        // 修正：確保說明文字 (P 標籤) 是顯示的 (因為批次新增確實預設了 EAU)
+                        toast.querySelector('p').style.display = 'block';
+                        
+                        toast.style.display = 'block';
                         setTimeout(() => { toast.style.display = 'none'; }, 3000);
                     }
                 }
@@ -1060,13 +1109,15 @@ function renderCurrentView() {
                 ];
             } else if (currentView === 'tasks' || currentView === 'activities') {
                 sourceData = currentView === 'tasks' ?
-                    db.tasks.filter(t => !t.completed) : db.tasks;
+                db.tasks.filter(t => !t.completed) : db.tasks;
                 columns = [
                     { t: '★', w: '40px', c: 'sticky-col col-0 text-center' }, 
                     { t: 'Project', w: '150px', k: 'project', c: 'sticky-col col-1 text-small-gray' }, 
                     { t: 'Agent', w: '100px', k: 'agent', c: 'sticky-col col-2 text-small-gray' }, 
-                    { t: 'End User', w: '100px', k: 'endUser', c: 'sticky-col col-3 text-small-gray' },
-                    { t: 'Model', w: '150px', k: 'model', c: 'sticky-col col-5 text-model text-[10px]' },
+                    /* 修正：End User 寬度改為 80px 以匹配 col-3 的 CSS 定位 */
+                    { t: 'End User', w: '80px', k: 'endUser', c: 'sticky-col col-3 text-small-gray' },
+                    /* 修正：Model 改為 col-4 (緊接 col-3)，消除與 End User 之間的空隙 */
+                    { t: 'Model', w: '150px', k: 'model', c: 'sticky-col col-4 text-model text-[10px]' },
                     { t: '任務', w: '80px', k: 'taskType' }, { t: '任務說明', w: '200px', k: 'desc' }, { t: '文件#', w: '100px', k: 'docNum' },
                     { t: '起始/追蹤', w: '120px', k: 'trackDate' }, 
                     { t: '狀態', w: '80px' }, 
@@ -1305,14 +1356,29 @@ function renderCurrentView() {
                         const comment = (item.comments || []).find(c => c.field === fieldName);
                         const hasCommentClass = comment ? 'has-comment' : '';
                         const displayVal = val || '';
-                        const commentText = comment ? comment.text.replace(/'/g, "&#39;").replace(/\n/g, "\\n") : '';
+                        
+                        // 新增：處理顯示在「表格格子」內的文字，將換行符號替換為 " / "，以便在單行空間顯示多行結構
+                        const cellDisplayText = displayVal.toString().replace(/(\r\n|\n|\r)/g, " / ");
+
+                        // 處理傳給「浮動視窗」的文字：保留換行符號 (轉義為 \n 供 JS 使用)
+                        const escapeStr = (str) => {
+                            if (!str) return '';
+                            return str.toString()
+                                .replace(/\\/g, "\\\\") 
+                                .replace(/'/g, "&#39;")
+                                .replace(/(\r\n|\n|\r)/g, "\\n");
+                        };
+
+                        const safeVal = escapeStr(displayVal);
+                        const commentText = escapeStr(comment ? comment.text : '');
+
                         return `<div class="cell-content ${hasCommentClass} ${alignClass}" 
                                     onmouseleave="startFloatCloseTimer()"
-                                    onmouseenter="handleCellHover(this, '${commentText}', '${displayVal}', false)"
-                                    onclick="handleCellHover(this, '${commentText}', '${displayVal}', true)"
+                                    onmouseenter="handleCellHover(this, '${commentText}', '${safeVal}', false)"
+                                    onclick="handleCellHover(this, '${commentText}', '${safeVal}', true)"
                                     onmousedown="handleLongPressCopy(this)">
-                                    ${displayVal}
-                                </div>`;
+                                    ${cellDisplayText}
+                            </div>`;
                     };
 
                     let cells = '';
@@ -1738,7 +1804,7 @@ function renderCurrentView() {
                 <div class="flex gap-2 mb-1">
                     <select class="input-dark text-xs w-1/3" onchange="updateComment(${i}, 'field', this.value)">
                          ${getAllFields(type).map(f => `<option value="${f.k}" ${f.k===c.field?'selected':''}>${f.l}</option>`).join('')}
-                    </select>
+                     </select>
                     <textarea class="input-dark text-xs flex-1 h-8 pt-1" onchange="updateComment(${i}, 'text', this.value)">${c.text}</textarea>
                     <button onclick="removeComment(${i})" class="text-red-500"><i class="fas fa-times"></i></button>
                 </div>`).join('');
@@ -1746,6 +1812,18 @@ function renderCurrentView() {
                 const vals = (currentVal || '').split(',');
                 return `<div class="checkbox-group" id="${id}">${options.map(opt => `<label><input type="checkbox" value="${opt}" ${vals.includes(opt)?'checked':''}>${opt}</label>`).join('')}</div>`;
             };
+
+            // 新增：定義觸發行為下拉選單的 HTML 生成函數
+            const createTriggerSelect = (id, val) => `
+                <div class="flex flex-col space-y-1">
+                    <label class="text-xs text-orange-400 font-bold">⚠️ 觸發提醒行為</label>
+                    <select id="${id}" class="input-dark text-sm border-orange-500/30 focus:border-orange-500">
+                        <option value="">無</option>
+                        <option value="QUOTES" ${val==='QUOTES'?'selected':''}>報價列表</option>
+                        <option value="ORDERS" ${val==='ORDERS'?'selected':''}>訂單列表</option>
+                        <option value="BOTH" ${val==='BOTH'?'selected':''}>兩者皆是</option>
+                    </select>
+                </div>`;
 
             let html = '';
             if(type === 'orders') {
@@ -1755,69 +1833,98 @@ function renderCurrentView() {
                     <div class="grid grid-cols-2 gap-4">
                         <div class="relative"><input class="input-dark" placeholder="Project" id="f_project" value="${data.project||''}" oninput="handleInputSuggestions(this, 'project'); autoFillProjectInfo(this.value)" autocomplete="off"></div>
                         <div class="relative"><input class="input-dark" placeholder="Agent" id="f_agent" value="${data.agent||''}" oninput="handleInputSuggestions(this, 'agent')" autocomplete="off"></div>
+        
                         <div class="relative"><input class="input-dark" placeholder="End User" id="f_endUser" value="${data.endUser||''}" oninput="handleInputSuggestions(this, 'endUser')" autocomplete="off"></div>
                         <input class="input-dark" placeholder="PO#" id="f_po" value="${data.po||''}">
                         <div class="relative"><input class="input-dark" placeholder="Model" id="f_model" value="${data.model||''}" oninput="handleInputSuggestions(this, 'model')" autocomplete="off"></div>
-                     </div>
+               
+                      </div>
                      <div class="bg-black/20 p-3 rounded mt-2 border border-white/5">
                          <div class="mb-2"><label class="text-orange-300 text-sm font-bold">訂單日期</label>${createDateInputGroup('f_orderDate', defaultOrderDate)}</div>
                           <div id="shipmentsContainer"></div>
-                        <button onclick="addShipmentRow()" class="text-xs text-orange-400 
+          
+                      <button onclick="addShipmentRow()" class="text-xs text-orange-400 
                          hover:text-white mt-2 font-bold flex items-center gap-1"><i class="fas fa-plus"></i> 追加交期/數量</button>
                     </div>
                     <textarea class="input-dark h-20 mt-2" placeholder="狀態說明" id="f_statusDesc">${data.statusDesc||''}</textarea>
+    
                 `;
                 setTimeout(() => {
                     const ships = data.shipments && data.shipments.length ? data.shipments : (data.qty ? [{dueDate:data.dueDate, qty:data.qty, isShipped:data.isShipped}] : []);
                     if(ships.length === 0) addShipmentRow(); 
                     else ships.forEach(s => addShipmentRow(s));
+                
                 }, 0);
             } else if(type === 'projects') {
                 html = `
                     <div class="grid grid-cols-3 gap-4">
                         <div class="relative suggestion-container"><input class="input-dark" placeholder="Project (必填)" id="f_project" value="${data.project||''}" oninput="handleInputSuggestions(this, 'project'); autoFillProjectInfo(this.value)" autocomplete="off"></div>
-                        <div class="relative suggestion-container"><input class="input-dark" placeholder="Agent" id="f_agent" value="${data.agent||''}" oninput="handleInputSuggestions(this, 'agent')" autocomplete="off"></div>
+                 
+                       <div class="relative suggestion-container"><input class="input-dark" placeholder="Agent" id="f_agent" value="${data.agent||''}" oninput="handleInputSuggestions(this, 'agent')" autocomplete="off"></div>
                         <div class="relative suggestion-container"><input class="input-dark" placeholder="End User" id="f_endUser" value="${data.endUser||''}" oninput="handleInputSuggestions(this, 'endUser')" autocomplete="off"></div>
                         <input class="input-dark" placeholder="Size" id="f_size" value="${data.size||''}">
-                        <div class="relative suggestion-container"><input class="input-dark text-model" placeholder="Model" id="f_model" value="${data.model||''}" oninput="handleInputSuggestions(this, 'model')" autocomplete="off"></div>
+                      
+                         <div class="relative suggestion-container"><input class="input-dark text-model" placeholder="Model" id="f_model" value="${data.model||''}" oninput="handleInputSuggestions(this, 'model')" autocomplete="off"></div>
                         <input class="input-dark" type="number" placeholder="當年預算" id="f_budget" value="${data.budget||''}">
                         <input class="input-dark" placeholder="PLM#" id="f_plm" value="${data.plm||''}">
                     </div>
-                    <div class="bg-black/20 p-3 rounded mt-2 border border-white/5">
+           
+                        <div class="bg-black/20 p-3 rounded mt-2 border border-white/5">
                         <label class="text-xs text-orange-300 block mb-2">最新動態 (手動覆蓋)</label>
                         <div class="flex gap-4">
-                                <div class="flex-1">${genCheckboxGroup('grp_latestStatus', ['訂單','報價','RMA','規格','送樣'], data.manualLatestStatus)}</div>
+                              
+                                 <div class="flex-1">${genCheckboxGroup('grp_latestStatus', ['訂單','報價','RMA','規格','送樣'], data.manualLatestStatus)}</div>
                                 <div>${createDateInputGroup('f_manualLatestDate', data.manualLatestDate ||
                                 new Date().toISOString().split('T')[0])}</div>
                         </div>
                     </div>
                     <div class="bg-black/20 p-3 rounded mt-2 border border-white/5">
                         <label class="text-xs text-orange-300 block mb-2">標籤</label>
-                         ${genCheckboxGroup('grp_tags', ['量產','送樣','RMA','報價','規格'], data.tags)}
+ 
+                        ${genCheckboxGroup('grp_tags', ['量產','送樣','RMA','報價','規格'], data.tags)}
                     </div>
                     <textarea class="input-dark h-20 mt-2" placeholder="狀況概述" id="f_summary">${data.summary||''}</textarea>
                     <label class="flex items-center gap-2 mt-2"><input type="checkbox" id="f_active" ${data.active!==false?'checked':''} 
-                    class="accent-orange-500"> Active</label>
+ 
+                   class="accent-orange-500"> Active</label>
               `;
             } else if(type === 'masterList') {
                 html = `
                      <div class="grid grid-cols-3 gap-4">
                         <div class="relative"><input class="input-dark" placeholder="Project" id="f_project" value="${data.project||''}" oninput="handleInputSuggestions(this, 'project'); autoFillProjectInfo(this.value)" autocomplete="off"></div>
-                        <div class="relative"><input class="input-dark" placeholder="Agent" id="f_agent" value="${data.agent||''}" oninput="handleInputSuggestions(this, 'agent')" autocomplete="off"></div>
+                    
+                       <div class="relative"><input class="input-dark" placeholder="Agent" id="f_agent" value="${data.agent||''}" oninput="handleInputSuggestions(this, 'agent')" autocomplete="off"></div>
                         <div class="relative"><input class="input-dark" placeholder="End User" id="f_endUser" value="${data.endUser||''}" oninput="handleInputSuggestions(this, 'endUser')" autocomplete="off"></div>
                         <input class="input-dark" placeholder="Application" id="f_application" value="${data.application||''}">
-                        <input class="input-dark" placeholder="EAU" id="f_eau" value="${data.eau||''}">
+                        <input class="input-dark" placeholder="EAU" 
+                        id="f_eau" value="${data.eau||''}">
                         <input class="input-dark" placeholder="Size" id="f_size" value="${data.size||''}">
                         <div class="relative"><input class="input-dark" placeholder="Model" id="f_model" value="${data.model||''}" oninput="handleInputSuggestions(this, 'model')" autocomplete="off"></div>
                         <input class="input-dark" placeholder="Price" id="f_salesPrice" value="${data.salesPrice||''}">
-                        <input class="input-dark" placeholder="Contact" id="f_contact" 
+           
+                            <input class="input-dark" placeholder="Contact" id="f_contact" 
                          value="${data.contact||''}">
                         <input class="input-dark" placeholder="Cus PN" id="f_cusPN" value="${data.cusPN||''}">
                        <input class="input-dark" placeholder="PLM#" id="f_plm" value="${data.plm||''}">
-                    </div>
+  
+                     </div>
                     <textarea class="input-dark h-20 
                     mt-2" placeholder="Remark" id="f_remark">${data.remark||''}</textarea>
+                    
+                    <div class="border-t border-gray-700 pt-3 mt-2 grid grid-cols-3 gap-4">
+                        <div class="col-span-1">
+                            ${createTriggerSelect('f_triggerAction', data.triggerAction)}
+                        </div>
+                        <div class="col-span-2">
+                            <label class="text-xs text-orange-400 font-bold">提醒說明內容</label>
+                            <input type="text" id="f_triggerDesc" class="input-dark text-sm w-full" 
+                                placeholder="當觸發時顯示的提醒訊息..." 
+                                value="${data.triggerDesc || ''}">
+                        </div>
+                    </div>
+
                     <label class="flex items-center gap-2 mt-2"><input type="checkbox" id="f_active" ${data.active!==false?'checked':''} class="accent-orange-500"> Active</label>
+        
                 `;
             } else if (type === 'tasks') {
                 const defStart = data.startDate ||
@@ -1835,54 +1942,68 @@ function renderCurrentView() {
                     <div class="relative suggestion-container">
                         <input class="input-dark" placeholder="Project" id="f_project" value="${data.project||''}" oninput="handleInputSuggestions(this, 'project'); autoFillProjectInfo(this.value)" 
                         autocomplete="off">
+               
                     </div>
                     <select class="input-dark" id="f_taskType">${['詢價','RMA','規格','送樣','交期','預測','合約','其他'].map(o=>`<option ${data.taskType===o?'selected':''}>${o}</option>`).join('')}</select>
                     
                     <div class="relative suggestion-container"><input class="input-dark" placeholder="Agent" id="f_agent" value="${data.agent||''}" oninput="handleInputSuggestions(this, 'agent')" autocomplete="off"></div>
-                    <div class="relative suggestion-container"><input class="input-dark" placeholder="End User" id="f_endUser" value="${data.endUser||''}" oninput="handleInputSuggestions(this, 'endUser')" autocomplete="off"></div>
+                    <div class="relative suggestion-container"><input 
+                    class="input-dark" placeholder="End User" id="f_endUser" value="${data.endUser||''}" oninput="handleInputSuggestions(this, 'endUser')" autocomplete="off"></div>
                     
                     <div class="col-span-2 relative suggestion-container">
                          <input class="input-dark text-model" placeholder="Model (自動帶入)" id="f_model" value="${data.model||''}" oninput="handleInputSuggestions(this, 'model')" autocomplete="off">
+                
                     </div>
                   
                   <div><label class="text-xs text-gray-400">起始</label>${createDateInputGroup('f_startDate', defStart)}</div>
                     <div><label class="text-xs text-gray-400">追蹤 (起始+3天)</label>${createDateInputGroup('f_trackDate', defTrack)}</div>
                   <input class="input-dark" placeholder="文件#" id="f_docNum" value="${data.docNum||''}"></div>
+           
                     <textarea class="input-dark h-20" placeholder="說明" id="f_desc">${data.desc||''}</textarea>
      
                     ${editingId?`
                     <div class="mt-2 border-t border-white/10 pt-2">
                         <label class="flex items-center gap-2"><input type="checkbox" id="f_completed" ${data.completed?'checked':''} class="accent-orange-500" onchange="toggleTaskCompleteFields(this)"> 已完成</label>
-                        <div id="taskCompleteSection" class="${data.completed?'':'hidden'} mt-2 p-2 border border-green-500/30 rounded bg-green-900/10 space-y-3">
+     
+                       <div id="taskCompleteSection" class="${data.completed?'':'hidden'} mt-2 p-2 border border-green-500/30 rounded bg-green-900/10 space-y-3">
                             <div>
                                 <label class="text-xs text-green-400 block mb-1">完成日期</label>
+        
                                 ${createDateInputGroup('f_completedDate', defCompDate)}
                             </div>
                             
+                   
                             <div class="border-t border-green-500/30 pt-2">
                                 <label class="flex items-center gap-2 mb-2 cursor-pointer">
                                     <input type="checkbox" id="f_followUp" class="accent-orange-500" onchange="document.getElementById('followUpDetails').classList.toggle('hidden', !this.checked)"> 
-                                    <span class="text-sm text-green-300 font-bold">後續追蹤</span>
+         
+                                   <span class="text-sm text-green-300 font-bold">後續追蹤</span>
                                 </label>
-                                <div id="followUpDetails" class="hidden pl-2 border-l-2 border-green-500/50 space-y-2">
+                                <div id="followUpDetails" class="hidden pl-2 border-l-2 border-green-500/50 
+                                space-y-2">
                                     <div>
                                         <label class="text-xs text-gray-400">起始日期 (自動推算追蹤日+3天)</label>
-                                        ${createDateInputGroup('f_followUpDate', new Date().toISOString().split('T')[0])}
+                     
+                                       ${createDateInputGroup('f_followUpDate', new Date().toISOString().split('T')[0])}
                                     </div>
-                                    <input type="text" id="f_followUpDesc" class="input-dark text-sm" placeholder="後續任務說明...">
-                                </div>
+                                    <textarea id="f_followUpDesc" class="input-dark text-sm h-20" placeholder="後續任務說明..."></textarea>
+  
+                                 </div>
                             </div>
                         </div>
-                    </div>`:''}`;
+                  
+                </div>`:''}`;
             } else if (type === 'quotes') {
                 html = `<div class="grid grid-cols-2 gap-4">
                     <div class="relative"><input class="input-dark" placeholder="Project" id="f_project" value="${data.project||''}" oninput="handleInputSuggestions(this, 'project'); autoFillProjectInfo(this.value)" autocomplete="off"></div>
                     <div class="relative"><input class="input-dark" placeholder="Agent" id="f_agent" value="${data.agent||''}" oninput="handleInputSuggestions(this, 'agent')" autocomplete="off"></div>
+               
                     <div class="relative"><input class="input-dark" placeholder="End User" id="f_endUser" value="${data.endUser||''}" oninput="handleInputSuggestions(this, 'endUser')" autocomplete="off"></div>
                     <div class="relative"><input class="input-dark" placeholder="Model" id="f_model" value="${data.model||''}" oninput="handleInputSuggestions(this, 'model')" autocomplete="off"></div>
          
                    <div><label class="text-xs text-gray-400">日期</label>${createDateInputGroup('f_date', data.date||new Date().toISOString().split('T')[0])}</div>
-                    <textarea class="input-dark h-16" placeholder="業務報價 (Enter 換行)" id="f_salesPrice">${data.salesPrice||''}</textarea>
+                    <textarea class="input-dark h-16" placeholder="業務報價 (Enter 換行)" 
+                    id="f_salesPrice">${data.salesPrice||''}</textarea>
                     <textarea class="input-dark h-16" placeholder="FAE報價 (Enter 換行)" id="f_faePrice">${data.faePrice||''}</textarea>
                     <input class="input-dark" placeholder="REF#" id="f_ref" value="${data.ref||''}"></div>
      
@@ -1891,12 +2012,14 @@ function renderCurrentView() {
                 html = `<div class="grid grid-cols-2 gap-4">
                     <div class="relative suggestion-container"><input class="input-dark" placeholder="Agent" id="f_agent" value="${data.agent||''}" oninput="handleInputSuggestions(this, 'agent')" autocomplete="off"></div>
                     <div class="relative suggestion-container"><input class="input-dark" 
+                    
                     placeholder="End User" id="f_endUser" value="${data.endUser||''}" oninput="handleInputSuggestions(this, 'endUser')" autocomplete="off"></div>
                     
                     <input class="input-dark" placeholder="Name" id="f_name" value="${data.name||''}">
                     <input class="input-dark" placeholder="Email" id="f_email" value="${data.email||''}">
                     
-                    <input class="input-dark" placeholder="Position" id="f_position" value="${data.position||''}">
+      
+                      <input class="input-dark" placeholder="Position" id="f_position" value="${data.position||''}">
                     <input class="input-dark" placeholder="Phone" id="f_phone" value="${data.phone||''}">
                     <input class="input-dark col-span-2" placeholder="Address" id="f_address" value="${data.address||''}"></div>
                     <textarea class="input-dark h-16" placeholder="Remark" id="f_remark">${data.remark||''}</textarea><label class="flex items-center gap-2"><input type="checkbox" id="f_active" ${data.active!==false?'checked':''} class="accent-orange-500"> Active</label>`;
@@ -1904,14 +2027,28 @@ function renderCurrentView() {
                 html = `<div class="grid grid-cols-2 gap-4">
                     <div class="relative"><input class="input-dark" placeholder="Agent" id="f_agent" value="${data.agent||''}" oninput="handleInputSuggestions(this, 'agent')" autocomplete="off"></div>
                     <div class="relative"><input class="input-dark" placeholder="End User" id="f_endUser" value="${data.endUser||''}" oninput="handleInputSuggestions(this, 'endUser')" autocomplete="off"></div>
+                
                     <input class="input-dark" placeholder="Code" id="f_code" value="${data.code||''}">
                     <input class="input-dark" placeholder="Pricing" id="f_pricing" value="${data.pricing||''}">
                     <input class="input-dark" placeholder="Logistics" id="f_logistics" value="${data.logistics||''}"></div>
-                    <textarea class="input-dark h-16" placeholder="Remark" id="f_remark">${data.remark||''}</textarea><label class="flex items-center gap-2"><input type="checkbox" id="f_active" ${data.active!==false?'checked':''} class="accent-orange-500"> Active</label>`;
+                    <textarea class="input-dark h-16" placeholder="Remark" id="f_remark">${data.remark||''}</textarea>
+                    
+                    <div class="border-t border-gray-700 pt-3 mt-2 grid grid-cols-3 gap-4">
+                        <div class="col-span-1">
+                            ${createTriggerSelect('f_triggerAction', data.triggerAction)}
+                        </div>
+                        <div class="col-span-2">
+                            <label class="text-xs text-orange-400 font-bold">提醒說明內容</label>
+                            <input type="text" id="f_triggerDesc" class="input-dark text-sm w-full" 
+                                placeholder="當觸發時顯示的提醒訊息..." 
+                                value="${data.triggerDesc || ''}">
+                        </div>
+                    </div>
+
+                    <label class="flex items-center gap-2"><input type="checkbox" id="f_active" ${data.active!==false?'checked':''} class="accent-orange-500"> Active</label>`;
             }
             container.innerHTML = html;
         }
-
         function getAllFields(type) {
             const map = {
                 'projects': [{k:'project',l:'Project'},{k:'agent',l:'Agent'},{k:'endUser',l:'End User'},{k:'size',l:'Size'},{k:'model',l:'Model'},{k:'summary',l:'狀況概述'},{k:'budget',l:'當年預算'},{k:'plm',l:'PLM#'}],
@@ -1933,13 +2070,144 @@ function renderCurrentView() {
             div.className = "flex gap-2 mb-1";
             div.innerHTML = `<select class="input-dark text-xs w-1/3">${getAllFields(type).map(f => `<option value="${f.k}">${f.l}</option>`).join('')}</select><textarea class="input-dark text-xs flex-1 h-8 pt-1"></textarea><button onclick="this.parentElement.remove()" class="text-red-500"><i class="fas fa-times"></i></button>`;
             container.appendChild(div);
-}
+        }
+
+        // ==========================================
+        // V3.6.1 提醒攔截功能 (Trigger Action) 核心邏輯
+        // ==========================================
+        
+        // 用來暫存待儲存的資料與執行動作
+        let pendingSavePayload = null;
+        let pendingSaveCallback = null;
+
+        // 檢查是否有提醒事項
+        function checkReminders(data) {
+            const reminders = [];
+            // 只在「報價」與「訂單」介面觸發
+            const isQuote = document.getElementById('modalType').value === 'quotes';
+            const isOrder = document.getElementById('modalType').value === 'orders';
+            
+            if (!isQuote && !isOrder) return [];
+
+            // 1. 檢查代碼表 (Codes) - 比對 Agent 或 End User
+            const agentVal = (data.agent || '').trim();
+            const endUserVal = (data.endUser || '').trim();
+            
+            if (agentVal || endUserVal) {
+                db.codes.forEach(c => {
+                    // 檢查是否設定了觸發
+                    if (!c.triggerAction) return;
+                    
+                    // 檢查觸發類型是否符合當前視圖 (QUOTES, ORDERS, BOTH)
+                    const actionMatch = 
+                        (c.triggerAction === 'BOTH') ||
+                        (isQuote && c.triggerAction === 'QUOTES') ||
+                        (isOrder && c.triggerAction === 'ORDERS');
+                    
+                    if (actionMatch) {
+                        // 檢查名稱是否匹配 (Agent 或 End User 擇一匹配即觸發)
+                        const nameMatch = 
+                            (agentVal && c.agent === agentVal) || 
+                            (endUserVal && c.endUser === endUserVal);
+
+                        if (nameMatch) {
+                            reminders.push({
+                                type: '客戶代碼提醒',
+                                source: `${c.agent || c.endUser}`,
+                                desc: c.triggerDesc || '無說明內容'
+                            });
+                        }
+                    }
+                });
+            }
+
+            // 2. 檢查總表 (Master List) - 比對 Model
+            const modelVal = (data.model || '').trim();
+            if (modelVal) {
+                db.masterList.forEach(m => {
+                    if (!m.triggerAction) return;
+                    
+                    const actionMatch = 
+                        (m.triggerAction === 'BOTH') ||
+                        (isQuote && m.triggerAction === 'QUOTES') ||
+                        (isOrder && m.triggerAction === 'ORDERS');
+                    
+                    if (actionMatch && m.model === modelVal) {
+                        reminders.push({
+                            type: '總表型號提醒',
+                            source: m.model,
+                            desc: m.triggerDesc || '無說明內容'
+                        });
+                    }
+                });
+            }
+
+            return reminders;
+        }
+
+        // 開啟提醒視窗
+        function showReminderModal(reminders) {
+            const contentDiv = document.getElementById('reminderContent');
+            contentDiv.innerHTML = reminders.map(r => `
+                <div class="mb-3 pb-3 border-b border-gray-700 last:border-0">
+                    <div class="text-orange-400 font-bold mb-1 text-xs">[${r.type}] ${r.source}</div>
+                    <div class="text-white text-base">${r.desc}</div>
+                </div>
+            `).join('');
+            
+            const modal = document.getElementById('reminderModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeReminderModal() {
+            const modal = document.getElementById('reminderModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            // 清除暫存
+            pendingSavePayload = null;
+            pendingSaveCallback = null;
+        }
+
+        // 確認儲存 (觸發特效並執行實際儲存)
+        function confirmSave() {
+            // 關閉提醒視窗
+            const modal = document.getElementById('reminderModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+
+            // 顯示綠色光暈特效 Toast
+            const toast = document.getElementById('confirmedToast');
+            toast.classList.remove('hidden');
+            toast.classList.add('flex');
+            
+            // 動畫進場
+            setTimeout(() => {
+                toast.classList.remove('opacity-0', 'scale-90');
+                toast.classList.add('opacity-100', 'scale-100');
+            }, 50);
+
+            // 1秒後執行儲存並移除特效
+            setTimeout(() => {
+                toast.classList.remove('opacity-100', 'scale-100');
+                toast.classList.add('opacity-0', 'scale-90');
+                
+                setTimeout(() => {
+                    toast.classList.add('hidden');
+                    toast.classList.remove('flex');
+                    
+                    // 執行原本的儲存邏輯
+                    if (pendingSaveCallback) {
+                        pendingSaveCallback();
+                    }
+                }, 300); // 等待淡出動畫結束
+            }, 1000); // 顯示特效的時間
+        }
 
         function saveData() {
             const type = document.getElementById('modalType').value;
             const inputs = document.querySelectorAll('#modalFields input:not([type=checkbox]):not(.s-qty):not(.yy):not(.mm):not(.dd), #modalFields select, #modalFields textarea');
-            const newData = { id: editingId ||
-            Date.now(), updatedAt: new Date() };
+            const newData = { id: editingId || Date.now(), updatedAt: new Date() };
             
             inputs.forEach(input => { 
                 const key = input.id.replace('f_', ''); 
@@ -1948,6 +2216,7 @@ function renderCurrentView() {
                 }
             });
             document.querySelectorAll('#modalFields input[type=checkbox]:not(.group-check):not(.s-ship)').forEach(cb => { if(!cb.closest('.checkbox-group')) newData[cb.id.replace('f_', '')] = cb.checked; });
+            
             if (type === 'projects') {
                 const getGroupVal = (id) => Array.from(document.querySelectorAll(`#${id} input:checked`)).map(c=>c.value).join(',');
                 newData.tags = getGroupVal('grp_tags');
@@ -1962,37 +2231,30 @@ function renderCurrentView() {
                     newData.shipments.push({
                         dueDate: hiddenDate,
                         qty: row.querySelector('.s-qty').value,
-  
                         isShipped: row.querySelector('.s-ship').checked
                     });
                 });
             }
-            // V3.5.7 Save Completed Date
-            // 第 472 行：擴充邏輯以支援「後續追蹤」自動新增
-// V3.6 Save Completed Date & Handle Follow Up
             if (type === 'tasks' && newData.completed) {
                 const compDate = document.getElementById('f_completedDate');
                 if(compDate) newData.completedDate = compDate.value;
 
-                // Handle Follow Up Task Creation
                 const followUpCheck = document.getElementById('f_followUp');
                 if(followUpCheck && followUpCheck.checked) {
                     const fuDate = document.getElementById('f_followUpDate').value;
                     const fuDesc = document.getElementById('f_followUpDesc').value;
-                    
-                    // Calc Track Date (+3 days)
                     const d = new Date(fuDate);
                     d.setDate(d.getDate() + 3);
                     const fuTrack = d.toISOString().split('T')[0];
 
                     const newTask = {
-                        id: Date.now() + 100, // Distinct ID
+                        id: Date.now() + 100, 
                         updatedAt: new Date(),
                         project: newData.project,
                         agent: newData.agent,
                         endUser: newData.endUser,
                         model: newData.model,
-                        taskType: newData.taskType, // Inherit Type
+                        taskType: newData.taskType, 
                         startDate: fuDate,
                         trackDate: fuTrack,
                         desc: fuDesc || '後續追蹤',
@@ -2003,30 +2265,66 @@ function renderCurrentView() {
                     db.tasks.push(newTask);
                 }
             }
-            // 任務移除必填 Project 限制
+            
             if(['projects','masterList','orders','quotes'].includes(type) && !newData.project) return alert('Project 為必填');
             
             const commentDivs = document.querySelectorAll('#commentsContainer > div');
             newData.comments = Array.from(commentDivs).map(div => ({ field: div.querySelector('select').value, text: div.querySelector('textarea').value })).filter(c => c.text);
             
-            // 案子列表自動標籤：若有訂單更新，自動加上「訂單」標籤
             if(type === 'projects') {
-                 // 檢查該 Project 是否有訂單
                  const hasOrder = db.orders.some(o => o.project === newData.project);
                  if(hasOrder) {
                      let currentTags = newData.tags ? newData.tags.split(',') : [];
                      if(!currentTags.includes('訂單')) {
                          currentTags.push('訂單');
-                         newData.tags = currentTags.join(',');
+                        newData.tags = currentTags.join(',');
                      }
                  }
             }
-            if(editingId) {
-                const idx = db[type].findIndex(i => i.id === editingId);
-                if(idx >= 0) db[type][idx] = { ...db[type][idx], ...newData };
-            } else { db[type].push(newData);
+
+            // =========================
+            // 定義實際的儲存動作 (Closure)
+            const performSave = () => {
+                if(editingId) {
+                    const idx = db[type].findIndex(i => i.id === editingId);
+                    if(idx >= 0) db[type][idx] = { ...db[type][idx], ...newData };
+                } else { 
+                    db[type].push(newData);
+                }
+                saveToLocal(); closeModal(); renderCurrentView();
+                
+                // 顯示一般成功訊息 (如果不是透過確認視窗觸發的)
+                if (!document.getElementById('confirmedToast').classList.contains('flex')) {
+                   
+                   // 修正：移除 [總表維護]、[客戶代碼]、[聯絡人清單] 的一般存檔提示
+                   if (type !== 'masterList' && type !== 'codes' && type !== 'contacts') {
+                       const toast = document.getElementById('actionToast');
+                       toast.querySelector('h3').innerText = editingId ? '已更新資料' : '已新增資料';
+                       
+                       // 修正：手動存檔時，隱藏「當年預算預設為 EAU」這行說明文字，避免誤導
+                       const pTag = toast.querySelector('p');
+                       if(pTag) pTag.style.display = 'none';
+
+                       toast.style.display = 'block';
+                       setTimeout(() => toast.style.display = 'none', 2000);
+                   }
+                }
+            };
+
+            // =========================
+            // 核心攔截邏輯
+            // =========================
+            const reminders = checkReminders(newData);
+            if (reminders.length > 0) {
+                // 暫存動作
+                pendingSavePayload = newData;
+                pendingSaveCallback = performSave;
+                // 顯示確認視窗
+                showReminderModal(reminders);
+            } else {
+                // 無提醒，直接儲存
+                performSave();
             }
-            saveToLocal(); closeModal(); renderCurrentView();
         }
 
         function deleteItem(id) { if(confirm('確定刪除?')) { const t = currentView==='activities'?'tasks':currentView; db[t] = db[t].filter(i=>i.id!==id);
@@ -2142,14 +2440,32 @@ function renderCurrentView() {
             reader.readAsBinaryString(e.target.files[0]);
         }
 
-        function exportExcel(mode) {
+        // 新增：匯出視窗控制函式
+        function openExportModal() {
+            document.getElementById('exportModal').classList.remove('hidden');
+            document.getElementById('exportModal').classList.add('flex');
+        }
+        function closeExportModal() {
+            document.getElementById('exportModal').classList.add('hidden');
+            document.getElementById('exportModal').classList.remove('flex');
+        }
+
+        // 修改：exportExcel 支援 timeRange 參數
+        // 修改：exportExcel 支援 timeRange 參數 (最終穩定版)
+        function exportExcel(mode, timeRange) {
             const wb = XLSX.utils.book_new();
             const dateStr = new Date().toISOString().split('T')[0].replace(/-/g, '');
             
+            // 日期格式化小工具 (YYYY-MM-DD -> YYYY/MM/DD)
+            const fmtDate = (d) => d ? d.toString().replace(/-/g, '/') : '';
+
             const processSheet = (ws, data) => {
                 ws['!cols'] = Object.keys(data[0]||{}).map(() => ({wch: 15}));
-                // 修正：xSplit 與 ySplit 必須是數字，凍結窗格才會生效
-                ws['!freeze'] = { xSplit: 0, ySplit: 1, topLeftCell: "A2", activePane: "bottomRight", state: "frozen" };
+                
+                // [最終設定] 採用最相容的簡化凍結參數 (移除 activePane 避免衝突)
+                // 若仍無效，則為函式庫限制，以樣式美觀為優先
+                ws['!freeze'] = { xSplit: 0, ySplit: 1, topLeftCell: "A2", state: "frozen" };
+                
                 const range = XLSX.utils.decode_range(ws['!ref']);
                 for(let R = range.s.r; R <= range.e.r; ++R) {
                     for(let C = range.s.c; C <= range.e.c; ++C) {
@@ -2158,12 +2474,10 @@ function renderCurrentView() {
                         if(!cell) continue;
 
                         if(!cell.s) cell.s = {};
-                        // 設定：自動換行與靠上對齊
                         cell.s.alignment = { wrapText: true, vertical: 'top' };
                         cell.s.font = { name: "Arial", sz: 10 };
                         
                         if(R === 0) { 
-                            // 標題樣式：RGB(11,83,148) + 下框線 RGB(255,192,0)
                             cell.s.font = { name: "Arial", sz: 11, bold: true, color: { rgb: "0B5394" } };
                             cell.s.border = { bottom: { style: "thick", color: { rgb: "FFC000" } } };
                             cell.s.alignment = { horizontal: 'center', vertical: 'center', wrapText: true };
@@ -2177,22 +2491,33 @@ function renderCurrentView() {
                                     'Size':'size','EAU':'eau','Application':'application','Contact':'contact',
                                     'PLM#':'plm','Price':'salesPrice','Sales Price':'salesPrice','FAE Price':'faePrice',
                                     'Phone':'phone','Address':'address','Code':'code','Remark':'remark',
-                                    'Cus PN':'cusPN','當年預算':'budget'
+                                    'Cus PN':'cusPN','當年預算':'budget','狀況概述':'summary'
                                     };
                                 const fieldKey = mapping[headerName];
                                 const cmt = item._comments.find(c => c.field === fieldKey);
                                 if(cmt) {
-                                    if(!cell.c) cell.c = [];
-                                    cell.c.push({ t: cmt.text, a: "System" });
-                                    cell.comment = { t: cmt.text };
+                                    // [強力修正] 雙重鎖定隱藏與重置樣式
+                                    
+                                    // 1. 建立最單純的註解物件 (純文字，無額外樣式，強制隱藏)
+                                    const commentObj = { t: cmt.text, a: "System", hidden: true };
+                                    
+                                    // 2. 建立陣列，並在陣列層級也加上 hidden 屬性 (針對部分 Excel 解析器的防禦性寫法)
+                                    const commentsArray = [commentObj];
+                                    commentsArray.hidden = true;
+                                    
+                                    // 3. 賦值給 cell.c
+                                    cell.c = commentsArray;
+
+                                    // 4. [關鍵] 強制刪除 cell.comment 屬性，防止函式庫產生「綠色漸層」或其他預設樣式干擾
+                                    if(cell.comment) delete cell.comment;
                                 }
                             }
                         }
                     }
                 }
-            
                 return ws;
             };
+
             if(mode === 'LIST') {
                 const addSheet = (name, rawData) => {
                     const ws = XLSX.utils.json_to_sheet(rawData);
@@ -2204,44 +2529,50 @@ function renderCurrentView() {
                 const projData = db.projects.map(p => {
                     const lastQuote = db.quotes.filter(q=>q.project===p.project).sort((a,b)=>new Date(b.date)-new Date(a.date))[0];
                     const tasks = db.tasks.filter(t => t.project === p.project).sort((a,b)=>new Date(b.trackDate||b.startDate)-new Date(a.trackDate||a.startDate));
-                 
-                    const remarkStr = tasks.map(t => `${t.trackDate||t.startDate} ${t.taskType}: ${t.desc}`).join('\r\n');
+                    // 修正：備註內的日期也一併格式化為 YYYY/MM/DD
+                    const remarkStr = tasks.map(t => `${fmtDate(t.trackDate||t.startDate)} ${t.taskType}: ${t.desc}`).join('\r\n');
+                    
+                    const ach = calculateAchievement(p);
+
                     return {
                         'Project': p.project, 'Agent': p.agent, 'End User': p.endUser, 
-                     
-                        'Size': p.size, 'Model': p.model, 'Price': lastQuote ? lastQuote.salesPrice : '',
-      
+                        'Size': p.size, 'Model': p.model, 
+                        'Price': lastQuote ? lastQuote.salesPrice : '',
+                        '達成數量': `${ach.qty} / ${p.budget||0}`,
+                        '達成率': ach.percent,
+                        '狀況概述': p.summary || '',
                         'Remark': remarkStr, '_comments': p.comments 
                     };
                 });
                 addSheet("案子列表", projData);
 
                 // 2. Master List
-                const masterData = db.masterList.map(m => ({
-                    'Project': m.project, 'Agent': m.agent, 'End User': m.endUser,
-                    'Application': m.application, 'EAU': m.eau, 'Size': m.size,
-                   'Model': m.model, 'Price': 
-                    m.salesPrice, 'Remark': m.remark,
-                    'Contact': m.contact, 'Cus PN': m.cusPN, 'PLM#': m.plm, '_comments': m.comments
-                }));
+                const masterData = db.masterList.map(m => {
+                    const lastQuote = db.quotes.filter(q=>q.project===m.project).sort((a,b)=>new Date(b.date)-new Date(a.date))[0];
+                    return {
+                        'Project': m.project, 'Agent': m.agent, 'End User': m.endUser,
+                        'Application': m.application, 'EAU': m.eau, 'Size': m.size,
+                        'Model': m.model, 
+                        'Price': lastQuote ? lastQuote.salesPrice : m.salesPrice, 
+                        'Remark': m.remark,
+                        'Contact': m.contact, 'Cus PN': m.cusPN, 'PLM#': m.plm, '_comments': m.comments
+                    };
+                });
                 addSheet("總表維護", masterData);
 
                 // 3. Quotes
                 const quoteData = db.quotes.map(q => ({
                     'Project': q.project, 'Agent': q.agent, 'End User': q.endUser,
-                    'Date': q.date, 'Model': q.model, 'Sales Price': q.salesPrice, 'FAE Price': q.faePrice,
-                    
-                    'REF#': q.ref, 
-                    'Desc': q.desc, '_comments': q.comments
+                    'Date': fmtDate(q.date), 
+                    'Model': q.model, 'Sales Price': q.salesPrice, 'FAE Price': q.faePrice,
+                    'REF#': q.ref, 'Desc': q.desc, '_comments': q.comments
                 }));
                 addSheet("報價列表", quoteData);
 
                 // 4. Contacts
                 const contactData = db.contacts.map(c => ({
                     'Agent': c.agent, 'End User': c.endUser, 
-                    'Name': c.name, 'Email': c.email,
-                    'Position': c.position,
-      
+                    'Name': c.name, 'Email': c.email, 'Position': c.position,
                     'Phone': c.phone, 'Address': c.address, 'Remark': c.remark, '_comments': c.comments
                 }));
                 addSheet("聯絡人清單", contactData);
@@ -2255,18 +2586,33 @@ function renderCurrentView() {
 
                 XLSX.writeFile(wb, `LIST(業務管理表)_${dateStr}.xlsx`, { cellStyles: true });
             } else {
-                // Daily 邏輯：僅匯出已完成 (completed: true)，顯示 completedDate
-                const data = db.tasks.filter(t => t.completed).map(t => ({
+                // Daily 邏輯
+                const today = new Date();
+                const limitDate = new Date();
+                limitDate.setDate(today.getDate() - 10);
+                limitDate.setHours(0,0,0,0);
+
+                const data = db.tasks.filter(t => {
+                    if (!t.completed) return false;
+                    if (timeRange === 10) {
+                        const dStr = t.completedDate || t.trackDate;
+                        if (!dStr) return false;
+                        const d = new Date(dStr);
+                        d.setHours(0,0,0,0);
+                        return d >= limitDate;
+                    }
+                    return true;
+                }).map(t => ({
                     '客戶': `${t.agent||''} / ${t.endUser||''}`, 
-                    '日期': t.completedDate || t.trackDate, 
+                    '日期': fmtDate(t.completedDate || t.trackDate), 
                     '議題': '', 
-                    '業務事項': t.taskType, 
+                    '業務事項': `${t.taskType} / ${t.model||''}`, 
                     '進度狀況': t.desc, 
                     '備註': t.docNum
                 }));
                 
                 if (data.length === 0) {
-                    alert('目前沒有已完成的任務可匯出');
+                    alert('在此時間範圍內，沒有已完成的任務可匯出');
                     return;
                 }
 
