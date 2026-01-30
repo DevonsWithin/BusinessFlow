@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BusinessFlow V3.7 - 業務工作流系統</title>
+    <title>BusinessFlow V3.71 - 業務工作流系統</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -337,7 +337,7 @@
                 <i class="fas fa-bars"></i>
             </button>
             <span class="font-bold text-lg tracking-wider 
-            italic logo-text text-orange-500">BusinessFlow <span class="text-xs bg-orange-600 text-white px-1 rounded ml-1 not-italic">V3.7</span></span>
+            italic logo-text text-orange-500">BusinessFlow <span class="text-xs bg-orange-600 text-white px-1 rounded ml-1 not-italic">V3.71</span></span>
         </div>
 
         <nav class="flex-1 overflow-y-auto custom-scrollbar flex flex-col mt-4">
@@ -363,7 +363,8 @@
                     class="hidden bg-black/20 border-l-2 border-blue-500/30 ml-6">
     
                     <div onclick="exportExcel('LIST')" class="p-3 pl-8 hover:bg-white/10 cursor-pointer text-sm text-gray-300"><i class="fas fa-table mr-2"></i>LIST (業務管理)</div>
-                    <div onclick="openExportModal()" class="p-3 pl-8 hover:bg-white/10 cursor-pointer text-sm text-gray-300"><i class="fas fa-clock mr-2"></i>Daily (業務進度)</div>
+   
+                 <div onclick="openExportModal()" class="p-3 pl-8 hover:bg-white/10 cursor-pointer text-sm text-gray-300"><i class="fas fa-clock mr-2"></i>Daily (業務進度)</div>
                     </div>
       
                 </div>
@@ -396,7 +397,12 @@
                     <i class="fas fa-plus-square mr-2"></i><span>新增至案子列表</span>
                 </button>
 
-                <button id="batchDeleteBtn" onclick="deleteSelected()" class="hidden bg-red-900/50 hover:bg-red-600 text-white px-3 
+                <button id="btnExportQuote" onclick="toggleExportQuoteMode()" class="hidden text-gray-400 hover:text-white text-sm font-bold flex items-center transition-all">
+                    <i class="fas fa-file-invoice-dollar mr-2"></i><span>匯出報價單 (Quotation)</span>
+                </button>
+
+                <button 
+id="batchDeleteBtn" onclick="deleteSelected()" class="hidden bg-red-900/50 hover:bg-red-600 text-white px-3 
                 py-1 rounded text-sm transition-colors border border-red-500/50">
                    <i class="fas fa-trash-alt mr-1"></i>刪除選取
                 </button>
@@ -432,24 +438,42 @@
         <div id="contentArea" class="flex-1 overflow-hidden p-0 bg-[#0a0a0a]">
             <div class="h-full p-4 flex flex-col">
   
-                <div class="bg-[#151515] rounded-lg border border-white/5 flex-1 overflow-hidden relative shadow-xl">
+                <div class="bg-[#151515] rounded-lg border border-white/5 flex-1 overflow-hidden relative shadow-xl flex flex-col">
  
                     <div class="table-container custom-scrollbar">
                         <table class="w-full text-left text-sm" id="mainTable">
-                            
+   
+                          
                             <thead id="tableHead"></thead>
     
                             <tbody id="tableBody"></tbody>
+             
                         </table>
                         <div id="emptyState" 
                         class="hidden flex flex-col items-center justify-center py-20 text-gray-500">
               
-                        <i class="fas fa-folder-open text-4xl mb-4 opacity-50"></i>
+                   
+                            <i class="fas fa-folder-open text-4xl mb-4 opacity-50"></i>
                             <p>尚無資料，請點擊右下角 "+" 新增或長按列表項目進入批次模式</p>
                 
                        </div>
                    
-                    </div>
+  
+                  </div>
+                  
+                  <div class="w-full relative flex items-center justify-center py-2 shrink-0 bg-[#151515] border-t border-white/5 h-[34px]">
+                      
+                      <div class="absolute left-4 top-0 bottom-0 h-full flex items-center gap-4 text-lg z-10">
+                          <button onclick="triggerUndo()" class="text-gray-500 hover:text-orange-400 hover:scale-110 transition-all duration-200 flex items-center" title="還原 (Ctrl+Z)">
+                              <i class="fas fa-undo"></i>
+                          </button>
+                          <button onclick="triggerRedo()" class="text-gray-500 hover:text-orange-400 hover:scale-110 transition-all duration-200 flex items-center" title="重作 (Ctrl+Y)">
+                              <i class="fas fa-redo"></i>
+                          </button>
+                      </div>
+
+                      <div style="color: #E34D00; font-size: 10px; letter-spacing: 1px;" class="font-bold cursor-default">Designed by Von Van © 2026</div>
+                  </div>
          
                </div>
             </div>
@@ -541,6 +565,31 @@
         </div>
     </div>
 
+    <div id="quoteExportModal" class="fixed inset-0 bg-black/90 hidden items-center justify-center z-[750] backdrop-blur-sm" onclick="closeQuoteExportModal()">
+        <div class="bg-[#202020] border border-orange-500/50 p-6 rounded-xl shadow-2xl flex flex-col gap-4 w-[500px]" onclick="event.stopPropagation()">
+            <h3 class="text-orange-400 font-bold text-lg text-center mb-2"><i class="fas fa-file-invoice-dollar mr-2"></i>匯出報價單預覽</h3>
+            
+            <div class="space-y-3">
+                <div class="grid grid-cols-2 gap-4">
+                    <div><label class="text-xs text-gray-500">Model</label><input id="qe_model" class="input-dark"></div>
+                    <div><label class="text-xs text-gray-500">Project</label><input id="qe_project" class="input-dark"></div>
+                </div>
+                <div><label class="text-xs text-gray-500">業務報價 (Sales Price)</label><input id="qe_price" class="input-dark"></div>
+                <div class="grid grid-cols-3 gap-2">
+                    <div><label class="text-xs text-gray-500">Date (自動帶入下個月)</label><input id="qe_date" class="input-dark"></div>
+                    <div><label class="text-xs text-gray-500">Incoterm</label><input id="qe_incoterm" class="input-dark" value="FCA"></div>
+                    <div><label class="text-xs text-gray-500">Country</label><input id="qe_country" class="input-dark" value="Taiwan"></div>
+                </div>
+                <div><label class="text-xs text-gray-500">產品結構描述 (Details)</label><textarea id="qe_struct" class="input-dark h-24"></textarea></div>
+            </div>
+
+            <div class="flex gap-3 mt-2">
+                <button onclick="confirmExportQuote()" class="flex-1 btn-orange py-2 rounded text-white font-bold shadow-lg">確認匯出</button>
+                <button onclick="closeQuoteExportModal()" class="flex-1 bg-gray-600 hover:bg-gray-500 text-white py-2 rounded font-bold">取消</button>
+            </div>
+        </div>
+    </div>
+
     <div id="filterMenu" class="fixed z-[600] hidden bg-[#202020] border border-orange-500/50 rounded-lg shadow-2xl flex-col w-64 max-h-[450px]" onclick="event.stopPropagation()">
         <div class="p-3 border-b border-white/10 flex justify-between items-center bg-[#252525]">
             <span class="text-orange-400 font-bold text-sm"><i class="fas fa-filter mr-2"></i>篩選與排序</span>
@@ -604,6 +653,10 @@
         // V3.5.4 新增至案子列表狀態
         let isAddToProjectMode = false;
         let selectedMasterIds = new Set();
+        
+        // V3.71.4 匯出報價單模式狀態
+        let isExportQuoteMode = false;
+        let exportQuoteId = null;
 
         // V3.5.5 & V3.5.6 Filter & Sort State
         let activeFilters = {};
@@ -627,6 +680,21 @@
             const saved = localStorage.getItem('workflowDB_v3_5');
             if(saved) db = JSON.parse(saved);
             if(!db.masterList) db.masterList = [];
+            
+            // V3.71.2 初始化歷史紀錄基準點
+            lastSavedState = JSON.stringify(db);
+            
+            // 綁定鍵盤快捷鍵 (Ctrl+Z, Ctrl+Y)
+            document.addEventListener('keydown', (e) => {
+                if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+                    e.preventDefault();
+                    triggerUndo();
+                } else if ((e.ctrlKey || e.metaKey) && e.key === 'y') {
+                    e.preventDefault();
+                    triggerRedo();
+                }
+            });
+
             renderNav();
             switchView('projects');
             autoCheckShipment();
@@ -728,6 +796,49 @@
                  c.checked = cb.checked;
                  if(cb.checked) selectedMasterIds.add(id); else selectedMasterIds.delete(id);
              });
+        }
+
+        // 新增：匯出報價單模式切換
+        function toggleExportQuoteMode() {
+            const btn = document.getElementById('btnExportQuote');
+            const span = btn.querySelector('span');
+
+            if (!isExportQuoteMode) {
+                // 開啟模式
+                isExportQuoteMode = true;
+                exportQuoteId = null;
+                btn.classList.add('btn-glow-red');
+                span.innerText = '匯出報價單 (請勾選一筆)';
+                renderCurrentView();
+            } else {
+                // 已在模式中，再次點擊
+                if (exportQuoteId) {
+                    // 有選取資料，執行匯出
+                    openQuoteExportModal();
+                    // 執行後關閉模式
+                    isExportQuoteMode = false;
+                    exportQuoteId = null;
+                    btn.classList.remove('btn-glow-red');
+                    span.innerText = '匯出報價單 (Quotation)';
+                    renderCurrentView();
+                } else {
+                    // 無選取資料，視為取消
+                    isExportQuoteMode = false;
+                    btn.classList.remove('btn-glow-red');
+                    span.innerText = '匯出報價單 (Quotation)';
+                    renderCurrentView();
+                }
+            }
+        }
+
+        // 新增：報價單單選邏輯 (Radio behavior)
+        function toggleExportQuoteSelect(id) {
+            if (exportQuoteId === id) {
+                exportQuoteId = null; // 取消勾選
+            } else {
+                exportQuoteId = id; // 選取新的 (會自動取代舊的)
+            }
+            renderCurrentView(); // 重新渲染以更新 UI 狀態
         }
 
         function showFloatWindow(content, comment, el) {
@@ -873,14 +984,27 @@
         function switchView(view) {
             currentView = view;
             exitSelectionMode();
+            
+            // 重置功能模式
             isAddToProjectMode = false;
             selectedMasterIds.clear();
+            isExportQuoteMode = false;
+            exportQuoteId = null;
+
             activeSort = null; // Reset Sort
-            updateSortOptions(view); // V3.5.74 更新排序選單
+            updateSortOptions(view);
+            // V3.5.74 更新排序選單
             const btn = document.getElementById('btnAddToProj');
             btn.classList.add('hidden');
             btn.classList.remove('btn-glow-red', 'btn-glow-green');
             btn.querySelector('span').innerText = '新增至案子列表';
+            
+            // 重置匯出報價單按鈕
+            const btnExp = document.getElementById('btnExportQuote');
+            btnExp.classList.add('hidden');
+            btnExp.classList.remove('btn-glow-red');
+            btnExp.querySelector('span').innerText = '匯出報價單 (Quotation)';
+
             document.querySelectorAll('.nav-item').forEach(el => {
                 el.classList.remove('border-orange-500', 'bg-white/5', 'text-white');
                 el.classList.add('border-transparent', 'text-gray-300');
@@ -894,6 +1018,10 @@
             if(view === 'masterList') {
                 btn.classList.remove('hidden');
             }
+            // 新增：僅在報價列表顯示匯出按鈕
+            if(view === 'quotes') {
+                btnExp.classList.remove('hidden');
+            }
             clearSearch();
         }
 
@@ -904,7 +1032,16 @@
             let events = [];
             db.orders.filter(o => o.project === item.project).forEach(o => events.push({ type: '訂單', date: o.createdAt || new Date().toISOString().split('T')[0], text: '訂單' }));
             db.quotes.filter(q => q.project === item.project).forEach(q => events.push({ type: '報價', date: q.date, text: '報價' }));
-            db.tasks.filter(t => t.project === item.project && ['RMA','規格','送樣'].includes(t.taskType)).forEach(t => events.push({ type: t.taskType, date: t.trackDate || t.startDate, text: t.taskType }));
+            
+            // 修正：任務動態邏輯，包含 RMA/規格/送樣，並將「詢價」映射為「報價」文字
+            db.tasks.filter(t => t.project === item.project).forEach(t => {
+                if (['RMA','規格','送樣'].includes(t.taskType)) {
+                    events.push({ type: t.taskType, date: t.trackDate || t.startDate, text: t.taskType });
+                } else if (t.taskType === '詢價') {
+                    events.push({ type: '詢價', date: t.trackDate || t.startDate, text: '報價' });
+                }
+            });
+
             events.sort((a,b) => new Date(b.date) - new Date(a.date));
 
             let manualDate = item.manualLatestDate || '1970-01-01';
@@ -941,12 +1078,15 @@
             sourceData.forEach(item => {
                 if(key === 'star') {
                     uniqueValues.add(item.star ? 'true' : 'false');
-                } else if(item[key]) {
-                    uniqueValues.add(item[key].toString());
-             
                 } else if(key === 'latestStatus') {
                      const st = getLatestStatus(item);
                      if(st.text) uniqueValues.add(st.text);
+                } else {
+                    // 修正：針對 Agent 允許空值 (直客)，其他欄位維持有值才加入
+                    const val = item[key] ? item[key].toString() : '';
+                    if (val !== '' || key === 'agent') {
+                        uniqueValues.add(val);
+                    }
                 }
             });
             currentFilterCol = key;
@@ -961,13 +1101,16 @@
                 const div = document.createElement('div');
                 div.className = 'flex items-center gap-2 hover:bg-white/5 p-1 rounded cursor-pointer';
                 div.onclick = (e) => {
-              
                     const cb = div.querySelector('input');
                     if(e.target !== cb) cb.checked = !cb.checked;
                 };
                 let displayVal = val;
-                if(key === 'star') displayVal = val === 'true' ? '<i class="fas fa-star text-yellow-500"></i>' : 
-                '<span class="text-gray-500">無星星</span>';
+                if(key === 'star') {
+                    displayVal = val === 'true' ? '<i class="fas fa-star text-yellow-500"></i>' : '<span class="text-gray-500">無星星</span>';
+                } else if (key === 'agent' && val === '') {
+                    displayVal = '<span class="text-gray-400 italic">(直客)</span>';
+                }
+
                 div.innerHTML = `<input type="checkbox" class="accent-orange-500 filter-check" value="${val}" ${currentSet.has(val)?'checked':''}> <span class="text-xs text-gray-300 truncate">${displayVal}</span>`;
                 container.appendChild(div);
             });
@@ -1099,6 +1242,7 @@ function renderCurrentView() {
                     // [修正] Size: 表頭置中
                     { t: 'Size', w: '60px', k:'size', c: 'text-center' },
                     { t: 'Model', w: '150px', k:'model', c:'text-model text-[10px]' },
+                    { t: '標籤', w: '150px', k:'tags' },
                     { t: 'Price', w: '80px', k:'salesPrice' },
                     { t: 'Remark', w: '200px', k:'remark' },
                     { t: 'Contact', w: '100px', k:'contact' },
@@ -1163,6 +1307,21 @@ function renderCurrentView() {
                 columns.unshift({ 
                     t: '<input type="checkbox" onchange="toggleSelectAll(this)" class="accent-orange-500 cursor-pointer">', 
                     w: '40px', c:'sticky-col col-check text-center' 
+                });
+            }
+
+            if(isAddToProjectMode && currentView === 'masterList') {
+                columns[0] = { 
+                    t: '<input type="checkbox" onchange="toggleAddMasterSelectAll(this)" class="accent-orange-500 cursor-pointer">', 
+                    w: '40px', c:'sticky-col col-0 text-center' 
+               };
+            }
+
+            // 新增：匯出報價單模式的單選框
+            if(isExportQuoteMode && currentView === 'quotes') {
+                columns.unshift({
+                    t: '<span class="text-xs text-orange-500">選取</span>',
+                    w: '50px', c: 'sticky-col col-0 text-center'
                 });
             }
 
@@ -1351,15 +1510,13 @@ function renderCurrentView() {
                     const actionsHTML = `<div class="flex justify-center gap-2 h-full items-center"><button onclick="openModal('edit', ${item.id})" class="text-gray-400 hover:text-white"><i class="fas fa-edit"></i></button><button onclick="deleteItem(${item.id})" class="text-red-900 hover:text-red-500"><i class="fas fa-trash-alt"></i></button></div>`;
                     const checkHTML = `<input type="checkbox" class="accent-orange-500 row-check cursor-pointer transform scale-125" value="${item.id}" ${isSel?'checked':''} onchange="toggleSelectRow(${item.id})">`;
                     
-                    // [修正] genCell 增加 alignClass，確保 Flexbox 內容對齊
-                    const genCell = (val, fieldName, alignClass = '') => {
+                    // [修正] genCell 增加 extraTooltip 參數，用於將 FAE 報價等資訊放入藍色浮動視窗
+                    const genCell = (val, fieldName, alignClass = '', extraTooltip = null) => {
                         const comment = (item.comments || []).find(c => c.field === fieldName);
                         const hasCommentClass = comment ? 'has-comment' : '';
                         const displayVal = val || '';
-                        
                         // 新增：處理顯示在「表格格子」內的文字，將換行符號替換為 " / "，以便在單行空間顯示多行結構
                         const cellDisplayText = displayVal.toString().replace(/(\r\n|\n|\r)/g, " / ");
-
                         // 處理傳給「浮動視窗」的文字：保留換行符號 (轉義為 \n 供 JS 使用)
                         const escapeStr = (str) => {
                             if (!str) return '';
@@ -1370,7 +1527,17 @@ function renderCurrentView() {
                         };
 
                         const safeVal = escapeStr(displayVal);
-                        const commentText = escapeStr(comment ? comment.text : '');
+                        
+                        // 組合註解與額外提示 (FAE 報價)
+                        let rawComment = comment ? comment.text : '';
+                        if (extraTooltip) {
+                            const tooltipInfo = `FAE報價: ${extraTooltip}`;
+                            // 若原本有註解，則用分隔線接續顯示；若無，則直接顯示 extraTooltip
+                            if (rawComment) rawComment = tooltipInfo + "\n----------------\n" + rawComment;
+                            else rawComment = tooltipInfo;
+                        }
+
+                        const commentText = escapeStr(rawComment);
 
                         return `<div class="cell-content ${hasCommentClass} ${alignClass}" 
                                     onmouseleave="startFloatCloseTimer()"
@@ -1378,7 +1545,7 @@ function renderCurrentView() {
                                     onclick="handleCellHover(this, '${commentText}', '${safeVal}', true)"
                                     onmousedown="handleLongPressCopy(this)">
                                     ${cellDisplayText}
-                            </div>`;
+                                   </div>`;
                     };
 
                     let cells = '';
@@ -1415,6 +1582,9 @@ function renderCurrentView() {
                     } else if (currentView === 'masterList') {
                         const lastQuote = db.quotes.filter(q => q.project === item.project).sort((a,b)=>new Date(b.date)-new Date(a.date))[0];
                         const displayPrice = lastQuote ? lastQuote.salesPrice : (item.salesPrice || '');
+                        // 新增：取得 FAE 報價 (若有報價單)
+                        const displayFae = lastQuote ? lastQuote.faePrice : '';
+
                         const displayEau = item.eau ? parseFloat(item.eau.toString().replace(/,/g,'')).toLocaleString() : '';
                         let col0Content = '';
                         if(isAddToProjectMode) {
@@ -1434,11 +1604,13 @@ function renderCurrentView() {
                             <td class="text-right">${genCell(displayEau, 'eau', 'justify-end')}</td>
                             <td class="text-center">${genCell(item.size, 'size', 'justify-center')}</td>
                             <td class="text-model text-[10px]">${genCell(item.model, 'model')}</td>
-                            <td>${genCell(displayPrice, 'salesPrice')}</td>
+                            <td>${renderTags(item.tags)}</td>
+                            <td>${genCell(displayPrice, 'salesPrice', '', displayFae)}</td>
                             <td>${genCell(item.remark, 'remark')}</td>
                             <td>${genCell(item.contact, 'contact')}</td>
                             <td>${genCell(item.cusPN, 'cusPN')}</td>
-                            <td class="text-center"><div class="cell-content justify-center">${item.active!==false ? 'Y' : 'N'}</div></td>
+                            <td class="text-center"><div class="cell-content justify-center">${item.active!==false ?
+                            'Y' : 'N'}</div></td>
                             <td>${genCell(item.plm, 'plm')}</td>
                             <td class="text-center sticky-right">${actionsHTML}</td>
                         `;
@@ -1479,9 +1651,20 @@ function renderCurrentView() {
                             <td class="text-center text-xs"><div class="cell-content flex-col justify-center">${shippedHtml}</div></td>
                             <td>${genCell(item.statusDesc,'statusDesc')}</td><td class="text-center sticky-right">${actionsHTML}</td>`;
                     } else if (currentView === 'quotes') {
-                        cells = `<td class="text-xs">${genCell(item.project,'project')}</td><td class="text-xs">${genCell(item.agent,'agent')}</td><td class="text-xs">${genCell(item.endUser,'endUser')}</td>
+                        // 新增：匯出模式 Checkbox (Radio behavior)
+                        let quoteCheckHtml = '';
+                        if (isExportQuoteMode) {
+                            const isChecked = item.id === exportQuoteId;
+                            quoteCheckHtml = `<td class="sticky-col col-0 text-center">
+                                <input type="checkbox" class="accent-orange-500 cursor-pointer transform scale-125" 
+                                ${isChecked ? 'checked' : ''} onchange="toggleExportQuoteSelect(${item.id})">
+                            </td>`;
+                        }
+
+                        cells = `${quoteCheckHtml}<td class="text-xs">${genCell(item.project,'project')}</td><td class="text-xs">${genCell(item.agent,'agent')}</td><td class="text-xs">${genCell(item.endUser,'endUser')}</td>
                         <td class="text-model text-[10px]">${genCell(item.model,'model')}</td>
                         <td>${item.date}</td><td class="text-orange-300 font-bold">${genCell(item.salesPrice,'salesPrice')}</td>
+             
                         <td>${genCell(item.faePrice,'faePrice')}</td><td class="text-xs text-gray-400">${genCell(item.ref,'ref')}</td><td>${genCell(item.desc,'desc')}</td><td class="text-center sticky-right">${actionsHTML}</td>`;
                     } else if (currentView === 'contacts') {
                         cells = `<td class="text-center"><div class="cell-content justify-center">${starHTML}</div></td><td>${genCell(item.agent,'agent')}</td><td>${genCell(item.endUser,'endUser')}</td>
@@ -1577,8 +1760,64 @@ function renderCurrentView() {
             return {qty, percent: budget?Math.round((qty/budget)*100)+'%':'0%'}; 
         }
         function toggleStar(v,id) { const t=v==='activities'?'tasks':v; const i=db[t].find(x=>x.id===id);
-        if(i){i.star=!i.star;saveToLocal();renderCurrentView();} }
-        function saveToLocal() { localStorage.setItem('workflowDB_v3_5', JSON.stringify(db));
+            if(i){i.star=!i.star;saveToLocal();renderCurrentView();} }
+
+        // ==========================================
+        // V3.71.2 全域 Undo/Redo 核心邏輯
+        // ==========================================
+        let historyStack = [];
+        let redoStack = [];
+        let isTimeTravel = false; // 標記是否正在執行還原/重作，避免迴圈記錄
+        let lastSavedState = '';  // 紀錄上一次存檔的狀態字串
+
+        // 改寫 saveToLocal：在儲存前將「舊狀態」推入歷史堆疊
+        function saveToLocal() { 
+            const currentState = JSON.stringify(db);
+
+            // 如果不是因為執行 Undo/Redo 而觸發的存檔，且狀態真的有改變
+            if (!isTimeTravel && lastSavedState && lastSavedState !== currentState) {
+                historyStack.push(lastSavedState);
+                if (historyStack.length > 50) historyStack.shift(); // 限制最多 50 步
+                redoStack = []; // 只要有新動作，重作堆疊就失效
+                updateUndoRedoUI();
+            }
+
+            localStorage.setItem('workflowDB_v3_5', currentState);
+            lastSavedState = currentState; // 更新當前基準
+        }
+
+        function triggerUndo() {
+            if (historyStack.length === 0) return showToast("無步驟可還原");
+            
+            const prevState = historyStack.pop();
+            redoStack.push(JSON.stringify(db)); // 將當前狀態推入重作堆疊
+            
+            applyState(prevState);
+            showToast("已還原");
+        }
+
+        function triggerRedo() {
+            if (redoStack.length === 0) return showToast("無步驟可重作");
+
+            const nextState = redoStack.pop();
+            historyStack.push(JSON.stringify(db)); // 將當前狀態推入歷史堆疊
+
+            applyState(nextState);
+            showToast("已重作");
+        }
+
+        function applyState(stateStr) {
+            isTimeTravel = true; // 鎖定：這次變更不要再次推入 historyStack
+            db = JSON.parse(stateStr);
+            saveToLocal(); // 儲存到 LocalStorage (確保 F5 後停在還原的狀態)
+            renderCurrentView();
+            isTimeTravel = false; // 解鎖
+            updateUndoRedoUI();
+        }
+        
+        // 視覺回饋：當無步驟時讓按鈕變更淡 (選用)
+        function updateUndoRedoUI() {
+            // 進階優化：可在此處改變按鈕顏色 (目前用 Toast 提示即可)
         }
 
         // Modal Logic
@@ -1670,7 +1909,7 @@ function renderCurrentView() {
             }
         }
 
-        // 新增：處理輸入框建議 (V3.7.1 修正：擴大模糊搜尋來源至全資料庫)
+        // 新增：處理輸入框建議 (V3.71.1 修正：擴大模糊搜尋來源至全資料庫)
         function handleInputSuggestions(input, field) {
             const val = input.value.toLowerCase();
             const container = input.parentElement;
@@ -1908,8 +2147,13 @@ function renderCurrentView() {
                        <input class="input-dark" placeholder="PLM#" id="f_plm" value="${data.plm||''}">
   
                      </div>
-                    <textarea class="input-dark h-20 
-                    mt-2" placeholder="Remark" id="f_remark">${data.remark||''}</textarea>
+
+                    <div class="bg-black/20 p-3 rounded mt-2 border border-white/5">
+                        <label class="text-xs text-orange-300 block mb-2">標籤</label>
+                        ${genCheckboxGroup('grp_tags', ['量產','送樣','RMA','報價','規格'], data.tags)}
+                    </div>
+
+                    <textarea class="input-dark h-20 mt-2" placeholder="Remark" id="f_remark">${data.remark||''}</textarea>
                     
                     <div class="border-t border-gray-700 pt-3 mt-2 grid grid-cols-3 gap-4">
                         <div class="col-span-1">
@@ -2002,12 +2246,15 @@ function renderCurrentView() {
                     <div class="relative"><input class="input-dark" placeholder="Model" id="f_model" value="${data.model||''}" oninput="handleInputSuggestions(this, 'model')" autocomplete="off"></div>
          
                    <div><label class="text-xs text-gray-400">日期</label>${createDateInputGroup('f_date', data.date||new Date().toISOString().split('T')[0])}</div>
-                    <textarea class="input-dark h-16" placeholder="業務報價 (Enter 換行)" 
+            
+                     <textarea class="input-dark h-16" placeholder="業務報價 (Enter 換行)" 
                     id="f_salesPrice">${data.salesPrice||''}</textarea>
                     <textarea class="input-dark h-16" placeholder="FAE報價 (Enter 換行)" id="f_faePrice">${data.faePrice||''}</textarea>
                     <input class="input-dark" placeholder="REF#" id="f_ref" value="${data.ref||''}"></div>
      
-                    <textarea class="input-dark h-20" placeholder="說明" id="f_desc">${data.desc||''}</textarea>`;
+                    <textarea class="input-dark h-16 mt-2" placeholder="產品結構描述" id="f_productStructure">${data.productStructure||''}</textarea>
+
+          <textarea class="input-dark h-20 mt-2" placeholder="說明" id="f_desc">${data.desc||''}</textarea>`;
             } else if (type === 'contacts') {
                 html = `<div class="grid grid-cols-2 gap-4">
                     <div class="relative suggestion-container"><input class="input-dark" placeholder="Agent" id="f_agent" value="${data.agent||''}" oninput="handleInputSuggestions(this, 'agent')" autocomplete="off"></div>
@@ -2073,7 +2320,7 @@ function renderCurrentView() {
         }
 
         // ==========================================
-        // V3.7.1 提醒攔截功能 (Trigger Action) 核心邏輯
+        // V3.71.1 提醒攔截功能 (Trigger Action) 核心邏輯
         // ==========================================
         
         // 用來暫存待儲存的資料與執行動作
@@ -2216,12 +2463,15 @@ function renderCurrentView() {
                 }
             });
             document.querySelectorAll('#modalFields input[type=checkbox]:not(.group-check):not(.s-ship)').forEach(cb => { if(!cb.closest('.checkbox-group')) newData[cb.id.replace('f_', '')] = cb.checked; });
-            
-            if (type === 'projects') {
+            // 修正：MasterList 也要儲存 Tags
+            if (type === 'projects' || type === 'masterList') {
                 const getGroupVal = (id) => Array.from(document.querySelectorAll(`#${id} input:checked`)).map(c=>c.value).join(',');
                 newData.tags = getGroupVal('grp_tags');
-                newData.manualLatestStatus = getGroupVal('grp_latestStatus');
-                newData.manualLatestDate = document.getElementById('f_manualLatestDate').value;
+                
+                if (type === 'projects') {
+                    newData.manualLatestStatus = getGroupVal('grp_latestStatus');
+                    newData.manualLatestDate = document.getElementById('f_manualLatestDate').value;
+                }
             }
             if (type === 'orders') {
                 newData.createdAt = document.getElementById('f_orderDate').value;
@@ -2565,6 +2815,8 @@ function renderCurrentView() {
                     'Project': q.project, 'Agent': q.agent, 'End User': q.endUser,
                     'Date': fmtDate(q.date), 
                     'Model': q.model, 'Sales Price': q.salesPrice, 'FAE Price': q.faePrice,
+                    // 新增：Product Structure 欄位
+                    'Product Structure': q.productStructure,
                     'REF#': q.ref, 'Desc': q.desc, '_comments': q.comments
                 }));
                 addSheet("報價列表", quoteData);
@@ -2602,14 +2854,30 @@ function renderCurrentView() {
                         return d >= limitDate;
                     }
                     return true;
-                }).map(t => ({
-                    '客戶': `${t.agent||''} / ${t.endUser||''}`, 
-                    '日期': fmtDate(t.completedDate || t.trackDate), 
-                    '議題': '', 
-                    '業務事項': `${t.taskType} / ${t.model||''}`, 
-                    '進度狀況': t.desc, 
-                    '備註': t.docNum
-                }));
+                })
+                // 修正：排序依已完成日期 舊 -> 新 (Ascending)
+                .sort((a,b) => {
+                    const dA = a.completedDate || a.trackDate || '9999-99-99';
+                    const dB = b.completedDate || b.trackDate || '9999-99-99';
+                    return new Date(dA) - new Date(dB);
+                })
+                .map(t => {
+                    // 修正：客戶格式，若單邊空白則不顯示斜線
+                    const ag = t.agent || '';
+                    const eu = t.endUser || '';
+                    let custStr = '';
+                    if(ag && eu) custStr = `${ag} / ${eu}`;
+                    else custStr = ag || eu || '';
+
+                    return {
+                        '客戶': custStr, 
+                        '日期': fmtDate(t.completedDate || t.trackDate), 
+                        '議題': '', 
+                        '業務事項': `${t.taskType} / ${t.model||''}`, 
+                        '進度狀況': t.desc, 
+                        '備註': t.docNum
+                    };
+                });
                 
                 if (data.length === 0) {
                     alert('在此時間範圍內，沒有已完成的任務可匯出');
@@ -2635,6 +2903,182 @@ function renderCurrentView() {
             r.onload = (ev) => { db = JSON.parse(ev.target.result); saveToLocal(); location.reload(); };
             r.readAsText(e.target.files[0]);
         }
+
+        // 新增：報價單匯出相關邏輯
+        function openQuoteExportModal() {
+            // 修正：依賴 exportQuoteId 而非 selectedIds
+            if (!exportQuoteId) {
+                alert("請先勾選一筆資料");
+                return;
+            }
+            const item = db.quotes.find(q => q.id === exportQuoteId);
+            if (!item) return;
+
+            // 自動計算下個月日期 (格式 DD-Month縮寫-YYYY)
+            const d = new Date();
+            d.setMonth(d.getMonth() + 1);
+            const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+            const dateStr = `${d.getDate().toString().padStart(2,'0')}-${months[d.getMonth()]}-${d.getFullYear()}`;
+
+            // 填入欄位
+            document.getElementById('qe_model').value = item.model || '';
+            document.getElementById('qe_project').value = item.project || '';
+            document.getElementById('qe_price').value = item.salesPrice || '';
+            document.getElementById('qe_date').value = dateStr;
+            document.getElementById('qe_incoterm').value = 'FCA';
+            document.getElementById('qe_country').value = 'Taiwan';
+            document.getElementById('qe_struct').value = item.productStructure || '';
+
+            const modal = document.getElementById('quoteExportModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeQuoteExportModal() {
+            const modal = document.getElementById('quoteExportModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function confirmExportQuote() {
+            const model = document.getElementById('qe_model').value;
+            const project = document.getElementById('qe_project').value;
+            const price = document.getElementById('qe_price').value;
+            const date = document.getElementById('qe_date').value;
+            const incoterm = document.getElementById('qe_incoterm').value;
+            const country = document.getElementById('qe_country').value;
+            const struct = document.getElementById('qe_struct').value;
+
+            // --- 樣式定義 ---
+            // 顏色 (HEX 不含 #)
+            const colorText = { rgb: "1F497D" };      // 深藍字體
+            const colorBgGray = { rgb: "F2F2F2" };    // 極淺灰底色
+            const colorBgWhite = { rgb: "FFFFFF" };   // 白底色
+            const colorBorderBlue = { rgb: "95B3D7" };// 分隔線藍色
+            const colorBorderGray = { rgb: "D9D9D9" };// 外框淺灰色
+
+            // 字體
+            const fontBold = { name: "Calibri", sz: 11, color: colorText, bold: true };
+            const fontNormal = { name: "Calibri", sz: 11, color: colorText };
+
+            // 邊框樣式 (thick 代表粗線)
+            const borderThickGray = { style: "thick", color: colorBorderGray };
+            const borderThickBlue = { style: "thick", color: colorBorderBlue };
+            const borderNone = { style: "none" };
+
+            // --- 資料列建構 ---
+            // 為了達成「同一格內第一行粗體、第二行正常」的效果，
+            // 我們將其拆為兩列 (Row 1 & Row 2)，但移除中間的邊框，
+            // 讓使用者在視覺上看起來像是一個完整的儲存格。
+
+            const ws_data = [
+                // [Row 1] Model (粗體, 灰底, 下框線無)
+                [{
+                    v: "Model " + model,
+                    s: {
+                        font: fontBold,
+                        fill: { fgColor: colorBgGray },
+                        alignment: { wrapText: true, vertical: 'top' },
+                        border: { 
+                            top: borderThickGray, 
+                            left: borderThickGray, 
+                            right: borderThickGray, 
+                            bottom: borderNone // 隱藏下框線，連接下一行
+                        }
+                    }
+                }],
+                // [Row 2] 業務報價 (正常, 灰底, 上框線無, 下框線為藍色粗線)
+                [{
+                    v: price,
+                    s: {
+                        font: fontNormal,
+                        fill: { fgColor: colorBgGray },
+                        alignment: { wrapText: true, vertical: 'top' },
+                        border: { 
+                            top: borderNone, // 隱藏上框線，連接上一行
+                            left: borderThickGray, 
+                            right: borderThickGray, 
+                            bottom: borderThickBlue // 指定的藍色分隔線 #95B3D7
+                        }
+                    }
+                }],
+                // [Row 3] Project + Date + Term (正常, 灰底, 三行內容合併)
+                [{
+                    v: `(${project})\nThis quotation has been effective until ${date}\nDelivery term: ${incoterm} ${country}`,
+                    s: {
+                        font: fontNormal,
+                        fill: { fgColor: colorBgGray },
+                        alignment: { wrapText: true, vertical: 'top' },
+                        border: { 
+                            top: borderNone, // 緊接在藍色分隔線下方
+                            left: borderThickGray, 
+                            right: borderThickGray, 
+                            bottom: borderThickGray 
+                        }
+                    }
+                }],
+                // [Row 4] Details (正常, 白底)
+                [{
+                    v: `Details:\n${struct}`,
+                    s: {
+                        font: fontNormal,
+                        fill: { fgColor: colorBgWhite },
+                        alignment: { wrapText: true, vertical: 'top' },
+                        border: { 
+                            top: borderThickGray, 
+                            left: borderThickGray, 
+                            right: borderThickGray, 
+                            bottom: borderThickGray 
+                        }
+                    }
+                }]
+            ];
+
+            // --- 寫入 Excel ---
+            const ws = XLSX.utils.aoa_to_sheet([]);
+            
+            // 設定欄寬 (約 60 字元寬)
+            ws['!cols'] = [{ wch: 60 }];
+            
+            // 將定義好的帶樣式資料填入 A1 ~ A4
+            ws['A1'] = ws_data[0][0];
+            ws['A2'] = ws_data[1][0];
+            ws['A3'] = ws_data[2][0];
+            ws['A4'] = ws_data[3][0];
+            
+            // 設定工作表範圍
+            ws['!ref'] = `A1:A4`;
+
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Quotation");
+            
+            // 產生檔名並下載
+            const safeModel = (model || 'Export').replace(/[^a-z0-9]/gi, '_'); // 檔名安全處理
+            XLSX.writeFile(wb, `Quotation_${safeModel}_${date}.xlsx`);
+            
+            closeQuoteExportModal();
+            // 匯出後自動關閉選取模式，恢復一般狀態
+            toggleExportQuoteMode();
+        }
+
+        // V3.71.2 功能已啟用：Undo/Redo 邏輯已在上方 (Line 441-456) 完整實作
+        // 此處移除覆蓋用的預留函式，讓真正的還原/重作功能生效
+        /* function triggerUndo() { ... } 
+        function triggerRedo() { ... }
+        */
+        
+        // 為了共用 Toast，這裡稍微修改 showToast 使其支援自訂文字 (若原本沒有參數)
+        // 修正原本 showToast: function showToast() { ... }
+        // 若原程式碼已有 showToast() 且無參數，建議修改如下，或使用 alert 代替
+        const originalShowToast = showToast;
+        showToast = function(msg) {
+            const t = document.getElementById('toast');
+            if(msg) t.innerText = msg; // 支援動態文字
+            else t.innerText = '已複製'; // 預設文字
+            t.classList.add('toast-show');
+            clearTimeout(copyToastTimer);
+            copyToastTimer = setTimeout(() => t.classList.remove('toast-show'), 1000);
+        };
     </script>
 </body>
 </html>
