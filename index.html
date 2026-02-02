@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BusinessFlow V3.71 - 業務工作流系統</title>
+    <title>BusinessFlow V3.8 - 業務工作流系統</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -34,6 +34,78 @@
             border-right: 1px solid rgba(255, 255, 255, 0.1);
             transition: width 0.3s ease; width: 240px;
         }
+
+        /* User Profile Section - Final Mix */
+        .user-profile-section {
+            padding: 20px 10px 15px 10px; /* 恢復稍微寬鬆的 padding */
+            display: flex; flex-direction: column; align-items: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            background: linear-gradient(180deg, rgba(0,0,0,0.2) 0%, rgba(0,0,0,0) 100%);
+            transition: all 0.3s ease;
+        }
+        .user-avatar-container {
+            /* 恢復大尺寸 80px */
+            position: relative; width: 80px; height: 80px;
+            margin-bottom: 10px; transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        .user-avatar {
+            width: 100%; height: 100%; object-fit: cover;
+            border-radius: 50%;
+            border: 3px solid var(--orange-primary); /* 恢復較粗邊框 */
+            box-shadow: 0 0 15px var(--orange-glow); /* 恢復較強光暈 */
+            transition: all 0.3s ease;
+        }
+        .user-avatar:hover { transform: scale(1.05); filter: brightness(1.1); }
+        .user-info {
+            width: 100%; text-align: center;
+            transition: opacity 0.2s ease, height 0.3s ease;
+            opacity: 1; height: auto; overflow: hidden;
+            display: flex; flex-direction: column; gap: 6px; /* 增加間距 */
+        }
+        .user-name-input {
+            background: transparent; border: none; border-bottom: 1px solid rgba(255,255,255,0.05);
+            /* 恢復大字體 1.2rem */
+            color: white; font-size: 1.2rem; font-weight: bold; text-align: center;
+            width: 100%; outline: none; padding-bottom: 4px; margin-bottom: 4px;
+        }
+        .user-name-input:focus { border-bottom-color: var(--orange-primary); }
+        
+        /* 整合式外框容器 (保留喜歡的設計) */
+        .profile-combo-box {
+            display: flex; align-items: center;
+            background-color: rgba(0,0,0,0.3);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 4px;
+            margin-top: 2px;
+            height: 28px;
+        }
+        .profile-combo-box:hover { border-color: rgba(255,255,255,0.2); }
+
+        .profile-selector {
+            flex: 1; 
+            background: transparent; border: none; 
+            color: #aaa; font-size: 0.8rem; 
+            padding: 0 0 0 8px; height: 100%;
+            outline: none; cursor: pointer; width: 0;
+        }
+        .profile-selector option { background: #151515; color: #ccc; }
+        
+        .profile-actions-inline {
+            display: flex; gap: 10px; align-items: center;
+            padding: 0 10px;
+            height: 16px;
+            border-left: 1px solid rgba(255,255,255,0.1); 
+            margin-left: 2px;
+        }
+        .profile-btn-icon { font-size: 0.8rem; cursor: pointer; opacity: 0.6; transition: all 0.2s; }
+        .profile-btn-icon:hover { opacity: 1; transform: scale(1.1); }
+
+        /* Sidebar Collapsed State */
+        .sidebar.collapsed .user-profile-section { padding: 15px 0; }
+        .sidebar.collapsed .user-avatar-container { width: 40px; height: 40px; margin-bottom: 0; }
+        .sidebar.collapsed .user-avatar { border-width: 2px; box-shadow: none; }
+        .sidebar.collapsed .user-info { opacity: 0; height: 0; margin: 0; pointer-events: none; }
         .sidebar.collapsed { width: 70px;
         }
         .sidebar.collapsed .menu-text, .sidebar.collapsed .logo-text, .sidebar.collapsed .submenu-icon { display: none;
@@ -332,12 +404,37 @@
 <body class="flex" onclick="handleGlobalClick(event)" oncontextmenu="return false;">
 
     <aside id="sidebar" class="sidebar flex flex-col h-screen overflow-hidden backdrop-blur-sm">
+        
+        <div id="userProfileSection" class="user-profile-section shrink-0">
+            <div class="user-avatar-container" onclick="document.getElementById('avatarUpload').click()" title="更換頭像">
+                <img id="displayAvatar" src="https://via.placeholder.com/100" class="user-avatar" alt="User">
+                <div class="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 hover:opacity-100 transition-opacity text-white text-xs rounded-full">
+                    <i class="fas fa-camera"></i>
+                </div>
+            </div>
+            <input type="file" id="avatarUpload" class="hidden" accept="image/*" onchange="handleAvatarUpload(event)">
+            
+            <div class="user-info w-full px-3">
+                <input type="text" id="displayUserName" class="user-name-input" placeholder="User Name" onchange="handleNameChange(this.value)">
+                
+                <div class="profile-combo-box">
+                    <select id="profileSelect" class="profile-selector" onchange="switchProfile(this.value)">
+                        </select>
+                    
+                    <div class="profile-actions-inline">
+                        <i class="fas fa-plus text-green-500 profile-btn-icon" onclick="createNewProfile()" title="新增設定檔"></i>
+                        <i class="fas fa-trash-alt text-red-500 profile-btn-icon" onclick="deleteCurrentProfile()" title="刪除當前設定檔"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div class="p-4 flex items-center gap-4 h-16 border-b border-white/10 shrink-0">
             <button onclick="toggleSidebar()" class="text-white text-lg hover:text-orange-400 w-6 text-center">
                 <i class="fas fa-bars"></i>
             </button>
             <span class="font-bold text-lg tracking-wider 
-            italic logo-text text-orange-500">BusinessFlow <span class="text-xs bg-orange-600 text-white px-1 rounded ml-1 not-italic">V3.71</span></span>
+            italic logo-text text-orange-500">BusinessFlow <span class="text-xs bg-orange-600 text-white px-1 rounded ml-1 not-italic">V3.8</span></span>
         </div>
 
         <nav class="flex-1 overflow-y-auto custom-scrollbar flex flex-col mt-4">
@@ -574,7 +671,7 @@ id="batchDeleteBtn" onclick="deleteSelected()" class="hidden bg-red-900/50 hover
                     <div><label class="text-xs text-gray-500">Model</label><input id="qe_model" class="input-dark"></div>
                     <div><label class="text-xs text-gray-500">Project</label><input id="qe_project" class="input-dark"></div>
                 </div>
-                <div><label class="text-xs text-gray-500">業務報價 (Sales Price)</label><input id="qe_price" class="input-dark"></div>
+                <div><label class="text-xs text-gray-500">業務報價 (Sales Price)</label><textarea id="qe_price" class="input-dark h-24"></textarea></div>
                 <div class="grid grid-cols-3 gap-2">
                     <div><label class="text-xs text-gray-500">Date (自動帶入下個月)</label><input id="qe_date" class="input-dark"></div>
                     <div><label class="text-xs text-gray-500">Incoterm</label><input id="qe_incoterm" class="input-dark" value="FCA"></div>
@@ -664,6 +761,16 @@ id="batchDeleteBtn" onclick="deleteSelected()" class="hidden bg-red-900/50 hover
         let currentFilterCol = null;
         let headerLongPressTimer;
         let activeSort = null; // { col: 'key', order: 'asc'/'desc'/'new'/'old' }
+        
+        // ==========================================
+        // V3.8 User Profile System
+        // ==========================================
+        let profileMeta = { 
+            list: [{id: 'default', name: '預設使用者', avatar: null}], 
+            currentId: 'default' 
+        };
+        const PROFILE_STORAGE_KEY = 'workflow_profiles_meta';
+        const DEFAULT_DB_KEY = 'workflowDB_v3_5'; // 舊資料Key，用於相容
 
         const VIEW_CONFIG = {
             'projects': { title: '案子列表', icon: 'fa-briefcase' },
@@ -676,14 +783,13 @@ id="batchDeleteBtn" onclick="deleteSelected()" class="hidden bg-red-900/50 hover
             'contacts': { title: '聯絡人清單', icon: 'fa-address-book' },
             'codes': { title: '客戶代碼與行為', icon: 'fa-barcode' }
         };
+        
         window.onload = () => {
-            const saved = localStorage.getItem('workflowDB_v3_5');
-            if(saved) db = JSON.parse(saved);
-            if(!db.masterList) db.masterList = [];
-            
+            initProfileSystem(); // 初始化 Profile 系統
+            loadCurrentProfileData(); // 載入當前使用者的 DB
+
             // V3.71.2 初始化歷史紀錄基準點
             lastSavedState = JSON.stringify(db);
-            
             // 綁定鍵盤快捷鍵 (Ctrl+Z, Ctrl+Y)
             document.addEventListener('keydown', (e) => {
                 if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
@@ -1282,9 +1388,10 @@ function renderCurrentView() {
                     { t: 'Project', w: '150px', k:'project', c: 'text-xs' }, 
                     { t: 'Agent', w: '100px', k:'agent', c: 'text-xs' }, 
                     { t: 'End User', w: '100px', k:'endUser', c: 'text-xs' },
-                    { t: 'Model', w: '100px', k:'model', c: 'text-model text-[10px]' },
-                    { t: '日期', w: '100px', k:'date' }, { t: '業務報價', w: '100px', c:'text-orange-300 font-bold', k:'salesPrice' },
-                    { t: 'FAE報價', w: '100px', k:'faePrice' }, { t: 'REF#', w: '100px', k:'ref', c: 'text-xs text-gray-400' }, { t: '說明', w: '200px', k:'desc' }, { t: '操作', w: '60px', c:'sticky-right' }
+                    { t: 'Model', w: '130px', k:'model', c: 'text-model text-xs font-bold' },
+                    { t: '日期', w: '70px', k:'date' }, { t: '業務報價', w: '100px', c:'text-orange-300 font-bold', k:'salesPrice' },
+                    { t: 'FAE報價', w: '100px', k:'faePrice' }, { t: 'REF#', w: '100px', k:'ref', c: 'text-xs text-gray-400' }, { t: '說明', w: '200px', k:'desc' }, { t: '操作', 
+                    w: '60px', c:'sticky-right' }
                 ];
             } else if (currentView === 'contacts') {
                 sourceData = db.contacts;
@@ -1651,21 +1758,20 @@ function renderCurrentView() {
                             <td class="text-center text-xs"><div class="cell-content flex-col justify-center">${shippedHtml}</div></td>
                             <td>${genCell(item.statusDesc,'statusDesc')}</td><td class="text-center sticky-right">${actionsHTML}</td>`;
                     } else if (currentView === 'quotes') {
-                        // 新增：匯出模式 Checkbox (Radio behavior)
-                        let quoteCheckHtml = '';
-                        if (isExportQuoteMode) {
-                            const isChecked = item.id === exportQuoteId;
-                            quoteCheckHtml = `<td class="sticky-col col-0 text-center">
+                // 新增：匯出模式 Checkbox (Radio behavior)
+                let quoteCheckHtml = '';
+                if (isExportQuoteMode) {
+                    const isChecked = item.id === exportQuoteId;
+                    quoteCheckHtml = `<td class="sticky-col col-0 text-center">
                                 <input type="checkbox" class="accent-orange-500 cursor-pointer transform scale-125" 
                                 ${isChecked ? 'checked' : ''} onchange="toggleExportQuoteSelect(${item.id})">
                             </td>`;
-                        }
+                }
 
-                        cells = `${quoteCheckHtml}<td class="text-xs">${genCell(item.project,'project')}</td><td class="text-xs">${genCell(item.agent,'agent')}</td><td class="text-xs">${genCell(item.endUser,'endUser')}</td>
+                cells = `${quoteCheckHtml}<td class="text-xs">${genCell(item.project,'project')}</td><td class="text-xs">${genCell(item.agent,'agent')}</td><td class="text-xs">${genCell(item.endUser,'endUser')}</td>
                         <td class="text-model text-[10px]">${genCell(item.model,'model')}</td>
-                        <td>${item.date}</td><td class="text-orange-300 font-bold">${genCell(item.salesPrice,'salesPrice')}</td>
-             
-                        <td>${genCell(item.faePrice,'faePrice')}</td><td class="text-xs text-gray-400">${genCell(item.ref,'ref')}</td><td>${genCell(item.desc,'desc')}</td><td class="text-center sticky-right">${actionsHTML}</td>`;
+                        <td class="text-[10px] text-gray-400">${item.date}</td><td class="text-[#E34D00] font-bold text-xs">${genCell(item.salesPrice,'salesPrice')}</td>
+                        <td class="text-[10px] text-gray-400">${genCell(item.faePrice,'faePrice')}</td><td class="text-xs text-gray-400">${genCell(item.ref,'ref')}</td><td>${genCell(item.desc,'desc')}</td><td class="text-center sticky-right">${actionsHTML}</td>`;
                     } else if (currentView === 'contacts') {
                         cells = `<td class="text-center"><div class="cell-content justify-center">${starHTML}</div></td><td>${genCell(item.agent,'agent')}</td><td>${genCell(item.endUser,'endUser')}</td>
                             <td>${genCell(item.name,'name')}</td><td>${genCell(item.email,'email')}</td>
@@ -1763,7 +1869,7 @@ function renderCurrentView() {
             if(i){i.star=!i.star;saveToLocal();renderCurrentView();} }
 
         // ==========================================
-        // V3.71.2 全域 Undo/Redo 核心邏輯
+        // V3.8.2 全域 Undo/Redo 核心邏輯
         // ==========================================
         let historyStack = [];
         let redoStack = [];
@@ -1773,17 +1879,24 @@ function renderCurrentView() {
         // 改寫 saveToLocal：在儲存前將「舊狀態」推入歷史堆疊
         function saveToLocal() { 
             const currentState = JSON.stringify(db);
-
             // 如果不是因為執行 Undo/Redo 而觸發的存檔，且狀態真的有改變
             if (!isTimeTravel && lastSavedState && lastSavedState !== currentState) {
                 historyStack.push(lastSavedState);
                 if (historyStack.length > 50) historyStack.shift(); // 限制最多 50 步
-                redoStack = []; // 只要有新動作，重作堆疊就失效
+                redoStack = [];
+                // 只要有新動作，重作堆疊就失效
                 updateUndoRedoUI();
             }
 
-            localStorage.setItem('workflowDB_v3_5', currentState);
-            lastSavedState = currentState; // 更新當前基準
+            // V3.8 修改：根據當前 Profile ID 決定存檔 Key
+            // 如果是 default，為了保持相容性，仍使用 workflowDB_v3_5
+            // 如果是新 Profile，使用 workflowDB_profile_{ID}
+            const dbKey = profileMeta.currentId === 'default' ? 
+                          DEFAULT_DB_KEY : `workflowDB_profile_${profileMeta.currentId}`;
+            
+            localStorage.setItem(dbKey, currentState);
+            lastSavedState = currentState;
+            // 更新當前基準
         }
 
         function triggerUndo() {
@@ -1909,7 +2022,7 @@ function renderCurrentView() {
             }
         }
 
-        // 新增：處理輸入框建議 (V3.71.1 修正：擴大模糊搜尋來源至全資料庫)
+        // 新增：處理輸入框建議 (V3.8.1 修正：擴大模糊搜尋來源至全資料庫)
         function handleInputSuggestions(input, field) {
             const val = input.value.toLowerCase();
             const container = input.parentElement;
@@ -2128,24 +2241,21 @@ function renderCurrentView() {
                    class="accent-orange-500"> Active</label>
               `;
             } else if(type === 'masterList') {
+                const safe = (v) => (v || '').toString().replace(/"/g, '&quot;');
                 html = `
                      <div class="grid grid-cols-3 gap-4">
-                        <div class="relative"><input class="input-dark" placeholder="Project" id="f_project" value="${data.project||''}" oninput="handleInputSuggestions(this, 'project'); autoFillProjectInfo(this.value)" autocomplete="off"></div>
-                    
-                       <div class="relative"><input class="input-dark" placeholder="Agent" id="f_agent" value="${data.agent||''}" oninput="handleInputSuggestions(this, 'agent')" autocomplete="off"></div>
-                        <div class="relative"><input class="input-dark" placeholder="End User" id="f_endUser" value="${data.endUser||''}" oninput="handleInputSuggestions(this, 'endUser')" autocomplete="off"></div>
-                        <input class="input-dark" placeholder="Application" id="f_application" value="${data.application||''}">
-                        <input class="input-dark" placeholder="EAU" 
-                        id="f_eau" value="${data.eau||''}">
-                        <input class="input-dark" placeholder="Size" id="f_size" value="${data.size||''}">
-                        <div class="relative"><input class="input-dark" placeholder="Model" id="f_model" value="${data.model||''}" oninput="handleInputSuggestions(this, 'model')" autocomplete="off"></div>
-                        <input class="input-dark" placeholder="Price" id="f_salesPrice" value="${data.salesPrice||''}">
-           
+                        <div class="relative"><input class="input-dark" placeholder="Project" id="f_project" value="${safe(data.project)}" oninput="handleInputSuggestions(this, 'project'); autoFillProjectInfo(this.value)" autocomplete="off"></div>
+                       <div class="relative"><input class="input-dark" placeholder="Agent" id="f_agent" value="${safe(data.agent)}" oninput="handleInputSuggestions(this, 'agent')" autocomplete="off"></div>
+                        <div class="relative"><input class="input-dark" placeholder="End User" id="f_endUser" value="${safe(data.endUser)}" oninput="handleInputSuggestions(this, 'endUser')" autocomplete="off"></div>
+                        <input class="input-dark" placeholder="Application" id="f_application" value="${safe(data.application)}">
+                        <input class="input-dark" placeholder="EAU" id="f_eau" value="${safe(data.eau)}">
+                        <input class="input-dark" placeholder="Size" id="f_size" value="${safe(data.size)}">
+                        <div class="relative"><input class="input-dark" placeholder="Model" id="f_model" value="${safe(data.model)}" oninput="handleInputSuggestions(this, 'model')" autocomplete="off"></div>
+                        <input class="input-dark" placeholder="Price" id="f_salesPrice" value="${safe(data.salesPrice)}">
                             <input class="input-dark" placeholder="Contact" id="f_contact" 
-                         value="${data.contact||''}">
-                        <input class="input-dark" placeholder="Cus PN" id="f_cusPN" value="${data.cusPN||''}">
-                       <input class="input-dark" placeholder="PLM#" id="f_plm" value="${data.plm||''}">
-  
+                         value="${safe(data.contact)}">
+                        <input class="input-dark" placeholder="Cus PN" id="f_cusPN" value="${safe(data.cusPN)}">
+                       <input class="input-dark" placeholder="PLM#" id="f_plm" value="${safe(data.plm)}">
                      </div>
 
                     <div class="bg-black/20 p-3 rounded mt-2 border border-white/5">
@@ -2320,7 +2430,7 @@ function renderCurrentView() {
         }
 
         // ==========================================
-        // V3.71.1 提醒攔截功能 (Trigger Action) 核心邏輯
+        // V3.8.1 提醒攔截功能 (Trigger Action) 核心邏輯
         // ==========================================
         
         // 用來暫存待儲存的資料與執行動作
@@ -2701,21 +2811,30 @@ function renderCurrentView() {
         }
 
         // 修改：exportExcel 支援 timeRange 參數
-        // 修改：exportExcel 支援 timeRange 參數 (最終穩定版)
+        // 修改：exportExcel 支援 timeRange 參數，並包含 User 與 HHMM 資訊
         function exportExcel(mode, timeRange) {
             const wb = XLSX.utils.book_new();
-            const dateStr = new Date().toISOString().split('T')[0].replace(/-/g, '');
             
+            // 1. 取得時間 YYYYMMDD_HHMM
+            const now = new Date();
+            const YYYY = now.getFullYear();
+            const MM = String(now.getMonth() + 1).padStart(2, '0');
+            const DD = String(now.getDate()).padStart(2, '0');
+            const HH = String(now.getHours()).padStart(2, '0');
+            const MIN = String(now.getMinutes()).padStart(2, '0');
+            const dateStr = `${YYYY}${MM}${DD}_${HH}${MIN}`;
+
+            // 2. 取得當前使用者名稱
+            const currentP = profileMeta.list.find(p => p.id === profileMeta.currentId) || { name: 'User' };
+            const safeName = currentP.name.replace(/[\s\/\\]/g, '_');
+
             // 日期格式化小工具 (YYYY-MM-DD -> YYYY/MM/DD)
             const fmtDate = (d) => d ? d.toString().replace(/-/g, '/') : '';
 
             const processSheet = (ws, data) => {
                 ws['!cols'] = Object.keys(data[0]||{}).map(() => ({wch: 15}));
-                
-                // [最終設定] 採用最相容的簡化凍結參數 (移除 activePane 避免衝突)
-                // 若仍無效，則為函式庫限制，以樣式美觀為優先
+                // [最終設定] 採用最相容的簡化凍結參數
                 ws['!freeze'] = { xSplit: 0, ySplit: 1, topLeftCell: "A2", state: "frozen" };
-                
                 const range = XLSX.utils.decode_range(ws['!ref']);
                 for(let R = range.s.r; R <= range.e.r; ++R) {
                     for(let C = range.s.c; C <= range.e.c; ++C) {
@@ -2747,18 +2866,10 @@ function renderCurrentView() {
                                 const cmt = item._comments.find(c => c.field === fieldKey);
                                 if(cmt) {
                                     // [強力修正] 雙重鎖定隱藏與重置樣式
-                                    
-                                    // 1. 建立最單純的註解物件 (純文字，無額外樣式，強制隱藏)
                                     const commentObj = { t: cmt.text, a: "System", hidden: true };
-                                    
-                                    // 2. 建立陣列，並在陣列層級也加上 hidden 屬性 (針對部分 Excel 解析器的防禦性寫法)
                                     const commentsArray = [commentObj];
                                     commentsArray.hidden = true;
-                                    
-                                    // 3. 賦值給 cell.c
                                     cell.c = commentsArray;
-
-                                    // 4. [關鍵] 強制刪除 cell.comment 屬性，防止函式庫產生「綠色漸層」或其他預設樣式干擾
                                     if(cell.comment) delete cell.comment;
                                 }
                             }
@@ -2779,9 +2890,8 @@ function renderCurrentView() {
                 const projData = db.projects.map(p => {
                     const lastQuote = db.quotes.filter(q=>q.project===p.project).sort((a,b)=>new Date(b.date)-new Date(a.date))[0];
                     const tasks = db.tasks.filter(t => t.project === p.project).sort((a,b)=>new Date(b.trackDate||b.startDate)-new Date(a.trackDate||a.startDate));
-                    // 修正：備註內的日期也一併格式化為 YYYY/MM/DD
+                 
                     const remarkStr = tasks.map(t => `${fmtDate(t.trackDate||t.startDate)} ${t.taskType}: ${t.desc}`).join('\r\n');
-                    
                     const ach = calculateAchievement(p);
 
                     return {
@@ -2815,7 +2925,6 @@ function renderCurrentView() {
                     'Project': q.project, 'Agent': q.agent, 'End User': q.endUser,
                     'Date': fmtDate(q.date), 
                     'Model': q.model, 'Sales Price': q.salesPrice, 'FAE Price': q.faePrice,
-                    // 新增：Product Structure 欄位
                     'Product Structure': q.productStructure,
                     'REF#': q.ref, 'Desc': q.desc, '_comments': q.comments
                 }));
@@ -2836,7 +2945,8 @@ function renderCurrentView() {
                 }));
                 addSheet("客戶代碼與行為", codeData);
 
-                XLSX.writeFile(wb, `LIST(業務管理表)_${dateStr}.xlsx`, { cellStyles: true });
+                // 檔名：LIST(業務管理表)_"使用者名稱"__YYYYMMDD_HHMM.xlsx
+                XLSX.writeFile(wb, `LIST(業務管理表)_${safeName}_${dateStr}.xlsx`, { cellStyles: true });
             } else {
                 // Daily 邏輯
                 const today = new Date();
@@ -2855,20 +2965,17 @@ function renderCurrentView() {
                     }
                     return true;
                 })
-                // 修正：排序依已完成日期 舊 -> 新 (Ascending)
                 .sort((a,b) => {
                     const dA = a.completedDate || a.trackDate || '9999-99-99';
                     const dB = b.completedDate || b.trackDate || '9999-99-99';
                     return new Date(dA) - new Date(dB);
                 })
                 .map(t => {
-                    // 修正：客戶格式，若單邊空白則不顯示斜線
                     const ag = t.agent || '';
                     const eu = t.endUser || '';
                     let custStr = '';
                     if(ag && eu) custStr = `${ag} / ${eu}`;
                     else custStr = ag || eu || '';
-
                     return {
                         '客戶': custStr, 
                         '日期': fmtDate(t.completedDate || t.trackDate), 
@@ -2887,21 +2994,95 @@ function renderCurrentView() {
                 const ws = XLSX.utils.json_to_sheet(data);
                 processSheet(ws, data);
                 XLSX.utils.book_append_sheet(wb, ws, "進度狀況");
-                XLSX.writeFile(wb, `Daily(業務進度狀況)_${dateStr}.xlsx`, { cellStyles: true });
+
+                // 檔名：Daily(業務進度狀況)_"使用者名稱"__YYYYMMDD_HHMM.xlsx
+                XLSX.writeFile(wb, `Daily(業務進度狀況)_${safeName}_${dateStr}.xlsx`, { cellStyles: true });
             }
         }
         
         function backupData() {
-             const dateStr = new Date().toISOString().split('T')[0].replace(/-/g, '');
-             const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(db));
+             // 1. 取得時間 YYYYMMDD_HHMM
+             const now = new Date();
+             const YYYY = now.getFullYear();
+             const MM = String(now.getMonth() + 1).padStart(2, '0');
+             const DD = String(now.getDate()).padStart(2, '0');
+             const HH = String(now.getHours()).padStart(2, '0');
+             const MIN = String(now.getMinutes()).padStart(2, '0');
+             const dateStr = `${YYYY}${MM}${DD}_${HH}${MIN}`;
+             // 2. 取得當前使用者名稱 (並處理檔名安全字元)
+             const currentP = profileMeta.list.find(p => p.id === profileMeta.currentId) || { name: 'User' };
+             const safeName = currentP.name.replace(/[\s\/\\]/g, '_'); // 將空白或斜線轉為底線
+
+             // [修正] 建立備份 payload，將 db 與 profileMeta 一併打包
+             const payload = {
+                 ...db,
+                 profileMeta: profileMeta
+             };
+
+             const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(payload));
              const node = document.createElement('a'); node.href = dataStr; 
-             node.download = `WorkFlow_${dateStr}.json`; 
+             
+             // 3. 命名格式：BusinessFlow_"使用者名稱"_YYYYMMDD_HHMM
+             node.download = `BusinessFlow_${safeName}_${dateStr}.json`;
              node.click();
         }
+
         function restoreData(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
             const r = new FileReader();
-            r.onload = (ev) => { db = JSON.parse(ev.target.result); saveToLocal(); location.reload(); };
-            r.readAsText(e.target.files[0]);
+            r.onload = (ev) => {
+                try {
+                    const loadedData = JSON.parse(ev.target.result);
+
+                    // [修正] 優先還原 User Profile (若備份檔中有包含)
+                    if (loadedData.profileMeta) {
+                        profileMeta = loadedData.profileMeta;
+                        saveProfileMeta(); // 寫入 LocalStorage (workflow_profiles_meta)
+                        renderProfileUI(); // 立即更新介面 (頭像/名稱/下拉選單)
+                        
+                        // 從 loadedData 中移除 profileMeta，剩下的就是純 db 資料
+                        delete loadedData.profileMeta;
+                    }
+
+                    const loadedDb = loadedData;
+
+                    // 簡單的格式檢查
+                    if (!loadedDb.projects && !loadedDb.masterList) {
+                        alert("檔案格式不正確，找不到必要的資料結構。");
+                        return;
+                    }
+
+                    // 更新記憶體中的 DB
+                    db = loadedDb;
+                    // 確保資料結構完整 (避免舊版備份缺少新欄位)
+                    if (!db.masterList) db.masterList = [];
+                    // 其他陣列若需補齊可在此加入，例如 codes, contacts 等
+
+                    // 存檔 (這裡會自動存入當前 User Profile 的 Key)
+                    saveToLocal();
+                    // 重置 Undo 歷史，避免還原後又 Undo 到空狀態
+                    historyStack = [];
+                    redoStack = [];
+                    lastSavedState = JSON.stringify(db);
+
+                    // 關鍵修正：不執行 location.reload()，而是直接更新畫面
+                    // 這樣可以避免頁面重整後，因為初始化時機問題導致資料看似沒載入
+                    renderNav();
+                    switchView(currentView);
+                    autoCheckShipment();
+                    
+                    showToast("資料與使用者設定還原成功！");
+                } catch (err) {
+                    console.error(err);
+                    alert("還原失敗：無法解析 JSON 檔案。");
+                } finally {
+                    // 清空 input，允許連續上傳同一個檔案 (若需要)
+                    e.target.value = '';
+                }
+            };
+            r.readAsText(file);
         }
 
         // 新增：報價單匯出相關邏輯
@@ -2941,6 +3122,7 @@ function renderCurrentView() {
         }
 
         function confirmExportQuote() {
+            // ... (前段省略：變數定義與 Excel 建構邏輯，保持不變) ...
             const model = document.getElementById('qe_model').value;
             const project = document.getElementById('qe_project').value;
             const price = document.getElementById('qe_price').value;
@@ -2949,119 +3131,64 @@ function renderCurrentView() {
             const country = document.getElementById('qe_country').value;
             const struct = document.getElementById('qe_struct').value;
 
-            // --- 樣式定義 ---
-            // 顏色 (HEX 不含 #)
-            const colorText = { rgb: "1F497D" };      // 深藍字體
-            const colorBgGray = { rgb: "F2F2F2" };    // 極淺灰底色
-            const colorBgWhite = { rgb: "FFFFFF" };   // 白底色
-            const colorBorderBlue = { rgb: "95B3D7" };// 分隔線藍色
-            const colorBorderGray = { rgb: "D9D9D9" };// 外框淺灰色
-
-            // 字體
+            // ... (中段省略：樣式定義與 ws_data 建構，請保留您上一次修改成功的樣式代碼) ...
+            // 為了節省篇幅，此處僅顯示函式尾端的關鍵修正
+            
+            // --- 寫入 Excel ---
+            // (請保留原本的寫入邏輯)
+            const colorText = { rgb: "1F497D" };
+            const colorBgGray = { rgb: "F2F2F2" };
+            const colorBgWhite = { rgb: "FFFFFF" };
+            const colorBorderBlue = { rgb: "95B3D7" };
+            const colorBorderGray = { rgb: "D9D9D9" };
             const fontBold = { name: "Calibri", sz: 11, color: colorText, bold: true };
             const fontNormal = { name: "Calibri", sz: 11, color: colorText };
-
-            // 邊框樣式 (thick 代表粗線)
+            const fontItalic = { name: "Calibri", sz: 11, color: colorText, italic: true };
             const borderThickGray = { style: "thick", color: colorBorderGray };
             const borderThickBlue = { style: "thick", color: colorBorderBlue };
             const borderNone = { style: "none" };
 
-            // --- 資料列建構 ---
-            // 為了達成「同一格內第一行粗體、第二行正常」的效果，
-            // 我們將其拆為兩列 (Row 1 & Row 2)，但移除中間的邊框，
-            // 讓使用者在視覺上看起來像是一個完整的儲存格。
-
             const ws_data = [
-                // [Row 1] Model (粗體, 灰底, 下框線無)
-                [{
-                    v: "Model " + model,
-                    s: {
-                        font: fontBold,
-                        fill: { fgColor: colorBgGray },
-                        alignment: { wrapText: true, vertical: 'top' },
-                        border: { 
-                            top: borderThickGray, 
-                            left: borderThickGray, 
-                            right: borderThickGray, 
-                            bottom: borderNone // 隱藏下框線，連接下一行
-                        }
-                    }
-                }],
-                // [Row 2] 業務報價 (正常, 灰底, 上框線無, 下框線為藍色粗線)
-                [{
-                    v: price,
-                    s: {
-                        font: fontNormal,
-                        fill: { fgColor: colorBgGray },
-                        alignment: { wrapText: true, vertical: 'top' },
-                        border: { 
-                            top: borderNone, // 隱藏上框線，連接上一行
-                            left: borderThickGray, 
-                            right: borderThickGray, 
-                            bottom: borderThickBlue // 指定的藍色分隔線 #95B3D7
-                        }
-                    }
-                }],
-                // [Row 3] Project + Date + Term (正常, 灰底, 三行內容合併)
-                [{
-                    v: `(${project})\nThis quotation has been effective until ${date}\nDelivery term: ${incoterm} ${country}`,
-                    s: {
-                        font: fontNormal,
-                        fill: { fgColor: colorBgGray },
-                        alignment: { wrapText: true, vertical: 'top' },
-                        border: { 
-                            top: borderNone, // 緊接在藍色分隔線下方
-                            left: borderThickGray, 
-                            right: borderThickGray, 
-                            bottom: borderThickGray 
-                        }
-                    }
-                }],
-                // [Row 4] Details (正常, 白底)
-                [{
-                    v: `Details:\n${struct}`,
-                    s: {
-                        font: fontNormal,
-                        fill: { fgColor: colorBgWhite },
-                        alignment: { wrapText: true, vertical: 'top' },
-                        border: { 
-                            top: borderThickGray, 
-                            left: borderThickGray, 
-                            right: borderThickGray, 
-                            bottom: borderThickGray 
-                        }
-                    }
-                }]
+                [{ v: "Model " + model, s: { font: fontBold, fill: { fgColor: colorBgGray }, alignment: { wrapText: true, vertical: 'top' }, border: { top: borderThickGray, left: borderThickGray, right: borderThickGray, bottom: borderNone } } }],
+                [{ v: price, s: { font: fontNormal, fill: { fgColor: colorBgGray }, alignment: { wrapText: true, vertical: 'top' }, border: { top: borderNone, left: borderThickGray, right: borderThickGray, bottom: borderThickBlue } } }],
+                [{ v: `(${project})`, s: { font: fontNormal, fill: { fgColor: colorBgGray }, alignment: { wrapText: true, vertical: 'top' }, border: { top: borderNone, left: borderThickGray, right: borderThickGray, bottom: borderNone } } }],
+                [{ v: `This quotation has been effective until ${date}\nDelivery term: ${incoterm} ${country}`, s: { font: fontItalic, fill: { fgColor: colorBgGray }, alignment: { wrapText: true, vertical: 'top' }, border: { top: borderNone, left: borderThickGray, right: borderThickGray, bottom: borderThickGray } } }],
+                [{ v: `Details:\n${struct}`, s: { font: fontNormal, fill: { fgColor: colorBgWhite }, alignment: { wrapText: true, vertical: 'top' }, border: { top: borderThickGray, left: borderThickGray, right: borderThickGray, bottom: borderThickGray } } }]
             ];
 
-            // --- 寫入 Excel ---
             const ws = XLSX.utils.aoa_to_sheet([]);
-            
-            // 設定欄寬 (約 60 字元寬)
             ws['!cols'] = [{ wch: 60 }];
-            
-            // 將定義好的帶樣式資料填入 A1 ~ A4
-            ws['A1'] = ws_data[0][0];
-            ws['A2'] = ws_data[1][0];
-            ws['A3'] = ws_data[2][0];
-            ws['A4'] = ws_data[3][0];
-            
-            // 設定工作表範圍
-            ws['!ref'] = `A1:A4`;
+            const countLines = (str) => (str || '').split(/\r\n|\r|\n/).length;
+            ws['!rows'] = [{ hpx: 20 }, { hpx: Math.max(24, countLines(price) * 18) }, { hpx: 20 }, { hpx: 40 }, { hpx: Math.max(60, countLines(struct) * 18) }];
 
+            ws['A1'] = ws_data[0][0]; ws['A2'] = ws_data[1][0]; ws['A3'] = ws_data[2][0]; ws['A4'] = ws_data[3][0]; ws['A5'] = ws_data[4][0];
+            ws['!ref'] = `A1:A5`;
+            
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, "Quotation");
             
             // 產生檔名並下載
-            const safeModel = (model || 'Export').replace(/[^a-z0-9]/gi, '_'); // 檔名安全處理
+            const safeModel = (model || 'Export').replace(/[^a-z0-9]/gi, '_');
             XLSX.writeFile(wb, `Quotation_${safeModel}_${date}.xlsx`);
             
+            // 1. 關閉彈出視窗
             closeQuoteExportModal();
-            // 匯出後自動關閉選取模式，恢復一般狀態
-            toggleExportQuoteMode();
+            
+            // 2. 【修正】強制復原 UI 狀態 (不使用 Toggle，改為直接操作)
+            isExportQuoteMode = false; // 關閉模式旗標
+            exportQuoteId = null;      // 清除選取 ID
+            
+            const btn = document.getElementById('btnExportQuote');
+            if(btn) {
+                btn.classList.remove('btn-glow-red'); // 移除閃爍特效
+                const span = btn.querySelector('span');
+                if(span) span.innerText = '匯出報價單 (Quotation)'; // 恢復按鈕文字
+            }
+            
+            renderCurrentView(); // 重新渲染表格 (移除勾選框)
         }
 
-        // V3.71.2 功能已啟用：Undo/Redo 邏輯已在上方 (Line 441-456) 完整實作
+        // V3.8.2 功能已啟用：Undo/Redo 邏輯已在上方 (Line 441-456) 完整實作
         // 此處移除覆蓋用的預留函式，讓真正的還原/重作功能生效
         /* function triggerUndo() { ... } 
         function triggerRedo() { ... }
@@ -3079,6 +3206,174 @@ function renderCurrentView() {
             clearTimeout(copyToastTimer);
             copyToastTimer = setTimeout(() => t.classList.remove('toast-show'), 1000);
         };
+
+
+        // ==========================================
+        // V3.8 Profile System Logic
+        // ==========================================
+        function initProfileSystem() {
+            // 讀取設定檔列表
+            const savedMeta = localStorage.getItem(PROFILE_STORAGE_KEY);
+            if (savedMeta) {
+                profileMeta = JSON.parse(savedMeta);
+            } else {
+                // 首次執行，建立預設環境
+                profileMeta = { 
+                    list: [{id: 'default', name: '預設使用者', avatar: null}], 
+                    currentId: 'default' 
+                };
+                saveProfileMeta();
+            }
+            renderProfileUI();
+        }
+
+        function saveProfileMeta() {
+            localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(profileMeta));
+        }
+
+        function loadCurrentProfileData() {
+            const dbKey = profileMeta.currentId === 'default' ? 
+                          DEFAULT_DB_KEY : `workflowDB_profile_${profileMeta.currentId}`;
+            
+            const saved = localStorage.getItem(dbKey);
+            if(saved) {
+                db = JSON.parse(saved);
+            } else {
+                // 若新設定檔無資料，初始化為空
+                db = { projects: [], masterList: [], orders: [], tasks: [], quotes: [], contacts: [], codes: [] };
+            }
+            
+            // 確保資料結構完整
+            if(!db.masterList) db.masterList = [];
+            
+            // 重置 View
+            renderNav();
+            switchView('projects');
+            autoCheckShipment();
+            
+            // 重置 Undo/Redo Stack
+            historyStack = [];
+            redoStack = [];
+            lastSavedState = JSON.stringify(db);
+        }
+
+        function renderProfileUI() {
+            const currentP = profileMeta.list.find(p => p.id === profileMeta.currentId) || profileMeta.list[0];
+            
+            // Render Avatar
+            const imgEl = document.getElementById('displayAvatar');
+            if(currentP.avatar) {
+                imgEl.src = currentP.avatar;
+            } else {
+                // 預設圖片 (文字頭像)
+                imgEl.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(currentP.name)}&background=random&color=fff&size=128`;
+            }
+
+            // Render Name Input
+            document.getElementById('displayUserName').value = currentP.name;
+
+            // Render Dropdown
+            const selectEl = document.getElementById('profileSelect');
+            selectEl.innerHTML = profileMeta.list.map(p => 
+                `<option value="${p.id}" ${p.id === profileMeta.currentId ? 'selected' : ''}>${p.name}</option>`
+            ).join('');
+        }
+
+        function handleAvatarUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            // 限制檔案大小 (例如 1MB)，避免 LocalStorage 爆炸
+            if (file.size > 1024 * 1024) {
+                alert("圖片過大，請選擇小於 1MB 的圖片");
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const base64 = e.target.result;
+                const idx = profileMeta.list.findIndex(p => p.id === profileMeta.currentId);
+                if (idx !== -1) {
+                    profileMeta.list[idx].avatar = base64;
+                    saveProfileMeta();
+                    renderProfileUI();
+                    showToast("大頭照已更新");
+                }
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function handleNameChange(newName) {
+            if(!newName.trim()) return;
+            const idx = profileMeta.list.findIndex(p => p.id === profileMeta.currentId);
+            if (idx !== -1) {
+                profileMeta.list[idx].name = newName;
+                saveProfileMeta();
+                renderProfileUI(); // 更新下拉選單的文字
+            }
+        }
+
+        function createNewProfile() {
+            const name = prompt("請輸入新設定檔名稱：");
+            if (name) {
+                const newId = 'profile_' + Date.now();
+                profileMeta.list.push({ id: newId, name: name, avatar: null });
+                profileMeta.currentId = newId; // 切換到新帳號
+                saveProfileMeta();
+                
+                // 切換並載入空資料
+                renderProfileUI();
+                loadCurrentProfileData();
+                showToast(`已建立設定檔: ${name}`);
+            }
+        }
+
+        function switchProfile(id) {
+            if(id === profileMeta.currentId) return;
+            // 先儲存當前狀態 (雖然 saveToLocal 會自動存，但保險起見)
+            saveToLocal();
+            
+            profileMeta.currentId = id;
+            saveProfileMeta();
+            renderProfileUI();
+            
+            // 顯示載入中... (模擬)
+            document.getElementById('contentArea').style.opacity = '0.5';
+            setTimeout(() => {
+                loadCurrentProfileData();
+                document.getElementById('contentArea').style.opacity = '1';
+                showToast("已切換使用者");
+            }, 200);
+        }
+
+        function deleteCurrentProfile() {
+            if(profileMeta.list.length <= 1) {
+                alert("無法刪除最後一個設定檔");
+                return;
+            }
+            if(!confirm(`確定要刪除當前設定檔 (${document.getElementById('displayUserName').value}) 及其所有資料嗎？此動作無法復原！`)) {
+                return;
+            }
+
+            const deleteId = profileMeta.currentId;
+            const deleteDbKey = deleteId === 'default' ? DEFAULT_DB_KEY : `workflowDB_profile_${deleteId}`;
+
+            // 移除 Meta
+            profileMeta.list = profileMeta.list.filter(p => p.id !== deleteId);
+            // 切換回預設或第一個
+            profileMeta.currentId = profileMeta.list[0].id;
+            saveProfileMeta();
+
+            // 移除 LocalStorage 資料
+            localStorage.removeItem(deleteDbKey);
+
+            renderProfileUI();
+            loadCurrentProfileData();
+            showToast("設定檔已刪除");
+        }
+
+
     </script>
 </body>
 </html>
+
