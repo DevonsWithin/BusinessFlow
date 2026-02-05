@@ -1040,11 +1040,22 @@ id="batchDeleteBtn" onclick="deleteSelected()" class="hidden bg-red-900/50 hover
             el.onmouseup = () => clearTimeout(longPressTimer);
         }
 
-        function showToast() {
+        // [修正] 升級版 Toast：支援自訂訊息(HTML)、時間，若無參數則預設為"已複製"
+        function showToast(msg, duration = 3000) {
             const t = document.getElementById('toast');
+            
+            if (msg) {
+                // 有訊息時：支援 \n 換行，並使用 innerHTML 支援粗體
+                t.innerHTML = msg.replace(/\n/g, '<br>');
+            } else {
+                // 無訊息時 (複製功能呼叫)：維持短時間與預設文字
+                t.innerText = '已複製';
+                duration = 1000;
+            }
+
             t.classList.add('toast-show');
             clearTimeout(copyToastTimer);
-            copyToastTimer = setTimeout(() => t.classList.remove('toast-show'), 1000);
+            copyToastTimer = setTimeout(() => t.classList.remove('toast-show'), duration);
         }
 
         function renderNav() {
@@ -3113,7 +3124,9 @@ function renderCurrentView() {
                     switchView(currentView);
                     autoCheckShipment();
                     
-                    showToast("資料與使用者設定還原成功！");
+                    // [修正] 溫暖的歡迎訊息 (顯示 3 秒)
+                    const currentName = document.getElementById('displayUserName').value || '使用者';
+                    showToast(`還原成功✅\n歡迎回來，<b>${currentName}！</b>`, 3000);
                 } catch (err) {
                     console.error(err);
                     alert("還原失敗：無法解析 JSON 檔案。");
@@ -3189,7 +3202,7 @@ function renderCurrentView() {
             const borderNone = { style: "none" };
 
             const ws_data = [
-                [{ v: "Model " + model, s: { font: fontBold, fill: { fgColor: colorBgGray }, alignment: { wrapText: true, vertical: 'top' }, border: { top: borderThickGray, left: borderThickGray, right: borderThickGray, bottom: borderNone } } }],
+                [{ v: model, s: { font: fontBold, fill: { fgColor: colorBgGray }, alignment: { wrapText: true, vertical: 'top' }, border: { top: borderThickGray, left: borderThickGray, right: borderThickGray, bottom: borderNone } } }],
                 [{ v: price, s: { font: fontNormal, fill: { fgColor: colorBgGray }, alignment: { wrapText: true, vertical: 'top' }, border: { top: borderNone, left: borderThickGray, right: borderThickGray, bottom: borderThickBlue } } }],
                 [{ v: `(${project})`, s: { font: fontNormal, fill: { fgColor: colorBgGray }, alignment: { wrapText: true, vertical: 'top' }, border: { top: borderNone, left: borderThickGray, right: borderThickGray, bottom: borderNone } } }],
                 [{ v: `This quotation has been effective until ${date}\nDelivery term: ${incoterm} ${country}`, s: { font: fontItalic, fill: { fgColor: colorBgGray }, alignment: { wrapText: true, vertical: 'top' }, border: { top: borderNone, left: borderThickGray, right: borderThickGray, bottom: borderThickGray } } }],
@@ -3234,18 +3247,7 @@ function renderCurrentView() {
         function triggerRedo() { ... }
         */
         
-        // 為了共用 Toast，這裡稍微修改 showToast 使其支援自訂文字 (若原本沒有參數)
-        // 修正原本 showToast: function showToast() { ... }
-        // 若原程式碼已有 showToast() 且無參數，建議修改如下，或使用 alert 代替
-        const originalShowToast = showToast;
-        showToast = function(msg) {
-            const t = document.getElementById('toast');
-            if(msg) t.innerText = msg; // 支援動態文字
-            else t.innerText = '已複製'; // 預設文字
-            t.classList.add('toast-show');
-            clearTimeout(copyToastTimer);
-            copyToastTimer = setTimeout(() => t.classList.remove('toast-show'), 1000);
-        };
+        
 
 
         // ==========================================
