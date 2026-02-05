@@ -407,7 +407,7 @@
         
         <div id="userProfileSection" class="user-profile-section shrink-0">
             <div class="user-avatar-container" onclick="document.getElementById('avatarUpload').click()" title="更換頭像">
-                <img id="displayAvatar" src="https://via.placeholder.com/100" class="user-avatar" alt="User">
+                <img id="displayAvatar" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" class="user-avatar" alt="User">
                 <div class="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 hover:opacity-100 transition-opacity text-white text-xs rounded-full">
                     <i class="fas fa-camera"></i>
                 </div>
@@ -415,7 +415,10 @@
             <input type="file" id="avatarUpload" class="hidden" accept="image/*" onchange="handleAvatarUpload(event)">
             
             <div class="user-info w-full px-3">
-                <input type="text" id="displayUserName" class="user-name-input" placeholder="User Name" onchange="handleNameChange(this.value)">
+   
+                <input type="text" id="displayUserName" class="user-name-input" placeholder="User Name" 
+                       onblur="handleNameChange(this.value)" 
+                       onkeydown="if(event.key === 'Enter') this.blur()">
                 
                 <div class="profile-combo-box">
                     <select id="profileSelect" class="profile-selector" onchange="switchProfile(this.value)">
@@ -1175,87 +1178,124 @@ id="batchDeleteBtn" onclick="deleteSelected()" class="hidden bg-red-900/50 hover
 
         function openFilterMenu(e, key) {
             const menu = document.getElementById('filterMenu');
-            // Prevent if already open
             if(!menu.classList.contains('hidden') && currentFilterCol === key) return;
-            // Show Filter Menu
+            
             const uniqueValues = new Set();
-            const sourceData = currentView === 'tasks' && currentView !== 'activities' ? db.tasks.filter(t => !t.completed) : db[currentView === 'activities' ?
-            'tasks' : currentView];
+            // 1. 取得基礎資料來源
+            let sourceData = currentView === 'tasks' && currentView !== 'activities' ? 
+                db.tasks.filter(t => !t.completed) : db[currentView === 'activities' ? 'tasks' : currentView];
+            
+            // 2. [關鍵修正] 連動篩選：補上 achievement 的處理，確保篩選連動生效
+            if(activeFilters[currentView]) {
+                sourceData = sourceData.filter(item => {
+                    return Object.keys(activeFilters[currentView]).every(filterKey => {
+                        // 如果是自己這個欄位 (key)，則忽略
+                        if(filterKey === key) return true;
+                        
+                        const validSet = activeFilters[currentView][filterKey];
+                        if(!validSet || validSet.size === 0) return true;
+
+                        if(filterKey === 'star') return validSet.has(item.star ? 'true' : 'false');
+                        if(filterKey === 'tags') {
+                           if(!item.tags) return false;
+                           const itemTags = item.tags.split(/[,，]/).map(t=>t.trim());
+                           return [...validSet].some(filterTag => itemTags.includes(filterTag));
+                        }
+                        if(filterKey === 'latestStatus') {
+                             const st = getLatestStatus(item);
+                             return validSet.has(st.text);
+                        }
+                        // [新增] 達成數量篩選連動
+                        if(filterKey === 'achievement' && currentView === 'projects') {
+                             const ach = calculateAchievement(item);
+                             return validSet.has(ach.percent);
+                        }
+                        if(filterKey === 'dueDate' && currentView === 'orders') {
+                            const ships = item.shipments && item.shipments.length ? item.shipments : [{dueDate:item.dueDate}];
+                            return ships.some(s => validSet.has(s.dueDate||'-'));
+                        }
+                        
+                        const val = item[filterKey] ? item[filterKey].toString() : '';
+                        return validSet.has(val);
+                    });
+                });
+            }
+
+            // 3. 收集選項：補上 achievement 的選項生成
             sourceData.forEach(item => {
                 if(key === 'star') {
                     uniqueValues.add(item.star ? 'true' : 'false');
                 } else if(key === 'latestStatus') {
                      const st = getLatestStatus(item);
                      if(st.text) uniqueValues.add(st.text);
+                } else if(key === 'achievement' && currentView === 'projects') {
+                     // [新增] 達成數量選項
+                     const ach = calculateAchievement(item);
+                     uniqueValues.add(ach.percent);
+                } else if(key === 'dueDate' && currentView === 'orders') {
+                     const ships = item.shipments && item.shipments.length ? item.shipments : [{dueDate:item.dueDate}];
+                     ships.forEach(s => { if(s.dueDate) uniqueValues.add(s.dueDate); });
                 } else {
-                    // 修正：針對 Agent 允許空值 (直客)，其他欄位維持有值才加入
                     const val = item[key] ? item[key].toString() : '';
                     if (val !== '' || key === 'agent') {
                         uniqueValues.add(val);
                     }
                 }
             });
+            
             currentFilterCol = key;
             const container = document.getElementById('filterOptions');
             container.innerHTML = '';
-            // Init active filters
             if(!activeFilters[currentView]) activeFilters[currentView] = {};
             const currentSet = activeFilters[currentView][key] || new Set([...uniqueValues]); 
 
-            // Render Options
-            Array.from(uniqueValues).sort().forEach(val => {
-                const div = document.createElement('div');
-                div.className = 'flex items-center gap-2 hover:bg-white/5 p-1 rounded cursor-pointer';
-                div.onclick = (e) => {
-                    const cb = div.querySelector('input');
-                    if(e.target !== cb) cb.checked = !cb.checked;
-                };
-                let displayVal = val;
-                if(key === 'star') {
-                    displayVal = val === 'true' ? '<i class="fas fa-star text-yellow-500"></i>' : '<span class="text-gray-500">無星星</span>';
-                } else if (key === 'agent' && val === '') {
-                    displayVal = '<span class="text-gray-400 italic">(直客)</span>';
-                }
+            if (uniqueValues.size === 0) {
+                 container.innerHTML = '<div class="p-2 text-gray-500 text-xs italic">無符合選項</div>';
+            } else {
+                Array.from(uniqueValues).sort().forEach(val => {
+                    const div = document.createElement('div');
+                    div.className = 'flex items-center gap-2 hover:bg-white/5 p-1 rounded cursor-pointer';
+                    div.onclick = (e) => {
+                        const cb = div.querySelector('input');
+                        if(e.target !== cb) cb.checked = !cb.checked;
+                    };
+                    let displayVal = val;
+                    if(key === 'star') {
+                        displayVal = val === 'true' ? '<i class="fas fa-star text-yellow-500"></i>' : '<span class="text-gray-500">無星星</span>';
+                    } else if (key === 'agent' && val === '') {
+                        displayVal = '<span class="text-gray-400 italic">(直客)</span>';
+                    }
+                    div.innerHTML = `<input type="checkbox" class="accent-orange-500 filter-check" value="${val}" ${currentSet.has(val)?'checked':''}> <span class="text-xs text-gray-300 truncate">${displayVal}</span>`;
+                    container.appendChild(div);
+                });
+            }
 
-                div.innerHTML = `<input type="checkbox" class="accent-orange-500 filter-check" value="${val}" ${currentSet.has(val)?'checked':''}> <span class="text-xs text-gray-300 truncate">${displayVal}</span>`;
-                container.appendChild(div);
-            });
-            // V3.5.6 Sorting Options
+            // Sort Section setup
             const sortSection = document.getElementById('sortSection');
             const sortSelect = document.getElementById('filterSortSelect');
             sortSelect.innerHTML = '<option value="">(預設)</option>';
             let showSort = false;
             const addOpt = (val, txt) => sortSelect.innerHTML += `<option value="${val}" ${activeSort && activeSort.col===key && activeSort.order===val ? 'selected' : ''}>${txt}</option>`;
+            
             // Logic per View & Column
             if (currentView === 'projects') {
-                if (key === 'latestStatus') { showSort = true;
-                addOpt('new', '活動日期(新→舊)'); addOpt('old', '活動日期(舊→新)'); }
-                if (['project','agent','endUser','size','model','budget'].includes(key)) { showSort = true;
-                addOpt('az', '字母順序(A→Z)'); addOpt('za', '字母順序(Z→A)'); }
-                if (key === 'achievement') { showSort = true;
-                addOpt('az', '字母順序(A→Z)'); addOpt('za', '字母順序(Z→A)'); }
+                if (key === 'latestStatus') { showSort = true; addOpt('new', '活動日期(新→舊)'); addOpt('old', '活動日期(舊→新)'); }
+                if (['project','agent','endUser','size','model','budget'].includes(key)) { showSort = true; addOpt('az', '字母順序(A→Z)'); addOpt('za', '字母順序(Z→A)'); }
+                if (key === 'achievement') { showSort = true; addOpt('az', '數值 (小→大)'); addOpt('za', '數值 (大→小)'); }
             } else if (currentView === 'orders') {
-                if (['project','agent','endUser','model'].includes(key)) { showSort = true;
-                addOpt('az', '字母順序(A→Z)'); addOpt('za', '字母順序(Z→A)'); }
-                if (key === 'dueDate' || key === 'statusDesc') { showSort = true;
-                addOpt('az', '字母順序(A→Z)'); addOpt('za', '字母順序(Z→A)'); } 
+                if (['project','agent','endUser','model'].includes(key)) { showSort = true; addOpt('az', '字母順序(A→Z)'); addOpt('za', '字母順序(Z→A)'); }
+                if (key === 'dueDate' || key === 'statusDesc') { showSort = true; addOpt('az', '字母順序(A→Z)'); addOpt('za', '字母順序(Z→A)'); } 
             } else if (currentView === 'tasks' || currentView === 'activities') {
-                if (['project','agent','endUser','model'].includes(key)) { showSort = true;
-                addOpt('az', '字母順序(A→Z)'); addOpt('za', '字母順序(Z→A)'); }
-                if (key === 'trackDate') { showSort = true;
-                addOpt('new', '活動日期(新→舊)'); addOpt('old', '活動日期(舊→新)'); }
+                if (['project','agent','endUser','model'].includes(key)) { showSort = true; addOpt('az', '字母順序(A→Z)'); addOpt('za', '字母順序(Z→A)'); }
+                if (key === 'trackDate') { showSort = true; addOpt('new', '活動日期(新→舊)'); addOpt('old', '活動日期(舊→新)'); }
             } else if (currentView === 'quotes') {
-                if (['project','agent','endUser','model'].includes(key)) { showSort = true;
-                addOpt('az', '字母順序(A→Z)'); addOpt('za', '字母順序(Z→A)'); }
-                if (key === 'date') { showSort = true;
-                addOpt('new', '活動日期(新→舊)'); addOpt('old', '活動日期(舊→新)'); }
+                if (['project','agent','endUser','model'].includes(key)) { showSort = true; addOpt('az', '字母順序(A→Z)'); addOpt('za', '字母順序(Z→A)'); }
+                if (key === 'date') { showSort = true; addOpt('new', '活動日期(新→舊)'); addOpt('old', '活動日期(舊→新)'); }
             } else if (currentView === 'masterList') {
-                if (['project','agent','endUser','eau','size','model'].includes(key)) { showSort = true;
-                addOpt('az', '字母順序(A→Z)'); addOpt('za', '字母順序(Z→A)'); }
+                if (['project','agent','endUser','eau','size','model'].includes(key)) { showSort = true; addOpt('az', '字母順序(A→Z)'); addOpt('za', '字母順序(Z→A)'); }
             }
 
             sortSection.classList.toggle('hidden', !showSort);
-            // Position Menu
             menu.style.left = Math.min(e.clientX, window.innerWidth - 270) + 'px';
             menu.style.top = Math.min(e.clientY, window.innerHeight - 450) + 'px';
             menu.classList.remove('hidden');
@@ -1322,14 +1362,12 @@ function renderCurrentView() {
                     { t: 'Project', w: projectColW, k:'project', c: 'sticky-col col-1 text-small-gray' },
                     { t: 'Agent', w: '80px', k:'agent', c: 'sticky-col col-2 text-small-gray' },
                     { t: 'End User', w: '80px', k:'endUser', c: 'sticky-col col-3 text-small-gray' },
-                    // [修正] Size: 表頭置中 (text-center)
                     { t: 'Size', w: '60px', k:'size', c: 'sticky-col col-4 text-center' },
                     modelColSpec,
                     { t: '<i class="fas fa-history mr-1"></i>最新動態', w: '120px', k:'latestStatus', c: 'sticky-col col-6 col-latest' },
                     { t: '標籤', w: '150px', k:'tags' },
                     { t: '狀況概述', w: '250px', k:'summary' },
                     { t: '達成數量', w: '80px', k:'achievement' },
-                    // [修正] 當年預算: 表頭置中
                     { t: '當年預算', w: '80px', k:'budget', c: 'text-center' },
                     { t: 'Active', w: '60px', k:'active' },
                     { t: 'PLM#', w: '80px', k:'plm' },
@@ -1343,9 +1381,7 @@ function renderCurrentView() {
                     { t: 'Agent', w: '80px', k:'agent', c: 'sticky-col col-2 text-small-gray' },
                     { t: 'End User', w: '80px', k:'endUser', c: 'sticky-col col-3 text-small-gray' },
                     { t: 'Application', w: '100px', k:'application' },
-                    // [修正] EAU: 表頭置中
                     { t: 'EAU', w: '80px', k:'eau', c: 'text-center' },
-                    // [修正] Size: 表頭置中
                     { t: 'Size', w: '60px', k:'size', c: 'text-center' },
                     { t: 'Model', w: '150px', k:'model', c:'text-model text-[10px]' },
                     { t: '標籤', w: '150px', k:'tags' },
@@ -1358,17 +1394,16 @@ function renderCurrentView() {
                     commonOps
                 ];
             } else if (currentView === 'tasks' || currentView === 'activities') {
-                sourceData = currentView === 'tasks' ?
-                db.tasks.filter(t => !t.completed) : db.tasks;
+                sourceData = currentView === 'tasks' ? db.tasks.filter(t => !t.completed) : db.tasks;
                 columns = [
                     { t: '★', w: '40px', c: 'sticky-col col-0 text-center' }, 
                     { t: 'Project', w: '150px', k: 'project', c: 'sticky-col col-1 text-small-gray' }, 
                     { t: 'Agent', w: '100px', k: 'agent', c: 'sticky-col col-2 text-small-gray' }, 
-                    /* 修正：End User 寬度改為 80px 以匹配 col-3 的 CSS 定位 */
                     { t: 'End User', w: '80px', k: 'endUser', c: 'sticky-col col-3 text-small-gray' },
-                    /* 修正：Model 改為 col-4 (緊接 col-3)，消除與 End User 之間的空隙 */
                     { t: 'Model', w: '150px', k: 'model', c: 'sticky-col col-4 text-model text-[10px]' },
-                    { t: '任務', w: '80px', k: 'taskType' }, { t: '任務說明', w: '200px', k: 'desc' }, { t: '文件#', w: '100px', k: 'docNum' },
+                    { t: '任務', w: '80px', k: 'taskType' }, 
+                    { t: '任務說明', w: '200px', k: 'desc' }, 
+                    { t: '文件#', w: '100px', k: 'docNum' },
                     { t: '起始/追蹤', w: '120px', k: 'trackDate' }, 
                     { t: '狀態', w: '80px' }, 
                     { t: '完成日', w: '100px', k: 'completedDate' },
@@ -1377,10 +1412,17 @@ function renderCurrentView() {
             } else if (currentView === 'orders') {
                 sourceData = db.orders;
                 columns = [
-                    { t: '★', w: '40px' }, { t: 'Project', w: '120px', k:'project' }, { t: 'Agent', w: '80px', k:'agent' }, { t: 'End User', w: '80px', k:'endUser' },
+                    { t: '★', w: '40px' }, 
+                    { t: 'Project', w: '120px', k:'project' }, 
+                    { t: 'Agent', w: '80px', k:'agent' }, 
+                    { t: 'End User', w: '80px', k:'endUser' },
                     { t: 'Model', w: '100px', c:'text-model', k:'model' }, 
-                    { t: 'PO#', w: '100px', k:'po' }, { t: 'Qty', w: '60px', k:'qty' },
-                    { t: '交期', w: '100px', k:'dueDate' }, { t: '出貨', w: '60px' }, { t: '狀態說明', w: '150px', k:'statusDesc' }, commonOps
+                    { t: 'PO#', w: '100px', k:'po' }, 
+                    { t: 'Qty', w: '60px', k:'qty' },
+                    { t: '交期', w: '100px', k:'dueDate' }, 
+                    { t: '出貨', w: '60px' }, 
+                    { t: '狀態說明', w: '150px', k:'statusDesc' }, 
+                    commonOps
                 ];
             } else if (currentView === 'quotes') {
                 sourceData = db.quotes;
@@ -1389,23 +1431,36 @@ function renderCurrentView() {
                     { t: 'Agent', w: '100px', k:'agent', c: 'text-xs' }, 
                     { t: 'End User', w: '100px', k:'endUser', c: 'text-xs' },
                     { t: 'Model', w: '130px', k:'model', c: 'text-model text-xs font-bold' },
-                    { t: '日期', w: '70px', k:'date' }, { t: '業務報價', w: '100px', c:'text-orange-300 font-bold', k:'salesPrice' },
-                    { t: 'FAE報價', w: '100px', k:'faePrice' }, { t: 'REF#', w: '100px', k:'ref', c: 'text-xs text-gray-400' }, { t: '說明', w: '200px', k:'desc' }, { t: '操作', 
-                    w: '60px', c:'sticky-right' }
+                    { t: '日期', w: '70px', k:'date' }, 
+                    { t: '業務報價', w: '100px', c:'text-orange-300 font-bold', k:'salesPrice' },
+                    { t: 'FAE報價', w: '100px', k:'faePrice' }, 
+                    { t: 'REF#', w: '100px', k:'ref', c: 'text-xs text-gray-400' }, 
+                    { t: '說明', w: '200px', k:'desc' }, 
+                    { t: '操作', w: '60px', c:'sticky-right' }
                 ];
             } else if (currentView === 'contacts') {
                 sourceData = db.contacts;
                 columns = [
-                    { t: '★', w: '40px' }, { t: 'Agent', w: '120px', k:'agent' }, { t: 'End User', w: '120px', k:'endUser' },
-                    { t: 'Name', w: '100px', k:'name' }, { t: 'Email', w: '150px', k:'email' },
-                    { t: 'Position', w: '120px', k:'position' }, { t: 'Phone', w: '120px', k:'phone' }, { t: 'Address', w: '200px', k:'address' },
-                    { t: 'Remark', w: '150px', k:'remark' }, commonOps
+                    { t: '★', w: '40px' }, 
+                    { t: 'Agent', w: '120px', k:'agent' }, 
+                    { t: 'End User', w: '120px', k:'endUser' },
+                    { t: 'Name', w: '100px', k:'name' }, 
+                    { t: 'Email', w: '150px', k:'email' },
+                    { t: 'Position', w: '120px', k:'position' }, 
+                    { t: 'Phone', w: '120px', k:'phone' }, 
+                    { t: 'Address', w: '200px', k:'address' },
+                    { t: 'Remark', w: '150px', k:'remark' }, 
+                    commonOps
                 ];
             } else if (currentView === 'codes') {
                 sourceData = db.codes;
                 columns = [
-                    { t: 'Agent', w: '150px', k:'agent' }, { t: 'End User', w: '150px', k:'endUser' }, { t: 'Code', w: '100px', c:'text-model', k:'code' },
-                    { t: 'Pricing', w: '100px', k:'pricing' }, { t: 'Logistics', w: '100px', k:'logistics' }, { t: 'Remark', w: '200px', k:'remark' },
+                    { t: 'Agent', w: '150px', k:'agent' }, 
+                    { t: 'End User', w: '150px', k:'endUser' }, 
+                    { t: 'Code', w: '100px', c:'text-model', k:'code' },
+                    { t: 'Pricing', w: '100px', k:'pricing' }, 
+                    { t: 'Logistics', w: '100px', k:'logistics' }, 
+                    { t: 'Remark', w: '200px', k:'remark' },
                     { t: '操作', w: '60px', c:'sticky-right' }
                 ];
             }
@@ -1421,22 +1476,14 @@ function renderCurrentView() {
                 columns[0] = { 
                     t: '<input type="checkbox" onchange="toggleAddMasterSelectAll(this)" class="accent-orange-500 cursor-pointer">', 
                     w: '40px', c:'sticky-col col-0 text-center' 
-               };
+                };
             }
 
-            // 新增：匯出報價單模式的單選框
             if(isExportQuoteMode && currentView === 'quotes') {
                 columns.unshift({
                     t: '<span class="text-xs text-orange-500">選取</span>',
                     w: '50px', c: 'sticky-col col-0 text-center'
                 });
-            }
-
-            if(isAddToProjectMode && currentView === 'masterList') {
-                columns[0] = { 
-                    t: '<input type="checkbox" onchange="toggleAddMasterSelectAll(this)" class="accent-orange-500 cursor-pointer">', 
-                    w: '40px', c:'sticky-col col-0 text-center' 
-                };
             }
 
             // 產生表頭 HTML
@@ -1447,54 +1494,72 @@ function renderCurrentView() {
                             class="${c.c||''}"
                             onmousedown="startHeaderLongPress(event, '${c.k}')"
                             onmouseup="cancelHeaderLongPress()"
-                    >${c.t}${filterIcon}</th>`
+                        >${c.t}${filterIcon}</th>`
             }).join('')}</tr>`;
-            
-            // 執行篩選
+
+            // 篩選邏輯重構 (必須與 openFilterMenu 保持一致)
             let filtered = sourceData;
             if(activeFilters[currentView]) {
-                Object.keys(activeFilters[currentView]).forEach(key => {
-                    const validSet = activeFilters[currentView][key];
-                    if(validSet) {
-                        filtered = filtered.filter(item => {
-                            if(key === 'star') return validSet.has(item.star ? 'true' : 'false');
-                            if(key === 'tags') {
-                               if(!item.tags) return false;
-                               const itemTags = item.tags.split(/[,，]/).map(t=>t.trim());
-                               return [...validSet].some(filterTag => itemTags.includes(filterTag));
-                            }
-                            if(key === 'latestStatus') {
-                                 const st = getLatestStatus(item);
-                                 return validSet.has(st.text);
-                             }
-                            if(key === 'dueDate' && currentView === 'orders') {
-                                const ships = item.shipments && item.shipments.length ?
-                                    item.shipments : [{dueDate:item.dueDate}];
-                                return ships.some(s => validSet.has(s.dueDate||'-'));
-                            }
-                            const val = item[key] ? item[key].toString() : '';
-                            return validSet.has(val); 
-                        });
-                    }
+                filtered = filtered.filter(item => {
+                    return Object.keys(activeFilters[currentView]).every(key => {
+                        const validSet = activeFilters[currentView][key];
+                        if(!validSet) return true;
+
+                        if(key === 'star') return validSet.has(item.star ? 'true' : 'false');
+                        if(key === 'tags') {
+                           if(!item.tags) return false;
+                           const itemTags = item.tags.split(/[,，]/).map(t=>t.trim());
+                           return [...validSet].some(filterTag => itemTags.includes(filterTag));
+                        }
+                        if(key === 'latestStatus') {
+                             const st = getLatestStatus(item);
+                             return validSet.has(st.text);
+                        }
+                        if(key === 'dueDate' && currentView === 'orders') {
+                            const ships = item.shipments && item.shipments.length ? item.shipments : [{dueDate:item.dueDate}];
+                            return ships.some(s => validSet.has(s.dueDate||'-'));
+                        }
+                        // [新增] 達成數量篩選連動 (修正篩選無效問題)
+                        if(key === 'achievement' && currentView === 'projects') {
+                            const ach = calculateAchievement(item);
+                            return validSet.has(ach.percent);
+                        }
+
+                        const val = item[key] ? item[key].toString() : '';
+                        return validSet.has(val);
+                    });
                 });
             }
 
             filtered = filtered.filter(item => Object.values(item).join(' ').toLowerCase().includes(search));
-            
-            // [修正] 排序功能核心
+
+            // 排序核心功能
             const doSort = (a, b) => {
-                // 安全的時間轉換，空值視為 0
                 const safeTime = (d) => d ? new Date(d).getTime() : 0;
 
                 // 0. Active false 沉底
                 if (a.active !== false && b.active === false) return -1;
                 if (a.active === false && b.active !== false) return 1;
 
-                // 1. 指定欄位排序 (Header Click - activeSort)
+                // 1. 指定欄位排序
                 if(activeSort) {
                     const { col, order } = activeSort;
                     let valA, valB;
-                    if(col === 'latestStatus') {
+                    
+                    if (col === 'achievement') {
+                        const getAchVal = (i) => {
+                            try {
+                                return parseFloat(calculateAchievement(i).percent) || 0;
+                            } catch(e) { return 0; }
+                        };
+                        valA = getAchVal(a);
+                        valB = getAchVal(b);
+                        
+                        if(order === 'az') return valA - valB; 
+                        if(order === 'za') return valB - valA; 
+                        return 0;
+                    } 
+                    else if(col === 'latestStatus') {
                         valA = getLatestStatus(a).date || '';
                         valB = getLatestStatus(b).date || '';
                         if(order === 'new') return safeTime(valB) - safeTime(valA);
@@ -1504,14 +1569,11 @@ function renderCurrentView() {
                         valB = b.trackDate || b.startDate || '';
                         if(order === 'new') return safeTime(valB) - safeTime(valA);
                         if(order === 'old') return safeTime(valA) - safeTime(valB);
-                    } else if (col === 'achievement') {
-                        const achA = calculateAchievement(a).percent;
-                        const achB = calculateAchievement(b).percent;
-                        valA = parseFloat(achA) || 0;
-                        valB = parseFloat(achB) || 0;
                     } else if (col === 'budget') {
-                        valA = parseFloat(a.budget) || 0;
-                        valB = parseFloat(b.budget) || 0;
+                        valA = parseFloat((a.budget||'0').toString().replace(/,/g,'')) || 0;
+                        valB = parseFloat((b.budget||'0').toString().replace(/,/g,'')) || 0;
+                        if(order === 'az') return valA - valB; 
+                        if(order === 'za') return valB - valA;
                     } else if (col === 'dueDate' && currentView === 'orders') {
                          const getEarliest = (i) => {
                               const ships = i.shipments || [{dueDate:i.dueDate}];
@@ -1530,19 +1592,16 @@ function renderCurrentView() {
                     if(order === 'za') return valB.toString().localeCompare(valA.toString());
                 }
 
-                // 2. 全域預設排序 (Global Dropdown)
-                // [修正] 案子列表：依最新動態日期排序
+                // 2. 全域預設排序
                 if (currentView === 'projects' && (sortMode === 'date_new' || sortMode === 'date_old')) {
                     const dateA = getLatestStatus(a).date || '';
                     const dateB = getLatestStatus(b).date || '';
-                    if(sortMode === 'date_new') return safeTime(dateB) - safeTime(dateA); // 新 -> 舊 (Desc)
-                    if(sortMode === 'date_old') return safeTime(dateA) - safeTime(dateB); // 舊 -> 新 (Asc)
+                    if(sortMode === 'date_new') return safeTime(dateB) - safeTime(dateA);
+                    if(sortMode === 'date_old') return safeTime(dateA) - safeTime(dateB);
                 } 
                 
-                // 其他預設 (Tasks 走下方特殊邏輯，此處備用)
                 let valA = a.updatedAt || a.date || a.startDate || ''; 
                 let valB = b.updatedAt || b.date || b.startDate || '';
-
                 if(sortMode === 'date_new') return new Date(valB) - new Date(valA);
                 if(sortMode === 'date_old') return new Date(valA) - new Date(valB);
                 if(sortMode === 'az') return (a.project || a.agent || '').localeCompare(b.project || b.agent || '');
@@ -1550,32 +1609,22 @@ function renderCurrentView() {
                 return 0;
             };
 
-            // [修正] 任務/活動：特殊排序邏輯 (過期置頂 + 預設排序)
             if(currentView === 'tasks' || currentView === 'activities') {
                 const today = new Date().toISOString().split('T')[0];
                 const getMs = (d) => d ? new Date(d).getTime() : 9999999999999;
-                
-                // 判定過期：未完成、Active、TrackDate < Today
                 const isOverdue = (t) => !t.completed && t.active !== false && t.trackDate && t.trackDate < today;
-                
                 const overdueItems = filtered.filter(isOverdue);
                 const normalItems = filtered.filter(t => !isOverdue(t));
-                
-                // 1. 過期區塊：永遠置頂，依 trackDate 遠 -> 近 (舊 -> 新, 最急的在最上面)
                 overdueItems.sort((a,b) => getMs(a.trackDate) - getMs(b.trackDate));
                 
-                // 2. 未過期區塊：
-                // 如果沒有指定 Header 排序 (activeSort)
                 if (!activeSort) {
                     if (sortMode === 'date_new') {
-                        // 使用者選擇「新→舊」 (Far -> Near, 降冪)
-                        normalItems.sort((a, b) => {
+                         normalItems.sort((a, b) => {
                              if (a.active !== false && b.active === false) return -1;
                              if (a.active === false && b.active !== false) return 1;
                              return getMs(b.trackDate) - getMs(a.trackDate);
                         });
                     } else {
-                        // 使用者選擇「舊→新」 OR 預設狀態 (Near -> Far, 升冪)
                         normalItems.sort((a, b) => {
                              if (a.active !== false && b.active === false) return -1;
                              if (a.active === false && b.active !== false) return 1;
@@ -1583,10 +1632,8 @@ function renderCurrentView() {
                         });
                     }
                 } else {
-                    // 若有選 Header 排序，則依 doSort
                     normalItems.sort(doSort);
                 }
-                
                 filtered = [...overdueItems, ...normalItems];
             } else {
                 filtered.sort(doSort);
@@ -1609,6 +1656,7 @@ function renderCurrentView() {
                     };
                     tr.onmouseup = cancelLongPress;
                     tr.onmouseleave = cancelLongPress;
+                 
                     if(item.active === false || item.completed) tr.style.opacity = '0.5';
 
                     const isSel = selectedIds.has(item.id);
@@ -1617,42 +1665,30 @@ function renderCurrentView() {
                     const actionsHTML = `<div class="flex justify-center gap-2 h-full items-center"><button onclick="openModal('edit', ${item.id})" class="text-gray-400 hover:text-white"><i class="fas fa-edit"></i></button><button onclick="deleteItem(${item.id})" class="text-red-900 hover:text-red-500"><i class="fas fa-trash-alt"></i></button></div>`;
                     const checkHTML = `<input type="checkbox" class="accent-orange-500 row-check cursor-pointer transform scale-125" value="${item.id}" ${isSel?'checked':''} onchange="toggleSelectRow(${item.id})">`;
                     
-                    // [修正] genCell 增加 extraTooltip 參數，用於將 FAE 報價等資訊放入藍色浮動視窗
                     const genCell = (val, fieldName, alignClass = '', extraTooltip = null) => {
                         const comment = (item.comments || []).find(c => c.field === fieldName);
                         const hasCommentClass = comment ? 'has-comment' : '';
                         const displayVal = val || '';
-                        // 新增：處理顯示在「表格格子」內的文字，將換行符號替換為 " / "，以便在單行空間顯示多行結構
                         const cellDisplayText = displayVal.toString().replace(/(\r\n|\n|\r)/g, " / ");
-                        // 處理傳給「浮動視窗」的文字：保留換行符號 (轉義為 \n 供 JS 使用)
                         const escapeStr = (str) => {
                             if (!str) return '';
-                            return str.toString()
-                                .replace(/\\/g, "\\\\") 
-                                .replace(/'/g, "&#39;")
-                                .replace(/(\r\n|\n|\r)/g, "\\n");
+                            return str.toString().replace(/\\/g, "\\\\").replace(/'/g, "&#39;").replace(/(\r\n|\n|\r)/g, "\\n");
                         };
-
                         const safeVal = escapeStr(displayVal);
-                        
-                        // 組合註解與額外提示 (FAE 報價)
                         let rawComment = comment ? comment.text : '';
                         if (extraTooltip) {
                             const tooltipInfo = `FAE報價: ${extraTooltip}`;
-                            // 若原本有註解，則用分隔線接續顯示；若無，則直接顯示 extraTooltip
                             if (rawComment) rawComment = tooltipInfo + "\n----------------\n" + rawComment;
                             else rawComment = tooltipInfo;
                         }
-
                         const commentText = escapeStr(rawComment);
-
                         return `<div class="cell-content ${hasCommentClass} ${alignClass}" 
                                     onmouseleave="startFloatCloseTimer()"
                                     onmouseenter="handleCellHover(this, '${commentText}', '${safeVal}', false)"
                                     onclick="handleCellHover(this, '${commentText}', '${safeVal}', true)"
                                     onmousedown="handleLongPressCopy(this)">
                                     ${cellDisplayText}
-                                   </div>`;
+                                  </div>`;
                     };
 
                     let cells = '';
@@ -1689,9 +1725,7 @@ function renderCurrentView() {
                     } else if (currentView === 'masterList') {
                         const lastQuote = db.quotes.filter(q => q.project === item.project).sort((a,b)=>new Date(b.date)-new Date(a.date))[0];
                         const displayPrice = lastQuote ? lastQuote.salesPrice : (item.salesPrice || '');
-                        // 新增：取得 FAE 報價 (若有報價單)
                         const displayFae = lastQuote ? lastQuote.faePrice : '';
-
                         const displayEau = item.eau ? parseFloat(item.eau.toString().replace(/,/g,'')).toLocaleString() : '';
                         let col0Content = '';
                         if(isAddToProjectMode) {
@@ -1701,7 +1735,6 @@ function renderCurrentView() {
                                 col0Content = `<input type="checkbox" class="accent-orange-500 master-add-check cursor-pointer transform scale-125" value="${item.id}" ${isChecked?'checked':''} onchange="toggleAddMasterSelect(${item.id})">`;
                             }
                         }
-                        
                         cells = `
                             <td class="sticky-col col-0 text-center"><div class="cell-content justify-center">${col0Content}</div></td>
                             <td class="sticky-col col-1 text-small-gray">${genCell(item.project, 'project')}</td>
@@ -1716,8 +1749,7 @@ function renderCurrentView() {
                             <td>${genCell(item.remark, 'remark')}</td>
                             <td>${genCell(item.contact, 'contact')}</td>
                             <td>${genCell(item.cusPN, 'cusPN')}</td>
-                            <td class="text-center"><div class="cell-content justify-center">${item.active!==false ?
-                            'Y' : 'N'}</div></td>
+                            <td class="text-center"><div class="cell-content justify-center">${item.active!==false ? 'Y' : 'N'}</div></td>
                             <td>${genCell(item.plm, 'plm')}</td>
                             <td class="text-center sticky-right">${actionsHTML}</td>
                         `;
@@ -1746,8 +1778,7 @@ function renderCurrentView() {
                         <td class="text-xs text-gray-400">${displayCompDate}</td>
                         <td class="text-center sticky-right">${actionsHTML}</td>`;
                     } else if (currentView === 'orders') {
-                        const ships = item.shipments && item.shipments.length ?
-                            item.shipments : [{dueDate: item.dueDate, qty: item.qty, isShipped: item.isShipped}];
+                        const ships = item.shipments && item.shipments.length ? item.shipments : [{dueDate: item.dueDate, qty: item.qty, isShipped: item.isShipped}];
                         const qtysHtml = ships.map(s => `<div>${s.qty||0}</div>`).join('');
                         const datesHtml = ships.map(s => `<div>${s.dueDate||'-'}</div>`).join('');
                         const shippedHtml = ships.map(s => s.isShipped ? '<span class="text-green-500">✓</span>' : '<span class="text-gray-600">-</span>').join('<br>');
@@ -1758,20 +1789,18 @@ function renderCurrentView() {
                             <td class="text-center text-xs"><div class="cell-content flex-col justify-center">${shippedHtml}</div></td>
                             <td>${genCell(item.statusDesc,'statusDesc')}</td><td class="text-center sticky-right">${actionsHTML}</td>`;
                     } else if (currentView === 'quotes') {
-                // 新增：匯出模式 Checkbox (Radio behavior)
-                let quoteCheckHtml = '';
-                if (isExportQuoteMode) {
-                    const isChecked = item.id === exportQuoteId;
-                    quoteCheckHtml = `<td class="sticky-col col-0 text-center">
-                                <input type="checkbox" class="accent-orange-500 cursor-pointer transform scale-125" 
-                                ${isChecked ? 'checked' : ''} onchange="toggleExportQuoteSelect(${item.id})">
-                            </td>`;
-                }
-
-                cells = `${quoteCheckHtml}<td class="text-xs">${genCell(item.project,'project')}</td><td class="text-xs">${genCell(item.agent,'agent')}</td><td class="text-xs">${genCell(item.endUser,'endUser')}</td>
-                        <td class="text-model text-[10px]">${genCell(item.model,'model')}</td>
-                        <td class="text-[10px] text-gray-400">${item.date}</td><td class="text-[#E34D00] font-bold text-xs">${genCell(item.salesPrice,'salesPrice')}</td>
-                        <td class="text-[10px] text-gray-400">${genCell(item.faePrice,'faePrice')}</td><td class="text-xs text-gray-400">${genCell(item.ref,'ref')}</td><td>${genCell(item.desc,'desc')}</td><td class="text-center sticky-right">${actionsHTML}</td>`;
+                        let quoteCheckHtml = '';
+                        if (isExportQuoteMode) {
+                            const isChecked = item.id === exportQuoteId;
+                            quoteCheckHtml = `<td class="sticky-col col-0 text-center">
+                                            <input type="checkbox" class="accent-orange-500 cursor-pointer transform scale-125" 
+                                            ${isChecked ? 'checked' : ''} onchange="toggleExportQuoteSelect(${item.id})">
+                                        </td>`;
+                        }
+                        cells = `${quoteCheckHtml}<td class="text-xs">${genCell(item.project,'project')}</td><td class="text-xs">${genCell(item.agent,'agent')}</td><td class="text-xs">${genCell(item.endUser,'endUser')}</td>
+                                <td class="text-model text-[10px]">${genCell(item.model,'model')}</td>
+                                <td class="text-[10px] text-gray-400">${item.date}</td><td class="text-[#E34D00] font-bold text-xs">${genCell(item.salesPrice,'salesPrice')}</td>
+                                <td class="text-[10px] text-gray-400">${genCell(item.faePrice,'faePrice')}</td><td class="text-xs text-gray-400">${genCell(item.ref,'ref')}</td><td>${genCell(item.desc,'desc')}</td><td class="text-center sticky-right">${actionsHTML}</td>`;
                     } else if (currentView === 'contacts') {
                         cells = `<td class="text-center"><div class="cell-content justify-center">${starHTML}</div></td><td>${genCell(item.agent,'agent')}</td><td>${genCell(item.endUser,'endUser')}</td>
                             <td>${genCell(item.name,'name')}</td><td>${genCell(item.email,'email')}</td>
@@ -1856,14 +1885,25 @@ function renderCurrentView() {
         str.split(/[,，]/).filter(t=>t.trim()).map(t => `<span class="tag-badge tag-blue">${t.trim()}</span>`).join('') : ''; }
         
         function calculateAchievement(proj) { 
-            const budget = parseFloat(proj.budget)||0;
-            const qty = db.orders.filter(o=>o.project===proj.project)
-                         .reduce((s,o)=> {
-                             const ships = o.shipments || [{qty: o.qty}];
-                             return s + ships.reduce((ss, sh) => ss 
-                                + (parseFloat(sh.qty)||0), 0);
-                         }, 0);
-            return {qty, percent: budget?Math.round((qty/budget)*100)+'%':'0%'}; 
+            // [修正] 增加移除逗號的邏輯，確保數字解析正確
+            const cleanNum = (n) => parseFloat((n||'').toString().replace(/,/g,'')) || 0;
+            const budget = cleanNum(proj.budget);
+            
+            // [安全防護] 確保 db.orders 存在，避免初始化未完成時報錯 (這是防止排序後資料消失的關鍵)
+            const orders = (db && db.orders) ? db.orders : [];
+
+            try {
+                const qty = orders.filter(o => o.project === proj.project)
+                            .reduce((s,o) => {
+                                const ships = o.shipments && o.shipments.length > 0 ? o.shipments : [{qty: o.qty}];
+                                return s + ships.reduce((ss, sh) => ss + cleanNum(sh.qty), 0);
+                            }, 0);
+                
+                return {qty, percent: budget ? Math.round((qty/budget)*100)+'%' : '0%'};
+            } catch (e) {
+                console.warn('Achievement calc error:', e);
+                return {qty: 0, percent: '0%'};
+            }
         }
         function toggleStar(v,id) { const t=v==='activities'?'tasks':v; const i=db[t].find(x=>x.id===id);
             if(i){i.star=!i.star;saveToLocal();renderCurrentView();} }
@@ -3212,12 +3252,25 @@ function renderCurrentView() {
         // V3.8 Profile System Logic
         // ==========================================
         function initProfileSystem() {
-            // 讀取設定檔列表
             const savedMeta = localStorage.getItem(PROFILE_STORAGE_KEY);
             if (savedMeta) {
-                profileMeta = JSON.parse(savedMeta);
+                try {
+                    profileMeta = JSON.parse(savedMeta);
+                    // 檢查資料結構是否完整，若不完整則視為損壞
+                    if (!profileMeta.list || !Array.isArray(profileMeta.list) || profileMeta.list.length === 0) {
+                        throw new Error("Profile structure corrupted");
+                    }
+                } catch (e) {
+                    console.error("設定檔讀取失敗，執行重置:", e);
+                    // 發生錯誤時，強制重置為預設值，確保程式不會卡死
+                    profileMeta = { 
+                        list: [{id: 'default', name: '預設使用者', avatar: null}], 
+                        currentId: 'default' 
+                    };
+                    saveProfileMeta();
+                }
             } else {
-                // 首次執行，建立預設環境
+                // 無資料時的初始化
                 profileMeta = { 
                     list: [{id: 'default', name: '預設使用者', avatar: null}], 
                     currentId: 'default' 
@@ -3228,7 +3281,16 @@ function renderCurrentView() {
         }
 
         function saveProfileMeta() {
-            localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(profileMeta));
+            try {
+                localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(profileMeta));
+            } catch (e) {
+                console.error("儲存失敗", e);
+                if (e.name === 'QuotaExceededError') {
+                    alert("⚠️ 儲存失敗：瀏覽器儲存空間已滿！\n請刪除舊的設定檔，或嘗試上傳解析度較低的圖片。");
+                } else {
+                    alert("⚠️ 儲存發生未知錯誤，資料可能未保存。");
+                }
+            }
         }
 
         function loadCurrentProfileData() {
@@ -3283,9 +3345,10 @@ function renderCurrentView() {
             const file = event.target.files[0];
             if (!file) return;
 
-            // 限制檔案大小 (例如 1MB)，避免 LocalStorage 爆炸
-            if (file.size > 1024 * 1024) {
-                alert("圖片過大，請選擇小於 1MB 的圖片");
+            // 既然圖片不大，我們設定一個合理的安全上限 (例如 500KB)
+            // 避免誤傳大圖導致 localStorage 爆掉
+            if (file.size > 500 * 1024) {
+                alert("為確保系統效能，請上傳小於 500KB 的圖片。\n(您的圖片大小: " + (file.size/1024).toFixed(1) + "KB)");
                 return;
             }
 
@@ -3293,11 +3356,25 @@ function renderCurrentView() {
             reader.onload = function(e) {
                 const base64 = e.target.result;
                 const idx = profileMeta.list.findIndex(p => p.id === profileMeta.currentId);
+                
                 if (idx !== -1) {
                     profileMeta.list[idx].avatar = base64;
-                    saveProfileMeta();
-                    renderProfileUI();
-                    showToast("大頭照已更新");
+                    
+                    // 立即存檔並檢查
+                    try {
+                        saveProfileMeta();
+                        renderProfileUI();
+                        // 雙重確認：檢查是否真的寫入成功
+                        const check = localStorage.getItem(PROFILE_STORAGE_KEY);
+                        if(check && check.length > 100) {
+                            showToast("大頭照儲存成功");
+                        } else {
+                            alert("警示：圖片似乎未能寫入硬碟，請檢查瀏覽器設定。");
+                        }
+                    } catch (err) {
+                        console.error(err);
+                        alert("儲存失敗：" + err.message);
+                    }
                 }
             };
             reader.readAsDataURL(file);
@@ -3376,4 +3453,5 @@ function renderCurrentView() {
     </script>
 </body>
 </html>
+
 
