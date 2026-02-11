@@ -735,6 +735,45 @@ id="batchDeleteBtn" onclick="deleteSelected()" class="hidden bg-red-900/50 hover
         </div>
     </div>
 
+
+
+
+
+
+
+
+
+
+
+<div id="dailyModal" class="fixed inset-0 bg-black/95 hidden items-center justify-center z-[1000] backdrop-blur-md">
+        <div class="bg-[#1a1a1a] border border-orange-500/50 p-8 rounded-2xl shadow-2xl flex flex-col w-[500px] relative overflow-hidden transition-all duration-500">
+            
+            <div class="absolute top-0 right-0 w-32 h-32 bg-orange-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+            <div class="absolute bottom-0 left-0 w-32 h-32 bg-blue-500/10 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2"></div>
+
+            <div id="dailyContent" class="relative z-10 flex flex-col items-center text-center min-h-[300px] justify-center">
+                </div>
+
+            <div class="mt-6 flex justify-center w-full relative z-10">
+                <button id="dailyBtn" class="btn-orange px-8 py-3 rounded-full text-white font-bold text-lg shadow-[0_0_20px_rgba(255,110,37,0.4)] hover:scale-105 transition-transform" onclick="nextDailyStep()">
+                    開始
+                </button>
+            </div>
+        </div>
+    </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
     <div id="confirmedToast" class="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-green-600 text-white px-8 py-4 rounded-xl shadow-[0_0_30px_rgba(34,197,94,0.8)] z-[900] hidden flex-col items-center justify-center transition-all opacity-0 scale-90">
         <i class="fas fa-check-circle text-5xl mb-2 text-white drop-shadow-md"></i>
         <span class="text-2xl font-bold tracking-wider drop-shadow-md">已確認</span>
@@ -798,16 +837,22 @@ id="batchDeleteBtn" onclick="deleteSelected()" class="hidden bg-red-900/50 hover
                 if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
                     e.preventDefault();
                     triggerUndo();
-                } else if ((e.ctrlKey || e.metaKey) && e.key === 'y') {
+                } else 
+                if ((e.ctrlKey || e.metaKey) && e.key === 'y') {
                     e.preventDefault();
                     triggerRedo();
                 }
             });
-
             renderNav();
             switchView('projects');
             autoCheckShipment();
+            
+            // [新增] 啟動每日晨會檢查
+            // 為了確保畫面渲染完成後才彈出，稍微延遲 500ms
+            setTimeout(checkDailyBriefing, 500);
         };
+
+
         function toggleSidebar() { 
             const sb = document.getElementById('sidebar');
             sb.classList.toggle('collapsed');
@@ -2202,6 +2247,9 @@ function renderCurrentView() {
             const type = document.getElementById('modalType').value;
             const container = document.getElementById('modalFields');
             const commContainer = document.getElementById('commentsContainer');
+
+            // [修正] 定義全域安全函式：將雙引號轉為 HTML 實體，防止 input value 截斷
+            const safe = (v) => (v || '').toString().replace(/"/g, '&quot;');
             
             commContainer.innerHTML = (data.comments || []).map((c, i) => `
                 <div class="flex gap-2 mb-1">
@@ -2216,7 +2264,6 @@ function renderCurrentView() {
                 return `<div class="checkbox-group" id="${id}">${options.map(opt => `<label><input type="checkbox" value="${opt}" ${vals.includes(opt)?'checked':''}>${opt}</label>`).join('')}</div>`;
             };
 
-            // 新增：定義觸發行為下拉選單的 HTML 生成函數
             const createTriggerSelect = (id, val) => `
                 <div class="flex flex-col space-y-1">
                     <label class="text-xs text-orange-400 font-bold">⚠️ 觸發提醒行為</label>
@@ -2230,16 +2277,16 @@ function renderCurrentView() {
 
             let html = '';
             if(type === 'orders') {
-                const defaultOrderDate = data.createdAt ||
-                new Date().toISOString().split('T')[0];
+                const defaultOrderDate = data.createdAt || new Date().toISOString().split('T')[0];
+                // [修正] 對 orders 所有欄位應用 safe()
                 html = `
                     <div class="grid grid-cols-2 gap-4">
-                        <div class="relative"><input class="input-dark" placeholder="Project" id="f_project" value="${data.project||''}" oninput="handleInputSuggestions(this, 'project'); autoFillProjectInfo(this.value)" autocomplete="off"></div>
-                        <div class="relative"><input class="input-dark" placeholder="Agent" id="f_agent" value="${data.agent||''}" oninput="handleInputSuggestions(this, 'agent')" autocomplete="off"></div>
+                        <div class="relative"><input class="input-dark" placeholder="Project" id="f_project" value="${safe(data.project)}" oninput="handleInputSuggestions(this, 'project'); autoFillProjectInfo(this.value)" autocomplete="off"></div>
+                        <div class="relative"><input class="input-dark" placeholder="Agent" id="f_agent" value="${safe(data.agent)}" oninput="handleInputSuggestions(this, 'agent')" autocomplete="off"></div>
         
-                        <div class="relative"><input class="input-dark" placeholder="End User" id="f_endUser" value="${data.endUser||''}" oninput="handleInputSuggestions(this, 'endUser')" autocomplete="off"></div>
-                        <input class="input-dark" placeholder="PO#" id="f_po" value="${data.po||''}">
-                        <div class="relative"><input class="input-dark" placeholder="Model" id="f_model" value="${data.model||''}" oninput="handleInputSuggestions(this, 'model')" autocomplete="off"></div>
+                        <div class="relative"><input class="input-dark" placeholder="End User" id="f_endUser" value="${safe(data.endUser)}" oninput="handleInputSuggestions(this, 'endUser')" autocomplete="off"></div>
+                        <input class="input-dark" placeholder="PO#" id="f_po" value="${safe(data.po)}">
+                        <div class="relative"><input class="input-dark" placeholder="Model" id="f_model" value="${safe(data.model)}" oninput="handleInputSuggestions(this, 'model')" autocomplete="off"></div>
                
                       </div>
                      <div class="bg-black/20 p-3 rounded mt-2 border border-white/5">
@@ -2256,20 +2303,20 @@ function renderCurrentView() {
                     const ships = data.shipments && data.shipments.length ? data.shipments : (data.qty ? [{dueDate:data.dueDate, qty:data.qty, isShipped:data.isShipped}] : []);
                     if(ships.length === 0) addShipmentRow(); 
                     else ships.forEach(s => addShipmentRow(s));
-                
                 }, 0);
             } else if(type === 'projects') {
+                // [修正] 對 projects 所有欄位應用 safe() - 解決 15" TFT 截斷問題
                 html = `
                     <div class="grid grid-cols-3 gap-4">
-                        <div class="relative suggestion-container"><input class="input-dark" placeholder="Project (必填)" id="f_project" value="${data.project||''}" oninput="handleInputSuggestions(this, 'project'); autoFillProjectInfo(this.value)" autocomplete="off"></div>
+                        <div class="relative suggestion-container"><input class="input-dark" placeholder="Project (必填)" id="f_project" value="${safe(data.project)}" oninput="handleInputSuggestions(this, 'project'); autoFillProjectInfo(this.value)" autocomplete="off"></div>
                  
-                       <div class="relative suggestion-container"><input class="input-dark" placeholder="Agent" id="f_agent" value="${data.agent||''}" oninput="handleInputSuggestions(this, 'agent')" autocomplete="off"></div>
-                        <div class="relative suggestion-container"><input class="input-dark" placeholder="End User" id="f_endUser" value="${data.endUser||''}" oninput="handleInputSuggestions(this, 'endUser')" autocomplete="off"></div>
-                        <input class="input-dark" placeholder="Size" id="f_size" value="${data.size||''}">
+                       <div class="relative suggestion-container"><input class="input-dark" placeholder="Agent" id="f_agent" value="${safe(data.agent)}" oninput="handleInputSuggestions(this, 'agent')" autocomplete="off"></div>
+                        <div class="relative suggestion-container"><input class="input-dark" placeholder="End User" id="f_endUser" value="${safe(data.endUser)}" oninput="handleInputSuggestions(this, 'endUser')" autocomplete="off"></div>
+                        <input class="input-dark" placeholder="Size" id="f_size" value="${safe(data.size)}">
                       
-                         <div class="relative suggestion-container"><input class="input-dark text-model" placeholder="Model" id="f_model" value="${data.model||''}" oninput="handleInputSuggestions(this, 'model')" autocomplete="off"></div>
-                        <input class="input-dark" type="number" placeholder="當年預算" id="f_budget" value="${data.budget||''}">
-                        <input class="input-dark" placeholder="PLM#" id="f_plm" value="${data.plm||''}">
+                         <div class="relative suggestion-container"><input class="input-dark text-model" placeholder="Model" id="f_model" value="${safe(data.model)}" oninput="handleInputSuggestions(this, 'model')" autocomplete="off"></div>
+                        <input class="input-dark" type="number" placeholder="當年預算" id="f_budget" value="${safe(data.budget)}">
+                        <input class="input-dark" placeholder="PLM#" id="f_plm" value="${safe(data.plm)}">
                     </div>
            
                         <div class="bg-black/20 p-3 rounded mt-2 border border-white/5">
@@ -2277,8 +2324,7 @@ function renderCurrentView() {
                         <div class="flex gap-4">
                               
                                  <div class="flex-1">${genCheckboxGroup('grp_latestStatus', ['訂單','報價','RMA','規格','送樣'], data.manualLatestStatus)}</div>
-                                <div>${createDateInputGroup('f_manualLatestDate', data.manualLatestDate ||
-                                new Date().toISOString().split('T')[0])}</div>
+                                <div>${createDateInputGroup('f_manualLatestDate', data.manualLatestDate || new Date().toISOString().split('T')[0])}</div>
                         </div>
                     </div>
                     <div class="bg-black/20 p-3 rounded mt-2 border border-white/5">
@@ -2292,7 +2338,7 @@ function renderCurrentView() {
                    class="accent-orange-500"> Active</label>
               `;
             } else if(type === 'masterList') {
-                const safe = (v) => (v || '').toString().replace(/"/g, '&quot;');
+                // [修正] 移除重複的 const safe = ...，改用上方定義的 safe()
                 html = `
                      <div class="grid grid-cols-3 gap-4">
                         <div class="relative"><input class="input-dark" placeholder="Project" id="f_project" value="${safe(data.project)}" oninput="handleInputSuggestions(this, 'project'); autoFillProjectInfo(this.value)" autocomplete="off"></div>
@@ -2332,37 +2378,35 @@ function renderCurrentView() {
         
                 `;
             } else if (type === 'tasks') {
-                const defStart = data.startDate ||
-                new Date().toISOString().split('T')[0];
+                const defStart = data.startDate || new Date().toISOString().split('T')[0];
                 let defTrack = data.trackDate || '';
                 if(!editingId && !defTrack) {
                     const d = new Date(defStart);
                     d.setDate(d.getDate()+3);
                     defTrack = d.toISOString().split('T')[0];
                 }
-                const defCompDate = data.completedDate ||
-                new Date().toISOString().split('T')[0];
-
+                const defCompDate = data.completedDate || new Date().toISOString().split('T')[0];
+                // [修正] 對 tasks 應用 safe()
                 html = `<div class="grid grid-cols-2 gap-4">
                     <div class="relative suggestion-container">
-                        <input class="input-dark" placeholder="Project" id="f_project" value="${data.project||''}" oninput="handleInputSuggestions(this, 'project'); autoFillProjectInfo(this.value)" 
+                        <input class="input-dark" placeholder="Project" id="f_project" value="${safe(data.project)}" oninput="handleInputSuggestions(this, 'project'); autoFillProjectInfo(this.value)" 
                         autocomplete="off">
                
                     </div>
                     <select class="input-dark" id="f_taskType">${['詢價','RMA','規格','送樣','交期','預測','合約','其他'].map(o=>`<option ${data.taskType===o?'selected':''}>${o}</option>`).join('')}</select>
                     
-                    <div class="relative suggestion-container"><input class="input-dark" placeholder="Agent" id="f_agent" value="${data.agent||''}" oninput="handleInputSuggestions(this, 'agent')" autocomplete="off"></div>
+                    <div class="relative suggestion-container"><input class="input-dark" placeholder="Agent" id="f_agent" value="${safe(data.agent)}" oninput="handleInputSuggestions(this, 'agent')" autocomplete="off"></div>
                     <div class="relative suggestion-container"><input 
-                    class="input-dark" placeholder="End User" id="f_endUser" value="${data.endUser||''}" oninput="handleInputSuggestions(this, 'endUser')" autocomplete="off"></div>
+                    class="input-dark" placeholder="End User" id="f_endUser" value="${safe(data.endUser)}" oninput="handleInputSuggestions(this, 'endUser')" autocomplete="off"></div>
                     
                     <div class="col-span-2 relative suggestion-container">
-                         <input class="input-dark text-model" placeholder="Model (自動帶入)" id="f_model" value="${data.model||''}" oninput="handleInputSuggestions(this, 'model')" autocomplete="off">
+                         <input class="input-dark text-model" placeholder="Model (自動帶入)" id="f_model" value="${safe(data.model)}" oninput="handleInputSuggestions(this, 'model')" autocomplete="off">
                 
                     </div>
                   
                   <div><label class="text-xs text-gray-400">起始</label>${createDateInputGroup('f_startDate', defStart)}</div>
                     <div><label class="text-xs text-gray-400">追蹤 (起始+3天)</label>${createDateInputGroup('f_trackDate', defTrack)}</div>
-                  <input class="input-dark" placeholder="文件#" id="f_docNum" value="${data.docNum||''}"></div>
+                  <input class="input-dark" placeholder="文件#" id="f_docNum" value="${safe(data.docNum)}"></div>
            
                     <textarea class="input-dark h-20" placeholder="說明" id="f_desc">${data.desc||''}</textarea>
      
@@ -2399,46 +2443,49 @@ function renderCurrentView() {
                   
                 </div>`:''}`;
             } else if (type === 'quotes') {
+                // [修正] 對 quotes 應用 safe()
                 html = `<div class="grid grid-cols-2 gap-4">
-                    <div class="relative"><input class="input-dark" placeholder="Project" id="f_project" value="${data.project||''}" oninput="handleInputSuggestions(this, 'project'); autoFillProjectInfo(this.value)" autocomplete="off"></div>
-                    <div class="relative"><input class="input-dark" placeholder="Agent" id="f_agent" value="${data.agent||''}" oninput="handleInputSuggestions(this, 'agent')" autocomplete="off"></div>
+                    <div class="relative"><input class="input-dark" placeholder="Project" id="f_project" value="${safe(data.project)}" oninput="handleInputSuggestions(this, 'project'); autoFillProjectInfo(this.value)" autocomplete="off"></div>
+                    <div class="relative"><input class="input-dark" placeholder="Agent" id="f_agent" value="${safe(data.agent)}" oninput="handleInputSuggestions(this, 'agent')" autocomplete="off"></div>
                
-                    <div class="relative"><input class="input-dark" placeholder="End User" id="f_endUser" value="${data.endUser||''}" oninput="handleInputSuggestions(this, 'endUser')" autocomplete="off"></div>
-                    <div class="relative"><input class="input-dark" placeholder="Model" id="f_model" value="${data.model||''}" oninput="handleInputSuggestions(this, 'model')" autocomplete="off"></div>
+                    <div class="relative"><input class="input-dark" placeholder="End User" id="f_endUser" value="${safe(data.endUser)}" oninput="handleInputSuggestions(this, 'endUser')" autocomplete="off"></div>
+                    <div class="relative"><input class="input-dark" placeholder="Model" id="f_model" value="${safe(data.model)}" oninput="handleInputSuggestions(this, 'model')" autocomplete="off"></div>
          
                    <div><label class="text-xs text-gray-400">日期</label>${createDateInputGroup('f_date', data.date||new Date().toISOString().split('T')[0])}</div>
             
                      <textarea class="input-dark h-16" placeholder="業務報價 (Enter 換行)" 
                     id="f_salesPrice">${data.salesPrice||''}</textarea>
                     <textarea class="input-dark h-16" placeholder="FAE報價 (Enter 換行)" id="f_faePrice">${data.faePrice||''}</textarea>
-                    <input class="input-dark" placeholder="REF#" id="f_ref" value="${data.ref||''}"></div>
+                    <input class="input-dark" placeholder="REF#" id="f_ref" value="${safe(data.ref)}"></div>
      
                     <textarea class="input-dark h-16 mt-2" placeholder="產品結構描述" id="f_productStructure">${data.productStructure||''}</textarea>
 
           <textarea class="input-dark h-20 mt-2" placeholder="說明" id="f_desc">${data.desc||''}</textarea>`;
             } else if (type === 'contacts') {
+                // [修正] 對 contacts 應用 safe()
                 html = `<div class="grid grid-cols-2 gap-4">
-                    <div class="relative suggestion-container"><input class="input-dark" placeholder="Agent" id="f_agent" value="${data.agent||''}" oninput="handleInputSuggestions(this, 'agent')" autocomplete="off"></div>
+                    <div class="relative suggestion-container"><input class="input-dark" placeholder="Agent" id="f_agent" value="${safe(data.agent)}" oninput="handleInputSuggestions(this, 'agent')" autocomplete="off"></div>
                     <div class="relative suggestion-container"><input class="input-dark" 
                     
-                    placeholder="End User" id="f_endUser" value="${data.endUser||''}" oninput="handleInputSuggestions(this, 'endUser')" autocomplete="off"></div>
+                    placeholder="End User" id="f_endUser" value="${safe(data.endUser)}" oninput="handleInputSuggestions(this, 'endUser')" autocomplete="off"></div>
                     
-                    <input class="input-dark" placeholder="Name" id="f_name" value="${data.name||''}">
-                    <input class="input-dark" placeholder="Email" id="f_email" value="${data.email||''}">
+                    <input class="input-dark" placeholder="Name" id="f_name" value="${safe(data.name)}">
+                    <input class="input-dark" placeholder="Email" id="f_email" value="${safe(data.email)}">
                     
       
-                      <input class="input-dark" placeholder="Position" id="f_position" value="${data.position||''}">
-                    <input class="input-dark" placeholder="Phone" id="f_phone" value="${data.phone||''}">
-                    <input class="input-dark col-span-2" placeholder="Address" id="f_address" value="${data.address||''}"></div>
+                      <input class="input-dark" placeholder="Position" id="f_position" value="${safe(data.position)}">
+                    <input class="input-dark" placeholder="Phone" id="f_phone" value="${safe(data.phone)}">
+                    <input class="input-dark col-span-2" placeholder="Address" id="f_address" value="${safe(data.address)}"></div>
                     <textarea class="input-dark h-16" placeholder="Remark" id="f_remark">${data.remark||''}</textarea><label class="flex items-center gap-2"><input type="checkbox" id="f_active" ${data.active!==false?'checked':''} class="accent-orange-500"> Active</label>`;
             } else if (type === 'codes') {
+                // [修正] 對 codes 應用 safe()
                 html = `<div class="grid grid-cols-2 gap-4">
-                    <div class="relative"><input class="input-dark" placeholder="Agent" id="f_agent" value="${data.agent||''}" oninput="handleInputSuggestions(this, 'agent')" autocomplete="off"></div>
-                    <div class="relative"><input class="input-dark" placeholder="End User" id="f_endUser" value="${data.endUser||''}" oninput="handleInputSuggestions(this, 'endUser')" autocomplete="off"></div>
+                    <div class="relative"><input class="input-dark" placeholder="Agent" id="f_agent" value="${safe(data.agent)}" oninput="handleInputSuggestions(this, 'agent')" autocomplete="off"></div>
+                    <div class="relative"><input class="input-dark" placeholder="End User" id="f_endUser" value="${safe(data.endUser)}" oninput="handleInputSuggestions(this, 'endUser')" autocomplete="off"></div>
                 
-                    <input class="input-dark" placeholder="Code" id="f_code" value="${data.code||''}">
-                    <input class="input-dark" placeholder="Pricing" id="f_pricing" value="${data.pricing||''}">
-                    <input class="input-dark" placeholder="Logistics" id="f_logistics" value="${data.logistics||''}"></div>
+                    <input class="input-dark" placeholder="Code" id="f_code" value="${safe(data.code)}">
+                    <input class="input-dark" placeholder="Pricing" id="f_pricing" value="${safe(data.pricing)}">
+                    <input class="input-dark" placeholder="Logistics" id="f_logistics" value="${safe(data.logistics)}"></div>
                     <textarea class="input-dark h-16" placeholder="Remark" id="f_remark">${data.remark||''}</textarea>
                     
                     <div class="border-t border-gray-700 pt-3 mt-2 grid grid-cols-3 gap-4">
@@ -3452,8 +3499,300 @@ function renderCurrentView() {
         }
 
 
+
+// ==========================================
+        // V3.8.3 每日晨會 (Daily Briefing)
+        // ==========================================
+        let dailyStep = 0;
+        let dailyTasks = [];
+
+        function checkDailyBriefing() {
+            const today = new Date().toISOString().split('T')[0];
+            const lastVisitKey = `last_visit_${profileMeta.currentId}`;
+            const lastVisitDate = localStorage.getItem(lastVisitKey);
+
+            // 如果今天已經顯示過，就跳過 (若想每次F5都看，請註解掉下面這行)
+            if (lastVisitDate === today) return;
+
+            // 篩選條件：1.未完成 2.有星號 3.追蹤日期是今天
+            dailyTasks = db.tasks.filter(t => 
+                !t.completed && 
+                t.star && 
+                (t.trackDate === today)
+            );
+
+            // 顯示歡迎視窗
+            showDailyModal(1);
+            
+            // 更新最後訪問日期
+            localStorage.setItem(lastVisitKey, today);
+        }
+
+        function showDailyModal(step) {
+            dailyStep = step;
+            const modal = document.getElementById('dailyModal');
+            const content = document.getElementById('dailyContent');
+            const btn = document.getElementById('dailyBtn');
+            
+            // [新增] 取得 Modal 的外框容器 (即 content 的父層 div) 以便切換邊框樣式
+            const modalBox = content.parentElement;
+
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+
+            const userName = document.getElementById('displayUserName').value || 'User';
+            
+            // [關鍵修正] 重新抓取資料：只要是「未完成」且「有星星」的任務都列出來
+            if (typeof db !== 'undefined' && db.tasks) {
+                dailyTasks = db.tasks.filter(t => !t.completed && t.star);
+            }
+
+            // 字體樣式
+            const helveticaStyle = "font-family: 'Helvetica Light', 'Helvetica', 'Arial', sans-serif; font-weight: 300;";
+
+            // 1. 時間感知邏輯
+            const hour = new Date().getHours();
+            let dynamicGreeting = "";
+
+            if (hour < 12) {
+                dynamicGreeting = "晨光正好，深呼吸～";
+            } else if (hour < 18) {
+                dynamicGreeting = "午後時光，深呼吸～";
+            } else {
+                dynamicGreeting = "靜謐深夜，深呼吸～";
+            }
+
+            // 2. CSS 樣式整合 (新增流光邊框動畫)
+            const customStyles = `
+                <style>
+                    /* 銀色光澤動畫 */
+                    @keyframes shineMove {
+                        0% { background-position: 200%; }
+                        100% { background-position:-200%; }
+                    }
+                    .shiny-text-anim {
+                        /* [修改重點] 讓漸層更集中，形成明顯的「光束」 */
+                        /* 115deg = 斜切角度 */
+                        /* 顏色順序：銀灰底 -> 40%開始變白 -> 50%最金 -> 60%變回銀灰 */
+                        background: linear-gradient(
+                            115deg, 
+                            #a1a1aa 0%, 
+                            #a1a1aa 40%, 
+                            #ffffff 45%, 
+                            #f2bc57 50%, 
+                            #ffffff 55%, 
+                            #a1a1aa 60%, 
+                            #a1a1aa 100%
+                        );
+                        background-size: 200% auto;
+                        color: transparent;
+                        -webkit-background-clip: text;
+                        background-clip: text;
+                        animation: shineMove 4s linear infinite;
+                        display: inline-block;
+                    }
+                    
+                    /* 咖啡館優雅淡入 */
+                    @keyframes cafeFadeIn {
+                        0% { opacity: 0; transform: translateY(10px); }
+                        100% { opacity: 1; transform: translateY(0); }
+                    }
+                    .cafe-fade-text {
+                        animation: cafeFadeIn 1.5s ease-out forwards;
+                    }
+
+                    /* [新增] 流光邊框動畫核心 */
+                    @property --border-angle {
+                        syntax: '<angle>';
+                        initial-value: 0deg;
+                        inherits: false;
+                    }
+                    @keyframes borderRotate {
+                        from { --border-angle: 0deg; }
+                        to { --border-angle: 360deg; }
+                    }
+                    .flowing-border {
+                        position: relative;
+                        border-radius: 1rem; /* 對應 rounded-2xl */
+                        /* 雙層背景：內層是深色底，外層是旋轉的錐形漸層 */
+                        background: linear-gradient(#1a1a1a, #1a1a1a) padding-box,
+                                    conic-gradient(from var(--border-angle), #FF6E25 0%, #f2bc57 50%, #d16836 100%) border-box;
+                        border: 2px solid transparent; /* 透明邊框讓下層漸層透出 */
+                        animation: borderRotate 4s linear infinite;
+                        /* 確保光暈陰影 */
+                        box-shadow: 0 0 20px rgba(255, 110, 37, 0.15); 
+                    }
+
+                    .letter-spacing-wide {
+                        letter-spacing: 0.1em;
+                    }
+                </style>
+            `;
+
+            // [新增] 外框狀態切換邏輯
+            // 如果是第二步(任務頁) 且 有任務 => 切換為流光邊框
+            if (step === 2 && dailyTasks.length > 0) {
+                modalBox.classList.remove('border', 'border-orange-500/50');
+                modalBox.classList.add('flowing-border');
+            } else {
+                // 其他情況 (歡迎頁、無任務頁) => 還原為靜態細橘框
+                modalBox.classList.remove('flowing-border');
+                modalBox.classList.add('border', 'border-orange-500/50');
+            }
+
+            if (step === 1) {
+                // 第一頁：歡迎語 (咖啡館模式 - 無 Icon 版)
+                content.innerHTML = `
+                    ${customStyles}
+                    
+                    <div class="mb-8"></div>
+                    
+                    <h2 class="mb-6 shiny-text-anim" style="${helveticaStyle} font-size: 40px;">
+                        Welcome, ${userName}
+                    </h2>
+                    
+                    <div class="cafe-fade-text">
+                        <p class="text-orange-200 text-xl mb-3 font-light tracking-wider">
+                            ${dynamicGreeting}
+                        </p>
+                        <p class="text-gray-300 text-lg leading-relaxed letter-spacing-wide">
+                            新的一天，別讓忙碌掩蓋了你的光芒。<br>
+                            以最優雅的姿態處理接下來的挑戰吧。
+                        </p>
+                    </div>
+                `;
+                
+                // 按鈕樣式：焦糖棕色
+                btn.innerText = "開啟美好的一天 ➜";
+                btn.style.cssText = `
+                    background-color: #A07855; 
+                    color: white;
+                    padding: 12px 28px;
+                    border-radius: 50px;
+                    border: none;
+                    font-weight: 300;
+                    letter-spacing: 1px;
+                    transition: all 0.4s ease;
+                    box-shadow: 0 4px 15px rgba(160, 120, 85, 0.3);
+                    font-family: 'Helvetica Light', sans-serif;
+                `;
+
+                btn.onmouseenter = () => {
+                    btn.style.backgroundColor = "#B08B6B"; 
+                    btn.style.boxShadow = "0 6px 20px rgba(160, 120, 85, 0.5)";
+                    btn.style.transform = "translateY(-2px)";
+                };
+                btn.onmouseleave = () => {
+                    btn.style.backgroundColor = "#A07855"; 
+                    btn.style.boxShadow = "0 4px 15px rgba(160, 120, 85, 0.3)";
+                    btn.style.transform = "translateY(0)";
+                };
+
+                btn.onclick = () => showDailyModal(2);
+
+            } else if (step === 2) {
+                // 第二頁：重要任務提醒
+                let taskHtml = '';
+                
+                if (dailyTasks.length > 0) {
+                    taskHtml = `<div class="w-full text-left bg-black/30 rounded-lg p-2 max-h-[200px] overflow-y-auto custom-scrollbar border border-white/10">`;
+                    dailyTasks.forEach(t => {
+                        taskHtml += `
+                            <div class="p-3 border-b border-white/5 last:border-0 hover:bg-white/5 transition-colors">
+                                <!-- 第一行：維持 Project 與 Task 標籤 -->
+                                <div class="flex justify-between items-center mb-1">
+                                    <span class="text-xs text-orange-400 font-bold border border-orange-500/30 px-1 rounded">${t.project}</span>
+                                    <span class="text-xs text-gray-500">${t.taskType}</span>
+                                </div>
+                                
+                                <!-- [新增] 第二行：Agent/End User 與 Model -->
+                                <div class="text-xs text-gray-400 mb-1 flex items-center gap-2">
+                                    <span>${t.agent || '-'} / ${t.endUser || '-'}</span>
+                                    <span class="text-gray-600 text-[10px]">|</span>
+                                    <span class="text-blue-300 font-mono">${t.model || ''}</span>
+                                </div>
+
+                                <!-- 第三行：維持任務說明 -->
+                                <div class="text-sm text-white">${t.desc || '無說明'}</div>
+                            </div>`;
+                    });
+
+                    taskHtml += `</div>`;
+                    
+                    // 必須包含 ${customStyles} 以確保動畫 CSS 存在
+                    content.innerHTML = `
+                        ${customStyles}
+                        <div class="mb-4 flex items-center gap-3">
+                            <div class="relative flex items-center justify-center">
+                                <div class="absolute inset-0 bg-yellow-400/50 blur-md rounded-full animate-pulse"></div>
+                                <i class="fas fa-star text-xl text-yellow-300 relative z-10 drop-shadow-[0_0_5px_rgba(253,224,71,0.8)]"></i>
+                            </div>
+                            <h2 class="text-xl text-white font-bold">今日焦點 (${dailyTasks.length})</h2>
+                        </div>
+                        ${taskHtml}
+                    `;
+                    
+                    // 重置按鈕為 Ready 風格
+                    btn.innerText = "Ready!";
+                    btn.style.cssText = ""; 
+                    btn.className = "btn-orange px-8 py-3 rounded-full text-white font-bold text-lg shadow-[0_0_20px_rgba(255,110,37,0.4)] hover:scale-105 transition-transform"; 
+                    btn.onmouseenter = null;
+                    btn.onmouseleave = null;
+
+                } else {
+                    // 無星標任務：顯示咖啡館靈感模式
+                    taskHtml = `
+                        ${customStyles}
+                        <div class="py-8 text-gray-400 cafe-fade-text flex flex-col items-center">
+                            <div class="relative mb-6">
+                                <div class="absolute inset-0 bg-yellow-400/50 blur-xl rounded-full animate-pulse"></div>
+                                <i class="fas fa-star text-6xl text-yellow-300 relative z-10 drop-shadow-[0_0_10px_rgba(253,224,71,0.8)]"></i>
+                            </div>
+
+                            <p class="text-lg text-gray-200 mb-2">今天無緊迫重大任務。</p>
+                            <p class="text-sm font-light tracking-wide text-gray-400">
+                                喝杯咖啡，轉角遇見下一個靈感。
+                            </p>
+                        </div>`;
+
+                    content.innerHTML = taskHtml;
+                    
+                    // 無任務時，按鈕保持焦糖風格
+                    btn.innerText = "享受當下 ➜";
+                     btn.style.cssText = `
+                        background-color: #A07855; 
+                        color: white;
+                        padding: 12px 28px;
+                        border-radius: 50px;
+                        border: none;
+                        font-weight: 300;
+                        letter-spacing: 1px;
+                        transition: all 0.4s ease;
+                        box-shadow: 0 4px 15px rgba(160, 120, 85, 0.3);
+                    `;
+                }
+
+                btn.onclick = () => {
+                    modal.classList.add('hidden');
+                    modal.classList.remove('flex');
+                    // [新增] 關閉時記得還原外框，以免下次開啟時殘留樣式
+                    modalBox.classList.remove('flowing-border');
+                    modalBox.classList.add('border', 'border-orange-500/50');
+                };
+            }
+        }
+
+
+
+
+
+
+
+
+
     </script>
 </body>
 </html>
+
 
 
