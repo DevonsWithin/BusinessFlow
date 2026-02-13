@@ -483,6 +483,11 @@
                 </a>
       
                 <input type="file" id="jsonImport" class="hidden" accept=".json" onchange="restoreData(event)">
+                
+                <!-- [新增] 舊訂單拆分修復按鈕 -->
+                <a href="#" onclick="fixExistingOrders()" class="flex items-center gap-4 p-4 hover:bg-white/5 text-gray-300 hover:text-white transition-colors">
+                    <i class="fas fa-wrench w-6 text-center text-red-400"></i> <span class="menu-text">修復舊訂單資料</span>
+                </a>
             </div>
         </nav>
     </aside>
@@ -1655,6 +1660,20 @@ function renderCurrentView() {
                     if(sortMode === 'date_new') return safeTime(dateB) - safeTime(dateA);
                     if(sortMode === 'date_old') return safeTime(dateA) - safeTime(dateB);
                 } 
+
+                // [新增] 訂單列表：預設依照交期 (近 -> 遠) 排序
+                if (currentView === 'orders' && (sortMode === 'date_new' || sortMode === 'date_old')) {
+                    const getDue = (item) => {
+                        if(item.dueDate) return item.dueDate;
+                        if(item.shipments && item.shipments.length > 0) return item.shipments[0].dueDate;
+                        return '9999-12-31';
+                    };
+                    const dateA = new Date(getDue(a));
+                    const dateB = new Date(getDue(b));
+                    // 為了符合「交期近到遠」，將 date_new (預設值) 定義為 Ascending
+                    if(sortMode === 'date_new') return dateA - dateB; 
+                    if(sortMode === 'date_old') return dateB - dateA;
+                }
                 
                 let valA = a.updatedAt || a.date || a.startDate || ''; 
                 let valB = b.updatedAt || b.date || b.startDate || '';
@@ -2719,18 +2738,74 @@ function renderCurrentView() {
                     newData.manualLatestDate = document.getElementById('f_manualLatestDate').value;
                 }
             }
+            // [修改] 訂單儲存邏輯：將多筆交期拆分為多筆獨立資料
             if (type === 'orders') {
                 newData.createdAt = document.getElementById('f_orderDate').value;
-                newData.shipments = [];
-                document.querySelectorAll('.shipment-row').forEach(row => {
-                    const hiddenDate = row.querySelector('.s-date-hidden').value;
-                    newData.shipments.push({
-                        dueDate: hiddenDate,
-                        qty: row.querySelector('.s-qty').value,
-                        isShipped: row.querySelector('.s-ship').checked
-                    });
-                });
+                
+                // 1. 取得畫面上所有的交期列
+                const shipmentRows = document.querySelectorAll('.shipment-row');
+                const shipmentsData = Array.from(shipmentRows).map(row => ({
+                    dueDate: row.querySelector('.s-date-hidden').value,
+                    qty: row.querySelector('.s-qty').value,
+                    isShipped: row.querySelector('.s-ship').checked
+                }));
+
+                // 2. 定義拆分儲存動作
+                const performOrderSave = () => {
+                    if (editingId) {
+                        // --- 編輯模式 ---
+                        const idx = db.orders.findIndex(i => i.id === editingId);
+                        if (idx >= 0) {
+                            // (A) 更新原本那筆資料 (使用第一列輸入的交期)
+                            if (shipmentsData.length > 0) {
+                                const firstShip = shipmentsData[0];
+                                db.orders[idx] = { 
+                                    ...db.orders[idx], 
+                                    ...newData,
+                                    shipments: [firstShip] // 結構保持陣列，但只存一筆
+                                };
+                            }
+                            // (B) 如果編輯時按了"+"追加了更多列，這些額外的列要變成"新資料"
+                            for (let i = 1; i < shipmentsData.length; i++) {
+                                const extraShip = shipmentsData[i];
+                                const newOrderEntry = {
+                                    ...db.orders[idx], // 複製原資料的共通欄位
+                                    ...newData,
+                                    id: Date.now() + i + Math.random(), // 新ID
+                                    shipments: [extraShip]
+                                };
+                                db.orders.push(newOrderEntry);
+                            }
+                        }
+                    } else {
+                        // --- 新增模式 ---
+                        // 將每一列交期都存成獨立的一筆訂單資料
+                        shipmentsData.forEach((ship, index) => {
+                            const newOrderEntry = {
+                                ...newData,
+                                id: Date.now() + index + Math.random(),
+                                shipments: [ship] // 結構保持陣列，但只存一筆
+                            };
+                            db.orders.push(newOrderEntry);
+                        });
+                    }
+                    
+                    saveToLocal(); closeModal(); renderCurrentView();
+                    
+                    // 顯示提示
+                    const toast = document.getElementById('actionToast');
+                    toast.querySelector('h3').innerText = editingId ? '已更新資料' : '已新增資料 (多筆交期已拆分)';
+                    const pTag = toast.querySelector('p');
+                    if(pTag) pTag.style.display = 'none';
+                    toast.style.display = 'block';
+                    setTimeout(() => toast.style.display = 'none', 2000);
+                };
+
+                // 執行並中斷後續通用邏輯
+                performOrderSave();
+                return; 
             }
+
             if (type === 'tasks' && newData.completed) {
                 const compDate = document.getElementById('f_completedDate');
                 if(compDate) newData.completedDate = compDate.value;
@@ -2843,7 +2918,12 @@ function renderCurrentView() {
                 const data = evt.target.result;
                 const wb = XLSX.read(data, {type:'binary', cellStyles: true}); 
                 let count = 0;
-                const sheetMapping = { '案子列表':'projects', '報價列表':'quotes', '聯絡人清單':'contacts', '客戶代碼與行為':'codes', '總表維護':'masterList' };
+                // [更新] 增加活動列表與訂單列表的 Mapping
+                const sheetMapping = { 
+                    '案子列表':'projects', '報價列表':'quotes', '聯絡人清單':'contacts', 
+                    '客戶代碼與行為':'codes', '總表維護':'masterList',
+                    '活動列表': 'tasks', '訂單列表': 'orders'
+                };
                 for (const [sheetName, dbKey] of Object.entries(sheetMapping)) {
                     if (wb.SheetNames.includes(sheetName)) {
                         const sheet = wb.Sheets[sheetName];
@@ -2873,37 +2953,48 @@ function renderCurrentView() {
                                 else if(k.includes('agent')) { newItem.agent = row[key]; fieldName = 'agent'; }
                                 else if(k.includes('enduser')) { newItem.endUser = row[key]; fieldName = 'endUser'; }
         
-                                else if(k.includes('model')) { newItem.model = row[key]; fieldName = 'model';
-                                }
+                                else if(k.includes('model')) { newItem.model = row[key]; fieldName = 'model'; }
     
-                                else if(k.includes('size')) { newItem.size = row[key];
-                                fieldName = 'size'; }
-                                else if(k.includes('eau')) { newItem.eau = row[key];
-                                fieldName = 'eau'; }
-                                else if(k.includes('app')) { newItem.application = row[key];
-                                fieldName = 'application'; }
-                                else if(k.includes('contact')) { newItem.contact = row[key];
-                                fieldName = 'contact'; }
-                                else if(k.includes('plm')) { newItem.plm = row[key];
-                                fieldName = 'plm'; }
-                                else if(k.includes('業務報價') || (k.includes('price') && !k.includes('fae'))) { newItem.salesPrice = row[key];
-                                fieldName = 'salesPrice'; }
-                                else if(k.includes('fae') || k.includes('faeprice')) { newItem.faePrice = row[key];
-                                fieldName = 'faePrice'; }
-                                else if(k.includes('phone')) { newItem.phone = row[key];
-                                fieldName = 'phone'; }
-                                else if(k.includes('address')) { newItem.address = row[key];
-                                fieldName = 'address'; }
+                                else if(k.includes('size')) { newItem.size = row[key]; fieldName = 'size'; }
+                                else if(k.includes('eau')) { newItem.eau = row[key]; fieldName = 'eau'; }
+                                else if(k.includes('app')) { newItem.application = row[key]; fieldName = 'application'; }
+                                else if(k.includes('contact')) { newItem.contact = row[key]; fieldName = 'contact'; }
+                                else if(k.includes('plm')) { newItem.plm = row[key]; fieldName = 'plm'; }
+                                else if(k.includes('業務報價') || (k.includes('price') && !k.includes('fae'))) { newItem.salesPrice = row[key]; fieldName = 'salesPrice'; }
+                                else if(k.includes('fae') || k.includes('faeprice')) { newItem.faePrice = row[key]; fieldName = 'faePrice'; }
+                                else if(k.includes('phone')) { newItem.phone = row[key]; fieldName = 'phone'; }
+                                else if(k.includes('address')) { newItem.address = row[key]; fieldName = 'address'; }
                                 else if(k.includes('name')) { newItem.name = row[key]; fieldName = 'name'; }
                                 else if(k.includes('email')) { newItem.email = row[key]; fieldName = 'email'; }
-                                else if(k.includes('code')) { newItem.code = row[key];
-                                fieldName = 'code'; }
-                                else if(k.includes('remark')) { newItem.remark = row[key];
-                                fieldName = 'remark'; }
-                                else if(k.includes('cuspn')) { newItem.cusPN = row[key];
-                                fieldName = 'cusPN'; }
-                                else if(k.includes('budget')) { newItem.budget = row[key];
-                                fieldName = 'budget'; }
+                                else if(k.includes('code')) { newItem.code = row[key]; fieldName = 'code'; }
+                                else if(k.includes('remark')) { newItem.remark = row[key]; fieldName = 'remark'; }
+                                else if(k.includes('cuspn')) { newItem.cusPN = row[key]; fieldName = 'cusPN'; }
+                                else if(k.includes('budget') || k.includes('當年預算')) { newItem.budget = row[key]; fieldName = 'budget'; }
+                                else if(k.includes('struct') || k.includes('結構')) { newItem.productStructure = row[key]; fieldName = 'productStructure'; }
+                                else if(k.includes('星號') || k === '★') { 
+                                    const val = row[key];
+                                    newItem.star = (val && (val === '★' || val === true || val === 'TRUE')); 
+                                }
+                                else if(k.includes('任務') || k.includes('tasktype')) { newItem.taskType = row[key]; fieldName = 'taskType'; }
+                                else if(k.includes('說明') || k.includes('desc') && !k.includes('status')) { newItem.desc = row[key]; fieldName = 'desc'; }
+                                else if(k.includes('文件') || k.includes('doc')) { newItem.docNum = row[key]; fieldName = 'docNum'; }
+                                else if(k.includes('起始') || k.includes('start')) { newItem.startDate = row[key]; fieldName = 'startDate'; }
+                                else if(k.includes('追蹤') || k.includes('track')) { newItem.trackDate = row[key]; fieldName = 'trackDate'; }
+                                else if(k.includes('完成日') || k.includes('completed')) { newItem.completedDate = row[key]; if(row[key]) newItem.completed = true; fieldName = 'completedDate'; }
+                                
+                                // [更新] 訂單欄位 (新增訂單日期)
+                                else if(k.includes('訂單日期') || k.includes('orderdate') || k.includes('createdat')) { newItem.createdAt = row[key]; fieldName = 'createdAt'; }
+                                // [修正] 加入 Project Summary (狀況概述) 欄位對應
+                                else if(k.includes('summary') || k.includes('狀況') || k.includes('overview')) { newItem.summary = row[key]; fieldName = 'summary'; }
+
+                                // [修復] 加入「狀況概述」欄位對應
+                                else if(k.includes('summary') || k.includes('狀況') || k.includes('overview')) { newItem.summary = row[key]; fieldName = 'summary'; }
+
+                                else if(k.includes('po')) { newItem.po = row[key]; fieldName = 'po'; }
+                                else if(k.includes('qty') || k.includes('數量')) { newItem.qty = row[key]; fieldName = 'qty'; }
+                                else if(k.includes('交期') || k.includes('due')) { newItem.dueDate = row[key]; fieldName = 'dueDate'; }
+                                else if(k.includes('出貨') || k.includes('ship')) { newItem.isShipped = (row[key] === 'Y' || row[key] === true); fieldName = 'isShipped'; }
+                                else if(k.includes('狀態說明') || k.includes('status')) { newItem.statusDesc = row[key]; fieldName = 'statusDesc'; }
 
                                 const colIdx = Object.keys(colMap).find(idx => colMap[idx] === key);
                                 if (colIdx && fieldName) {
@@ -2918,6 +3009,16 @@ function renderCurrentView() {
                                 }
                             }
                             
+                            // [新增] 匯入資料正規化：將 Excel 平面資料轉回系統結構
+                            // 確保每一筆匯入的訂單都有 shipments 陣列，這樣系統才讀得到
+                            if (dbKey === 'orders') {
+                                newItem.shipments = [{
+                                    dueDate: newItem.dueDate,
+                                    qty: newItem.qty,
+                                    isShipped: newItem.isShipped
+                                }];
+                            }
+
                             let existIdx = -1;
                             if(dbKey === 'projects' || dbKey === 'masterList' || dbKey === 'quotes') {
                                 existIdx = db[dbKey].findIndex(x => x.project === newItem.project);
@@ -3026,12 +3127,9 @@ function renderCurrentView() {
                     XLSX.utils.book_append_sheet(wb, ws, name);
                 };
 
-                // 1. Projects
+                // 1. Projects (案子列表)
                 const projData = db.projects.map(p => {
                     const lastQuote = db.quotes.filter(q=>q.project===p.project).sort((a,b)=>new Date(b.date)-new Date(a.date))[0];
-                    const tasks = db.tasks.filter(t => t.project === p.project).sort((a,b)=>new Date(b.trackDate||b.startDate)-new Date(a.trackDate||a.startDate));
-                 
-                    const remarkStr = tasks.map(t => `${fmtDate(t.trackDate||t.startDate)} ${t.taskType}: ${t.desc}`).join('\r\n');
                     const ach = calculateAchievement(p);
 
                     return {
@@ -3041,49 +3139,96 @@ function renderCurrentView() {
                         '達成數量': `${ach.qty} / ${p.budget||0}`,
                         '達成率': ach.percent,
                         '狀況概述': p.summary || '',
-                        'Remark': remarkStr, '_comments': p.comments 
+                        '星號': p.star ? '★' : '',
+                        '當年預算': p.budget,
+                        'Active': p.active !== false ? 'Y' : 'N',
+                        'PLM#': p.plm
                     };
                 });
                 addSheet("案子列表", projData);
 
-                // 2. Master List
+                // 2. Master List (總表維護)
                 const masterData = db.masterList.map(m => {
                     const lastQuote = db.quotes.filter(q=>q.project===m.project).sort((a,b)=>new Date(b.date)-new Date(a.date))[0];
                     return {
                         'Project': m.project, 'Agent': m.agent, 'End User': m.endUser,
                         'Application': m.application, 'EAU': m.eau, 'Size': m.size,
-                        'Model': m.model, 
+                        'Model': m.model,
+                        'Product Structure': m.productStructure,
                         'Price': lastQuote ? lastQuote.salesPrice : m.salesPrice, 
                         'Remark': m.remark,
-                        'Contact': m.contact, 'Cus PN': m.cusPN, 'PLM#': m.plm, '_comments': m.comments
+                        'Contact': m.contact, 'Cus PN': m.cusPN, 'PLM#': m.plm
+                        // [移除] _comments
                     };
                 });
                 addSheet("總表維護", masterData);
 
-                // 3. Quotes
+                // 3. Quotes (報價列表)
                 const quoteData = db.quotes.map(q => ({
                     'Project': q.project, 'Agent': q.agent, 'End User': q.endUser,
                     'Date': fmtDate(q.date), 
                     'Model': q.model, 'Sales Price': q.salesPrice, 'FAE Price': q.faePrice,
                     'Product Structure': q.productStructure,
-                    'REF#': q.ref, 'Desc': q.desc, '_comments': q.comments
+                    'REF#': q.ref, 'Desc': q.desc
+                    // [移除] _comments
                 }));
                 addSheet("報價列表", quoteData);
 
-                // 4. Contacts
+                // 4. Contacts (聯絡人清單)
                 const contactData = db.contacts.map(c => ({
                     'Agent': c.agent, 'End User': c.endUser, 
                     'Name': c.name, 'Email': c.email, 'Position': c.position,
-                    'Phone': c.phone, 'Address': c.address, 'Remark': c.remark, '_comments': c.comments
+                    'Phone': c.phone, 'Address': c.address, 'Remark': c.remark
+                    // [移除] _comments
                 }));
                 addSheet("聯絡人清單", contactData);
 
-                // 5. Codes
+                // 5. Codes (客戶代碼與行為)
                 const codeData = db.codes.map(c => ({
                     'Agent': c.agent, 'End User': c.endUser, 'Code': c.code,
-                    'Pricing': c.pricing, 'Logistics': c.logistics, 'Remark': c.remark, '_comments': c.comments
+                    'Pricing': c.pricing, 'Logistics': c.logistics, 'Remark': c.remark
+                    // [移除] _comments
                 }));
                 addSheet("客戶代碼與行為", codeData);
+                
+                // 6. Activities (活動列表)
+                const activityData = db.tasks.map(t => ({
+                    '★': t.star ? '★' : '',
+                    'Project': t.project, 'Agent': t.agent, 'End User': t.endUser,
+                    'Model': t.model, '任務': t.taskType, '說明': t.desc, '文件#': t.docNum,
+                    // [修改] 日期格式改為 YYYY/MM/DD
+                    '起始日': fmtDate(t.startDate), '追蹤日': fmtDate(t.trackDate), 
+                    '狀態': t.completed ? '已完成' : '進行中', '完成日': fmtDate(t.completedDate)
+                }));
+                addSheet("活動列表", activityData);
+
+                // 7. Orders (訂單列表)
+                // [修改] 先依照交期 (近 -> 遠) 排序，再進行 map 匯出
+                const sortedOrders = [...db.orders].sort((a, b) => {
+                    const getDue = (item) => {
+                        if(item.dueDate) return item.dueDate;
+                        if(item.shipments && item.shipments.length > 0) return item.shipments[0].dueDate;
+                        return '9999-12-31';
+                    };
+                    return new Date(getDue(a)) - new Date(getDue(b));
+                });
+
+                const orderData = sortedOrders.map(o => {
+                    // 為了支援雙向相容，優先取第一筆出貨資訊當作該列的主要資料
+                    const mainShip = (o.shipments && o.shipments.length > 0) ? o.shipments[0] : o;
+                    return {
+                        '★': o.star ? '★' : '',
+                        'Project': o.project, 'Agent': o.agent, 'End User': o.endUser,
+                        'Model': o.model, 'PO#': o.po, 
+                        // [新增] 訂單日期、交期、數量 (支援匯入)
+                        '訂單日期': fmtDate(o.createdAt || o.orderDate),
+                        '交期': fmtDate(mainShip.dueDate),
+                        '數量': mainShip.qty,
+                        '出貨': mainShip.isShipped ? 'Y' : 'N', 
+                        '狀態說明': o.statusDesc
+                    };
+                });
+                addSheet("訂單列表", orderData);
 
                 // 檔名：LIST(業務管理表)_"使用者名稱"__YYYYMMDD_HHMM.xlsx
                 XLSX.writeFile(wb, `LIST(業務管理表)_${safeName}_${dateStr}.xlsx`, { cellStyles: true });
@@ -3140,6 +3285,59 @@ function renderCurrentView() {
             }
         }
         
+        // [新增] 修復舊訂單資料功能：將多筆交期的舊訂單拆分為獨立資料
+        function fixExistingOrders() {
+            if(!confirm("此功能會將所有「多筆交期」的舊訂單，拆分為多筆獨立的資料行。\n\n這能解決 Excel 匯出時資料遺失的問題。\n\n⚠️ 強烈建議先執行「備份資料」再繼續。\n\n確定要執行嗎？")) return;
+
+            let newOrders = [];
+            let count = 0;
+
+            db.orders.forEach(o => {
+                // 檢查是否有多個 shipments
+                if (o.shipments && o.shipments.length > 1) {
+                    // 如果有，就迴圈拆分
+                    o.shipments.forEach((ship, idx) => {
+                        // 複製一份完整訂單
+                        let splitOrder = JSON.parse(JSON.stringify(o));
+                        
+                        // 設定新的 ID (第一筆保留原 ID 以維持穩定，其他筆產生新 ID)
+                        if (idx > 0) splitOrder.id = Date.now() + Math.random() + idx;
+                        
+                        // 強制只留這一筆 shipment
+                        splitOrder.shipments = [ship];
+                        
+                        // 同步外層顯示用的欄位 (確保列表顯示正確)
+                        splitOrder.dueDate = ship.dueDate;
+                        splitOrder.qty = ship.qty;
+                        splitOrder.isShipped = ship.isShipped;
+
+                        newOrders.push(splitOrder);
+                    });
+                    // 計算拆分出來的額外筆數
+                    count += (o.shipments.length - 1);
+                } else {
+                    // 如果原本就是單筆或沒有交期，檢查並同步外層欄位後直接保留
+                    if(o.shipments && o.shipments.length === 1) {
+                        o.dueDate = o.shipments[0].dueDate;
+                        o.qty = o.shipments[0].qty;
+                        o.isShipped = o.shipments[0].isShipped;
+                    }
+                    newOrders.push(o);
+                }
+            });
+
+            db.orders = newOrders;
+            saveToLocal();
+            renderCurrentView();
+            
+            // 提示結果
+            if(count > 0) {
+                alert(`修復完成！✅\n\n成功拆分出 ${count} 筆新資料。\n現在所有訂單都已獨立分行，Excel 匯出將包含所有交期。`);
+            } else {
+                alert("檢查完成。\n\n您的資料已經都是獨立分行的格式，無需修復。");
+            }
+        }
+
         function backupData() {
              // 1. 取得時間 YYYYMMDD_HHMM
              const now = new Date();
