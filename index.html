@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BusinessFlow V3.8 - 業務工作流系統</title>
+    <title>BusinessFlow V3.9 - 業務工作流系統</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -437,7 +437,7 @@
                 <i class="fas fa-bars"></i>
             </button>
             <span class="font-bold text-lg tracking-wider 
-            italic logo-text text-orange-500">BusinessFlow <span class="text-xs bg-orange-600 text-white px-1 rounded ml-1 not-italic">V3.8</span></span>
+            italic logo-text text-orange-500">BusinessFlow <span class="text-xs bg-orange-600 text-white px-1 rounded ml-1 not-italic">V3.9</span></span>
         </div>
 
         <nav class="flex-1 overflow-y-auto custom-scrollbar flex flex-col mt-4">
@@ -2097,6 +2097,9 @@ function renderCurrentView() {
                 setVal('f_plm', match.plm);
                 // 訂單、報價、任務 自動帶入 Model
                 setVal('f_model', match.model);
+                
+                // [新增] 自動帶入產品結構 (MasterList 與 Quotes 通用)
+                setVal('f_productStructure', match.productStructure);
             }
         }
 
@@ -2115,6 +2118,11 @@ function renderCurrentView() {
                 setVal('f_endUser', match.endUser);
                 setVal('f_size', match.size);
                 setVal('f_plm', match.plm);
+                
+                // [新增] 自動帶入產品結構 (若來源是 MasterList)
+                if(match.productStructure) {
+                    setVal('f_productStructure', match.productStructure);
+                }
             }
         }
 
@@ -2347,12 +2355,19 @@ function renderCurrentView() {
                         <input class="input-dark" placeholder="Application" id="f_application" value="${safe(data.application)}">
                         <input class="input-dark" placeholder="EAU" id="f_eau" value="${safe(data.eau)}">
                         <input class="input-dark" placeholder="Size" id="f_size" value="${safe(data.size)}">
+                        
                         <div class="relative"><input class="input-dark" placeholder="Model" id="f_model" value="${safe(data.model)}" oninput="handleInputSuggestions(this, 'model')" autocomplete="off"></div>
+                        
+                        <!-- [新增] 產品結構 (Product Structure) 插入在此 -->
+                        <input class="input-dark" placeholder="產品結構" id="f_productStructure" value="${safe(data.productStructure)}">
+                        
+                        <!-- Price 移到這裡 -->
                         <input class="input-dark" placeholder="Price" id="f_salesPrice" value="${safe(data.salesPrice)}">
-                            <input class="input-dark" placeholder="Contact" id="f_contact" 
-                         value="${safe(data.contact)}">
+                        
+                        <!-- 下一行: Contact, Cus PN, PLM -->
+                        <input class="input-dark" placeholder="Contact" id="f_contact" value="${safe(data.contact)}">
                         <input class="input-dark" placeholder="Cus PN" id="f_cusPN" value="${safe(data.cusPN)}">
-                       <input class="input-dark" placeholder="PLM#" id="f_plm" value="${safe(data.plm)}">
+                        <input class="input-dark" placeholder="PLM#" id="f_plm" value="${safe(data.plm)}">
                      </div>
 
                     <div class="bg-black/20 p-3 rounded mt-2 border border-white/5">
@@ -2406,7 +2421,16 @@ function renderCurrentView() {
                   
                   <div><label class="text-xs text-gray-400">起始</label>${createDateInputGroup('f_startDate', defStart)}</div>
                     <div><label class="text-xs text-gray-400">追蹤 (起始+3天)</label>${createDateInputGroup('f_trackDate', defTrack)}</div>
-                  <input class="input-dark" placeholder="文件#" id="f_docNum" value="${safe(data.docNum)}"></div>
+                  
+                    <!-- [修改] 文件# 與 星號 並排 -->
+                    <div class="flex gap-2 items-center">
+                        <input class="input-dark flex-1" placeholder="文件#" id="f_docNum" value="${safe(data.docNum)}">
+                        <label class="flex items-center justify-center bg-black/40 p-2 rounded border border-white/10 cursor-pointer hover:bg-white/10 transition-colors" title="標記星號">
+                            <input type="checkbox" id="f_star" ${data.star ? 'checked' : ''} class="hidden peer">
+                            <i class="fas fa-star text-gray-600 peer-checked:text-yellow-400 text-lg transition-colors"></i>
+                        </label>
+                    </div>
+                </div>
            
                     <textarea class="input-dark h-20" placeholder="說明" id="f_desc">${data.desc||''}</textarea>
      
@@ -2415,33 +2439,46 @@ function renderCurrentView() {
                         <label class="flex items-center gap-2"><input type="checkbox" id="f_completed" ${data.completed?'checked':''} class="accent-orange-500" onchange="toggleTaskCompleteFields(this)"> 已完成</label>
      
                        <div id="taskCompleteSection" class="${data.completed?'':'hidden'} mt-2 p-2 border border-green-500/30 rounded bg-green-900/10 space-y-3">
-                            <div>
-                                <label class="text-xs text-green-400 block mb-1">完成日期</label>
-        
-                                ${createDateInputGroup('f_completedDate', defCompDate)}
+                            
+                            <!-- [修改] 使用 grid-cols-2 讓寬度與上方欄位一致 -->
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="text-xs text-green-400 block mb-1">完成日期</label>
+                                    ${createDateInputGroup('f_completedDate', defCompDate)}
+                                </div>
                             </div>
                             
-                   
                             <div class="border-t border-green-500/30 pt-2">
                                 <label class="flex items-center gap-2 mb-2 cursor-pointer">
                                     <input type="checkbox" id="f_followUp" class="accent-orange-500" onchange="document.getElementById('followUpDetails').classList.toggle('hidden', !this.checked)"> 
-         
                                    <span class="text-sm text-green-300 font-bold">後續追蹤</span>
                                 </label>
-                                <div id="followUpDetails" class="hidden pl-2 border-l-2 border-green-500/50 
-                                space-y-2">
-                                    <div>
-                                        <label class="text-xs text-gray-400">起始日期 (自動推算追蹤日+3天)</label>
-                     
-                                       ${createDateInputGroup('f_followUpDate', new Date().toISOString().split('T')[0])}
+                                
+                                <div id="followUpDetails" class="hidden pl-2 border-l-2 border-green-500/50 space-y-2">
+                                    
+                                    <!-- [修改] 使用 grid-cols-2 限制寬度，並加入 Flex 佈局放入星號 -->
+                                    <div class="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label class="text-xs text-gray-400 block mb-1">追蹤日期</label>
+                                            <div class="flex gap-2 items-center">
+                                                <div class="flex-1">
+                                                    ${createDateInputGroup('f_followUpDate', new Date().toISOString().split('T')[0])}
+                                                </div>
+                                                <!-- [新增] 後續追蹤的星號標記 -->
+                                                <label class="flex items-center justify-center bg-black/40 p-2 rounded border border-white/10 cursor-pointer hover:bg-white/10 transition-colors" title="標記星號">
+                                                    <input type="checkbox" id="f_followUpStar" class="hidden peer">
+                                                    <i class="fas fa-star text-gray-600 peer-checked:text-yellow-400 text-lg transition-colors"></i>
+                                                </label>
+                                            </div>
+                                        </div>
                                     </div>
+
                                     <textarea id="f_followUpDesc" class="input-dark text-sm h-20" placeholder="後續任務說明..."></textarea>
-  
                                  </div>
                             </div>
                         </div>
-                  
                 </div>`:''}`;
+
             } else if (type === 'quotes') {
                 // [修正] 對 quotes 應用 safe()
                 html = `<div class="grid grid-cols-2 gap-4">
@@ -2507,7 +2544,8 @@ function renderCurrentView() {
         function getAllFields(type) {
             const map = {
                 'projects': [{k:'project',l:'Project'},{k:'agent',l:'Agent'},{k:'endUser',l:'End User'},{k:'size',l:'Size'},{k:'model',l:'Model'},{k:'summary',l:'狀況概述'},{k:'budget',l:'當年預算'},{k:'plm',l:'PLM#'}],
-                'masterList': [{k:'project',l:'Project'},{k:'agent',l:'Agent'},{k:'endUser',l:'End User'},{k:'application',l:'App'},{k:'eau',l:'EAU'},{k:'size',l:'Size'},{k:'model',l:'Model'},{k:'salesPrice',l:'Price'},{k:'remark',l:'Remark'},{k:'contact',l:'Contact'},{k:'cusPN',l:'Cus PN'},{k:'plm',l:'PLM#'}],
+                // [更新] MasterList 加入 productStructure
+                'masterList': [{k:'project',l:'Project'},{k:'agent',l:'Agent'},{k:'endUser',l:'End User'},{k:'application',l:'App'},{k:'eau',l:'EAU'},{k:'size',l:'Size'},{k:'model',l:'Model'},{k:'productStructure',l:'產品結構'},{k:'salesPrice',l:'Price'},{k:'remark',l:'Remark'},{k:'contact',l:'Contact'},{k:'cusPN',l:'Cus PN'},{k:'plm',l:'PLM#'}],
                 'tasks': [{k:'project',l:'Project'},{k:'agent',l:'Agent'},{k:'model',l:'Model'},{k:'taskType',l:'任務'},{k:'desc',l:'說明'},{k:'docNum',l:'文件#'}],
                 'quotes': [{k:'project',l:'Project'},{k:'salesPrice',l:'業務報價'},{k:'faePrice',l:'FAE報價'},{k:'ref',l:'REF#'},{k:'desc',l:'說明'},{k:'model',l:'Model'}],
     
@@ -2701,9 +2739,10 @@ function renderCurrentView() {
                 if(followUpCheck && followUpCheck.checked) {
                     const fuDate = document.getElementById('f_followUpDate').value;
                     const fuDesc = document.getElementById('f_followUpDesc').value;
-                    const d = new Date(fuDate);
-                    d.setDate(d.getDate() + 3);
-                    const fuTrack = d.toISOString().split('T')[0];
+                    const compDateVal = document.getElementById('f_completedDate').value;
+                    
+                    // [新增] 取得後續追蹤的星號狀態
+                    const fuStar = document.getElementById('f_followUpStar').checked;
 
                     const newTask = {
                         id: Date.now() + 100, 
@@ -2713,12 +2752,15 @@ function renderCurrentView() {
                         endUser: newData.endUser,
                         model: newData.model,
                         taskType: newData.taskType, 
-                        startDate: fuDate,
-                        trackDate: fuTrack,
+                        startDate: compDateVal,
+                        trackDate: fuDate,
                         desc: fuDesc || '後續追蹤',
                         docNum: '',
                         active: true,
-                        comments: []
+                        comments: [],
+                        
+                        // [新增] 寫入星號狀態
+                        star: fuStar
                     };
                     db.tasks.push(newTask);
                 }
@@ -3793,6 +3835,7 @@ function renderCurrentView() {
     </script>
 </body>
 </html>
+
 
 
 
