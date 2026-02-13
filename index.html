@@ -1,10 +1,9 @@
-
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BusinessFlow V3.9 - 業務工作流系統</title>
+    <title>BusinessFlow V4.0 - 業務工作流系統</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -437,7 +436,7 @@
                 <i class="fas fa-bars"></i>
             </button>
             <span class="font-bold text-lg tracking-wider 
-            italic logo-text text-orange-500">BusinessFlow <span class="text-xs bg-orange-600 text-white px-1 rounded ml-1 not-italic">V3.9</span></span>
+            italic logo-text text-orange-500">BusinessFlow <span class="text-xs bg-orange-600 text-white px-1 rounded ml-1 not-italic">V4.0</span></span>
         </div>
 
         <nav class="flex-1 overflow-y-auto custom-scrollbar flex flex-col mt-4">
@@ -911,6 +910,8 @@ id="batchDeleteBtn" onclick="deleteSelected()" class="hidden bg-red-900/50 hover
                                     budget: m.eau, 
                                     plm: m.plm,
                                     active: true,
+                                    // 確保帶入 Master List 的標籤
+                                    tags: m.tags || '',
    
                                     comments: []
                                 });
@@ -1474,9 +1475,9 @@ function renderCurrentView() {
                 sourceData = db.orders;
                 columns = [
                     { t: '★', w: '40px' }, 
-                    { t: 'Project', w: '120px', k:'project' }, 
-                    { t: 'Agent', w: '80px', k:'agent' }, 
-                    { t: 'End User', w: '80px', k:'endUser' },
+                    { t: 'Project', w: '120px', k:'project', c: 'text-small-gray' }, 
+                    { t: 'Agent', w: '80px', k:'agent', c: 'text-small-gray' }, 
+                    { t: 'End User', w: '80px', k:'endUser', c: 'text-small-gray' },
                     { t: 'Model', w: '100px', c:'text-model', k:'model' }, 
                     { t: 'PO#', w: '100px', k:'po' }, 
                     { t: 'Qty', w: '60px', k:'qty' },
@@ -1857,7 +1858,7 @@ function renderCurrentView() {
                         const qtysHtml = ships.map(s => `<div>${s.qty||0}</div>`).join('');
                         const datesHtml = ships.map(s => `<div>${s.dueDate||'-'}</div>`).join('');
                         const shippedHtml = ships.map(s => s.isShipped ? '<span class="text-green-500">✓</span>' : '<span class="text-gray-600">-</span>').join('<br>');
-                        cells = `<td class="text-center"><div class="cell-content justify-center">${starHTML}</div></td><td>${genCell(item.project,'project')}</td><td>${genCell(item.agent,'agent')}</td><td>${genCell(item.endUser,'endUser')}</td><td class="text-model">${genCell(item.model,'model')}</td>
+                        cells = `<td class="text-center"><div class="cell-content justify-center">${starHTML}</div></td><td class="text-small-gray">${genCell(item.project,'project')}</td><td class="text-small-gray">${genCell(item.agent,'agent')}</td><td class="text-small-gray">${genCell(item.endUser,'endUser')}</td><td class="text-model">${genCell(item.model,'model')}</td>
                             <td>${genCell(item.po,'po')}</td>
                             <td class="font-mono text-xs"><div class="cell-content flex-col justify-center items-start">${qtysHtml}</div></td>
                             <td class="text-xs"><div class="cell-content flex-col justify-center items-start">${datesHtml}</div></td>
@@ -2912,133 +2913,513 @@ function renderCurrentView() {
         saveToLocal();
         }
 
+        // [核心] Excel 匯入處理：支援「系統備份還原」與「訂單報表同步」(V3.9.6 優化版)
         function handleExcelImport(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const fileName = file.name;
             const reader = new FileReader();
+
             reader.onload = (evt) => {
                 const data = evt.target.result;
                 const wb = XLSX.read(data, {type:'binary', cellStyles: true}); 
-                let count = 0;
-                // [更新] 增加活動列表與訂單列表的 Mapping
-                const sheetMapping = { 
-                    '案子列表':'projects', '報價列表':'quotes', '聯絡人清單':'contacts', 
-                    '客戶代碼與行為':'codes', '總表維護':'masterList',
-                    '活動列表': 'tasks', '訂單列表': 'orders'
-                };
-                for (const [sheetName, dbKey] of Object.entries(sheetMapping)) {
-                    if (wb.SheetNames.includes(sheetName)) {
-                        const sheet = wb.Sheets[sheetName];
-                        const rawData = XLSX.utils.sheet_to_json(sheet, { defval: "" });
-                        const colMap = {};
-                        if(sheet['!ref']) {
-                            const range = XLSX.utils.decode_range(sheet['!ref']);
-                            for(let C = range.s.c; C <= range.e.c; ++C) {
-                                const addr = XLSX.utils.encode_cell({r:range.s.r, c:C});
-                                const cell = sheet[addr];
-                                if(cell && cell.v) colMap[C] = cell.v.toString().trim();
-                            }
+
+                // --- 路線 A: 系統備份檔 (檔名包含 LIST) ---
+                if (fileName.includes("LIST")) {
+                    processSystemBackupImport(wb);
+                } 
+                // --- 路線 B: 訂單列表比對 (檔名包含 訂單列表) ---
+                else if (fileName.includes("訂單列表")) {
+                    processOrderReportImport(wb);
+                } 
+                // --- 路線 C: 嘗試自動偵測 (防呆) ---
+                else {
+                    if (wb.SheetNames.some(n => n.includes("未交貨") || n.includes("出貨"))) {
+                        if(confirm("偵測到包含訂單明細的分頁，是否執行「訂單同步」？")) {
+                            processOrderReportImport(wb);
                         }
-
-                        rawData.forEach((row, rowIndex) => {
-                            let newItem = { id: Date.now() + Math.random(), updatedAt: new Date(), comments: [] };
-        
-                            const excelRow = (XLSX.utils.decode_range(sheet['!ref']).s.r) + 1 + rowIndex + 1;
-
-                            for (const key in row) {
-                              
-                                const k = key.toLowerCase().replace(/[\s#]/g, '');
-  
-                                let fieldName = '';
-                                if(k.includes('project')) { newItem.project = row[key]; fieldName = 'project'; }
-                 
-                                else if(k.includes('agent')) { newItem.agent = row[key]; fieldName = 'agent'; }
-                                else if(k.includes('enduser')) { newItem.endUser = row[key]; fieldName = 'endUser'; }
-        
-                                else if(k.includes('model')) { newItem.model = row[key]; fieldName = 'model'; }
-    
-                                else if(k.includes('size')) { newItem.size = row[key]; fieldName = 'size'; }
-                                else if(k.includes('eau')) { newItem.eau = row[key]; fieldName = 'eau'; }
-                                else if(k.includes('app')) { newItem.application = row[key]; fieldName = 'application'; }
-                                else if(k.includes('contact')) { newItem.contact = row[key]; fieldName = 'contact'; }
-                                else if(k.includes('plm')) { newItem.plm = row[key]; fieldName = 'plm'; }
-                                else if(k.includes('業務報價') || (k.includes('price') && !k.includes('fae'))) { newItem.salesPrice = row[key]; fieldName = 'salesPrice'; }
-                                else if(k.includes('fae') || k.includes('faeprice')) { newItem.faePrice = row[key]; fieldName = 'faePrice'; }
-                                else if(k.includes('phone')) { newItem.phone = row[key]; fieldName = 'phone'; }
-                                else if(k.includes('address')) { newItem.address = row[key]; fieldName = 'address'; }
-                                else if(k.includes('name')) { newItem.name = row[key]; fieldName = 'name'; }
-                                else if(k.includes('email')) { newItem.email = row[key]; fieldName = 'email'; }
-                                else if(k.includes('code')) { newItem.code = row[key]; fieldName = 'code'; }
-                                else if(k.includes('remark')) { newItem.remark = row[key]; fieldName = 'remark'; }
-                                else if(k.includes('cuspn')) { newItem.cusPN = row[key]; fieldName = 'cusPN'; }
-                                else if(k.includes('budget') || k.includes('當年預算')) { newItem.budget = row[key]; fieldName = 'budget'; }
-                                else if(k.includes('struct') || k.includes('結構')) { newItem.productStructure = row[key]; fieldName = 'productStructure'; }
-                                else if(k.includes('星號') || k === '★') { 
-                                    const val = row[key];
-                                    newItem.star = (val && (val === '★' || val === true || val === 'TRUE')); 
-                                }
-                                else if(k.includes('任務') || k.includes('tasktype')) { newItem.taskType = row[key]; fieldName = 'taskType'; }
-                                else if(k.includes('說明') || k.includes('desc') && !k.includes('status')) { newItem.desc = row[key]; fieldName = 'desc'; }
-                                else if(k.includes('文件') || k.includes('doc')) { newItem.docNum = row[key]; fieldName = 'docNum'; }
-                                else if(k.includes('起始') || k.includes('start')) { newItem.startDate = row[key]; fieldName = 'startDate'; }
-                                else if(k.includes('追蹤') || k.includes('track')) { newItem.trackDate = row[key]; fieldName = 'trackDate'; }
-                                else if(k.includes('完成日') || k.includes('completed')) { newItem.completedDate = row[key]; if(row[key]) newItem.completed = true; fieldName = 'completedDate'; }
-                                
-                                // [更新] 訂單欄位 (新增訂單日期)
-                                else if(k.includes('訂單日期') || k.includes('orderdate') || k.includes('createdat')) { newItem.createdAt = row[key]; fieldName = 'createdAt'; }
-                                // [修正] 加入 Project Summary (狀況概述) 欄位對應
-                                else if(k.includes('summary') || k.includes('狀況') || k.includes('overview')) { newItem.summary = row[key]; fieldName = 'summary'; }
-
-                                // [修復] 加入「狀況概述」欄位對應
-                                else if(k.includes('summary') || k.includes('狀況') || k.includes('overview')) { newItem.summary = row[key]; fieldName = 'summary'; }
-
-                                else if(k.includes('po')) { newItem.po = row[key]; fieldName = 'po'; }
-                                else if(k.includes('qty') || k.includes('數量')) { newItem.qty = row[key]; fieldName = 'qty'; }
-                                else if(k.includes('交期') || k.includes('due')) { newItem.dueDate = row[key]; fieldName = 'dueDate'; }
-                                else if(k.includes('出貨') || k.includes('ship')) { newItem.isShipped = (row[key] === 'Y' || row[key] === true); fieldName = 'isShipped'; }
-                                else if(k.includes('狀態說明') || k.includes('status')) { newItem.statusDesc = row[key]; fieldName = 'statusDesc'; }
-
-                                const colIdx = Object.keys(colMap).find(idx => colMap[idx] === key);
-                                if (colIdx && fieldName) {
-                                    const cellAddr = XLSX.utils.encode_cell({c: parseInt(colIdx), r: excelRow - 1});
-                                    const cell = sheet[cellAddr];
-                                    if(cell && (cell.c || cell.comment)) {
-                                        const c = cell.c ||
-                                        cell.comment;
-                                        const commentText = Array.isArray(c) ? c.map(i=>i.t).join('\n') : (c.t || c);
-                                        if(commentText) newItem.comments.push({ field: fieldName, text: commentText });
-                                    }
-                                }
-                            }
-                            
-                            // [新增] 匯入資料正規化：將 Excel 平面資料轉回系統結構
-                            // 確保每一筆匯入的訂單都有 shipments 陣列，這樣系統才讀得到
-                            if (dbKey === 'orders') {
-                                newItem.shipments = [{
-                                    dueDate: newItem.dueDate,
-                                    qty: newItem.qty,
-                                    isShipped: newItem.isShipped
-                                }];
-                            }
-
-                            let existIdx = -1;
-                            if(dbKey === 'projects' || dbKey === 'masterList' || dbKey === 'quotes') {
-                                existIdx = db[dbKey].findIndex(x => x.project === newItem.project);
-                            } else if (dbKey === 'codes') {
-                                existIdx = db[dbKey].findIndex(x => x.code === newItem.code);
-                            }
-                            
-                            if (existIdx > -1) {
-                                db[dbKey][existIdx] = newItem;
-                            } else {
-                                db[dbKey].push(newItem);
-                            }
-                            count++;
-                        });
+                    } else if (wb.SheetNames.some(n => n.includes("案子列表") || n.includes("總表維護"))) {
+                         if(confirm("偵測到系統備份格式，是否執行「備份還原」？")) {
+                            processSystemBackupImport(wb);
+                        }
+                    } else {
+                        alert("⚠️ 無法識別此檔案。\n\n請確認：\n1. 系統備份檔名需包含 'LIST'\n2. 訂單比對檔名需包含 '訂單列表'");
                     }
                 }
-                saveToLocal();
-                renderCurrentView(); alert(`成功匯入 ${count} 筆資料`);
             };
-            reader.readAsBinaryString(e.target.files[0]);
+            reader.readAsBinaryString(file);
+            e.target.value = ''; 
+        }
+
+        // --- 子流程 1: 系統備份還原 (Backup Restore) ---
+        function processSystemBackupImport(wb) {
+             const sheetMapping = { 
+                '案子列表':'projects', '報價列表':'quotes', '聯絡人清單':'contacts', 
+                '客戶代碼與行為':'codes', '總表維護':'masterList',
+                '活動列表': 'tasks', '訂單列表': 'orders'
+            };
+            let importCount = 0;
+            for (const [sheetName, dbKey] of Object.entries(sheetMapping)) {
+                if (wb.SheetNames.includes(sheetName)) {
+                    const sheet = wb.Sheets[sheetName];
+                    const rawData = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+                    const colMap = {};
+                    if(sheet['!ref']) {
+                        const range = XLSX.utils.decode_range(sheet['!ref']);
+                        for(let C = range.s.c; C <= range.e.c; ++C) {
+                            const addr = XLSX.utils.encode_cell({r:range.s.r, c:C});
+                            const cell = sheet[addr];
+                            if(cell && cell.v) colMap[C] = cell.v.toString().trim();
+                        }
+                    }
+
+                    rawData.forEach((row, rowIndex) => {
+                        let newItem = { id: Date.now() + Math.random(), updatedAt: new Date(), comments: [] };
+                        const excelRow = (XLSX.utils.decode_range(sheet['!ref']).s.r) + 1 + rowIndex + 1;
+
+                        for (const key in row) {
+                            const k = key.toLowerCase().replace(/[\s#]/g, '');
+                            let fieldName = '';
+
+                            if(k.includes('project')) { newItem.project = row[key]; fieldName = 'project'; }
+                            else if(k.includes('agent')) { newItem.agent = row[key]; fieldName = 'agent'; }
+                            else if(k.includes('enduser')) { newItem.endUser = row[key]; fieldName = 'endUser'; }
+                            else if(k.includes('model')) { newItem.model = row[key]; fieldName = 'model'; }
+                            else if(k.includes('size')) { newItem.size = row[key]; fieldName = 'size'; }
+                            else if(k.includes('eau')) { newItem.eau = row[key]; fieldName = 'eau'; }
+                            else if(k.includes('app')) { newItem.application = row[key]; fieldName = 'application'; }
+                            else if(k.includes('contact')) { newItem.contact = row[key]; fieldName = 'contact'; }
+                            else if(k.includes('plm')) { newItem.plm = row[key]; fieldName = 'plm'; }
+                            else if(k.includes('業務報價') || (k.includes('price') && !k.includes('fae'))) { newItem.salesPrice = row[key]; fieldName = 'salesPrice'; }
+                            else if(k.includes('fae') || k.includes('faeprice')) { newItem.faePrice = row[key]; fieldName = 'faePrice'; }
+                            else if(k.includes('phone')) { newItem.phone = row[key]; fieldName = 'phone'; }
+                            else if(k.includes('address')) { newItem.address = row[key]; fieldName = 'address'; }
+                            else if(k.includes('name')) { newItem.name = row[key]; fieldName = 'name'; }
+                            else if(k.includes('email')) { newItem.email = row[key]; fieldName = 'email'; }
+                            else if(k.includes('code')) { newItem.code = row[key]; fieldName = 'code'; }
+                            else if(k.includes('remark')) { newItem.remark = row[key]; fieldName = 'remark'; }
+                            else if(k.includes('cuspn')) { newItem.cusPN = row[key]; fieldName = 'cusPN'; }
+                            // [修復] 確保「當年預算」能正確匯入
+                            else if(k.includes('budget') || k.includes('當年預算')) { newItem.budget = row[key]; fieldName = 'budget'; }
+                            else if(k.includes('struct') || k.includes('結構')) { newItem.productStructure = row[key]; fieldName = 'productStructure'; }
+                            // [修復] 確保「狀態概述」能正確匯入
+                            else if(k.includes('summary') || k.includes('狀態概述') || k.includes('狀況概述')) { newItem.summary = row[key]; fieldName = 'summary'; }
+                            
+                            // [重要修復] 標籤、Trigger與手動狀態 的還原
+                            else if(k.includes('標籤') || k.includes('tag')) { newItem.tags = row[key]; fieldName = 'tags'; }
+                            else if(k.includes('觸發行為') || k.includes('triggeraction')) { newItem.triggerAction = row[key]; fieldName = 'triggerAction'; }
+                            else if(k.includes('觸發說明') || k.includes('triggerdesc')) { newItem.triggerDesc = row[key]; fieldName = 'triggerDesc'; }
+                            else if(k.includes('手動動態') || k.includes('manualstatus')) { newItem.manualLatestStatus = row[key]; fieldName = 'manualLatestStatus'; }
+                            else if(k.includes('手動日期') || k.includes('manualdate')) { newItem.manualLatestDate = parseExcelDate(row[key]); fieldName = 'manualLatestDate'; }
+
+                            else if(k.includes('星號') || k === '★') { const val = row[key]; newItem.star = (val && (val === '★' || val === true || val === 'TRUE')); }
+                            else if(k.includes('任務') || k.includes('tasktype')) { newItem.taskType = row[key]; fieldName = 'taskType'; }
+                            else if(k.includes('說明') || k.includes('desc') && !k.includes('status')) { newItem.desc = row[key]; fieldName = 'desc'; }
+                            else if(k.includes('文件') || k.includes('doc')) { newItem.docNum = row[key]; fieldName = 'docNum'; }
+                            
+                            // [關鍵修正] 系統備份還原時，日期欄位必須經過 parseExcelDate 處理，否則會變成數字導致排序與顏色錯誤
+                            else if(k.includes('起始') || k.includes('start')) { newItem.startDate = parseExcelDate(row[key]); fieldName = 'startDate'; }
+                            else if(k.includes('追蹤') || k.includes('track')) { newItem.trackDate = parseExcelDate(row[key]); fieldName = 'trackDate'; }
+                            else if(k.includes('完成日') || k.includes('completed')) { newItem.completedDate = parseExcelDate(row[key]); if(row[key]) newItem.completed = true; fieldName = 'completedDate'; }
+                            else if(k.includes('訂單日期') || k.includes('orderdate') || k.includes('createdat')) { newItem.createdAt = parseExcelDate(row[key]); fieldName = 'createdAt'; }
+                            else if(k.includes('交期') || k.includes('due')) { newItem.dueDate = parseExcelDate(row[key]); fieldName = 'dueDate'; }
+                            
+                            else if(k.includes('po')) { newItem.po = row[key]; fieldName = 'po'; }
+                            else if(k.includes('qty') || k.includes('數量')) { newItem.qty = row[key]; fieldName = 'qty'; }
+                            else if(k.includes('出貨') || k.includes('ship')) { newItem.isShipped = (row[key] === 'Y' || row[key] === true); fieldName = 'isShipped'; }
+                            else if(k.includes('狀態說明') || k.includes('status')) { newItem.statusDesc = row[key]; fieldName = 'statusDesc'; }
+
+                            const colIdx = Object.keys(colMap).find(idx => colMap[idx] === key);
+                            if (colIdx && fieldName) {
+                                const cellAddr = XLSX.utils.encode_cell({c: parseInt(colIdx), r: excelRow - 1});
+                                const cell = sheet[cellAddr];
+                                if(cell && (cell.c || cell.comment)) {
+                                    const c = cell.c || cell.comment;
+                                    const commentText = Array.isArray(c) ? c.map(i=>i.t).join('\n') : (c.t || c);
+                                    if(commentText) newItem.comments.push({ field: fieldName, text: commentText });
+                                }
+                            }
+                        }
+                        
+                        // [資料正規化] 確保訂單有 shipments 結構
+                        if (dbKey === 'orders') {
+                            newItem.shipments = [{ dueDate: newItem.dueDate, qty: newItem.qty, isShipped: newItem.isShipped }];
+                        }
+
+                        let existIdx = -1;
+                        // 使用較嚴格的 ID 比對，或關鍵欄位比對
+                        if (dbKey === 'projects') existIdx = db[dbKey].findIndex(i => i.project === newItem.project);
+                        else if (dbKey === 'masterList') existIdx = db[dbKey].findIndex(i => i.project === newItem.project && i.model === newItem.model);
+                        // 訂單使用 PO+Model+Date+Qty 比對，視為同一筆，避免重複
+                        else if (dbKey === 'orders') existIdx = db[dbKey].findIndex(i => i.po === newItem.po && i.model === newItem.model && i.dueDate === newItem.dueDate && i.qty == newItem.qty);
+                        else if (dbKey === 'contacts') existIdx = db[dbKey].findIndex(i => i.email === newItem.email && i.name === newItem.name);
+                        else existIdx = db[dbKey].findIndex(i => JSON.stringify(i) === JSON.stringify(newItem));
+
+                        if (existIdx >= 0) {
+                            // 保留原 ID
+                            newItem.id = db[dbKey][existIdx].id;
+                            db[dbKey][existIdx] = newItem;
+                        } else {
+                            db[dbKey].push(newItem);
+                        }
+                    });
+                    importCount++;
+                }
+            }
+            if(importCount > 0) {
+                saveToLocal(); renderCurrentView();
+                alert(`系統資料還原成功！已處理 ${importCount} 個資料表。`);
+            } else {
+                alert('未偵測到有效的系統備份頁籤，請確認檔案。');
+            }
+        }
+
+        // --- 子流程 2: 訂單報表同步 (Order Synchronization) ---
+        function processOrderReportImport(wb) {
+            if (!db.masterList || db.masterList.length === 0) {
+                alert("⚠️ 錯誤：系統中的「總表維護」是空的！\n\n請先到「總表維護」建立資料，或匯入包含總表的系統備份檔。\n系統需要總表資料來驗證訂單的有效性。");
+                return;
+            }
+
+            let updateCount = 0;
+            let createCount = 0;
+            let sheetsFound = 0;
+            let logMsg = '';
+
+            // 1. 優先處理「出貨明細」
+            const shipSheetName = wb.SheetNames.find(n => n.includes("出貨明細") || n.includes("出貨"));
+            if (shipSheetName) {
+                sheetsFound++;
+                const sheet = wb.Sheets[shipSheetName];
+                const headerRowIdx = findHeaderRowIndex(sheet, 'shipping');
+                const rawData = XLSX.utils.sheet_to_json(sheet, { range: headerRowIdx, defval: "" });
+                
+                if(rawData.length === 0) {
+                    logMsg += `[出貨明細]: ⚠️ 讀取不到資料 (表頭偵測行: ${headerRowIdx})\n`;
+                } else {
+                    const res = processShippingSheet(rawData);
+                    updateCount += res.updated;
+                    createCount += res.created;
+                    logMsg += `[出貨明細]: 讀取 ${rawData.length} 筆, 成功處理 ${res.processed} 筆 (更新:${res.updated}, 新增:${res.created})\n`;
+                    if(res.errors > 0) logMsg += `   (有 ${res.errors} 筆因查無總表資料被忽略)\n`;
+                }
+            }
+
+            // 2. 後續處理「未交貨明細」
+            const undeliveredSheetName = wb.SheetNames.find(n => n.includes("未交貨明細") || n.includes("未交貨"));
+            if (undeliveredSheetName) {
+                sheetsFound++;
+                const sheet = wb.Sheets[undeliveredSheetName];
+                const headerRowIdx = findHeaderRowIndex(sheet, 'undelivered');
+                const rawData = XLSX.utils.sheet_to_json(sheet, { range: headerRowIdx, defval: "" });
+
+                if(rawData.length === 0) {
+                    logMsg += `[未交貨明細]: ⚠️ 讀取不到資料 (表頭偵測行: ${headerRowIdx})\n`;
+                } else {
+                    const res = processUndeliveredSheet(rawData);
+                    updateCount += res.updated;
+                    createCount += res.created;
+                    logMsg += `[未交貨明細]: 讀取 ${rawData.length} 筆, 成功處理 ${res.processed} 筆 (更新:${res.updated}, 新增:${res.created})\n`;
+                    if(res.errors > 0) logMsg += `   (有 ${res.errors} 筆因查無總表資料被忽略)\n`;
+                }
+            }
+
+            if (updateCount > 0 || createCount > 0) {
+                saveToLocal(); renderCurrentView();
+                alert(`✅ 訂單同步完成！\n\n${logMsg}`);
+            } else if (sheetsFound > 0) {
+                alert(`⚠️ 讀取到分頁，但沒有資料變更。\n\n詳細診斷：\n${logMsg}\n\n可能原因：\n1. 所有資料已是最新狀態\n2. 總表維護中找不到對應的 Agent/Model (請檢查拼字)\n3. Excel 數字包含特殊符號`);
+            } else {
+                alert("檢查完成，沒有發現需要更新或新增的資料。");
+            }
+        }
+
+        // Helper: 尋找標題列 (往下掃描 20 行，尋找特徵關鍵字)
+        function findHeaderRowIndex(sheet, type) {
+            const range = XLSX.utils.decode_range(sheet['!ref']);
+            for (let R = range.s.r; R <= Math.min(range.e.r, 20); ++R) {
+                for (let C = range.s.c; C <= range.e.c; ++C) {
+                    const cellAddr = XLSX.utils.encode_cell({r:R, c:C});
+                    const cell = sheet[cellAddr];
+                    if (cell && cell.v) {
+                        const val = cell.v.toString().toLowerCase();
+                        if (type === 'undelivered') {
+                            if (val.includes('module') || val.includes('blance') || val.includes('q\'ty') || (val.includes('po') && val.includes('cus'))) {
+                                return R;
+                            }
+                        } else {
+                            if (val.includes('交易量') || val.includes('產品名稱') || val.includes('客戶單號')) {
+                                return R;
+                            }
+                        }
+                    }
+                }
+            }
+            return 0; 
+        }
+
+        // Helper: 超強容錯欄位讀取
+        function getValueByKeywords(row, keywords) {
+            const keys = Object.keys(row);
+            for (const k of keys) {
+                const lowerK = k.toString().toLowerCase();
+                for (const kw of keywords) {
+                    if (lowerK.includes(kw.toLowerCase())) {
+                        return row[k];
+                    }
+                }
+            }
+            return undefined;
+        }
+
+        // Helper: 數字強力解析 (去除逗號)
+        function parseCleanNumber(val) {
+            if (val === undefined || val === null || val === '') return 0;
+            if (typeof val === 'number') return val;
+            const str = val.toString().replace(/[, ]/g, '');
+            return parseFloat(str) || 0;
+        }
+
+        // Helper: 字串強力清洗 (去除空白、標點)
+        function cleanString(s) {
+            return (s || '').toString().toLowerCase().replace(/[\s\-_.,\\/()]/g, '');
+        }
+
+        // --- 邏輯 A: 處理 {出貨明細} ---
+        function processShippingSheet(data) {
+            let updated = 0, created = 0, processed = 0, errors = 0;
+            
+            data.forEach(row => {
+                const po = (getValueByKeywords(row, ['客戶單號', 'cus po', 'po']) || '').toString().trim();
+                const model = (getValueByKeywords(row, ['產品名稱', 'product', 'model']) || '').toString().trim();
+                const cust = (getValueByKeywords(row, ['客戶名稱', 'customer']) || '').toString().trim();
+                const shipQtyRaw = getValueByKeywords(row, ['交易量', 'transaction', 'qty', '數量']);
+                const shipDateRaw = getValueByKeywords(row, ['出貨', '銷退', 'shipping', 'date']);
+                
+                const shipQty = parseCleanNumber(shipQtyRaw);
+                const shipDate = parseExcelDate(shipDateRaw);
+
+                if (!po || !model || !shipQty) return;
+
+                if (!isValidInMasterList(cust, model)) {
+                    errors++;
+                    return; 
+                }
+
+                processed++;
+
+                // 尋找「未出貨」且「符合條件」的訂單
+                let target = db.orders.find(o => o.po === po && fuzzyMatch(o.model, model) && !o.isShipped);
+
+                if (target) {
+                    const targetQty = parseCleanNumber(target.qty);
+                    if (targetQty === shipQty) {
+                        // 數量完全相符：直接標記出貨
+                        target.isShipped = true;
+                        target.dueDate = shipDate;
+                        target.shipments[0].isShipped = true;
+                        target.shipments[0].dueDate = shipDate;
+                        updated++;
+                    } else if (targetQty > shipQty) {
+                        // 系統內數量 > 實際出貨量：拆單
+                        // 1. 原單減量
+                        const remainQty = targetQty - shipQty;
+                        target.qty = remainQty;
+                        target.shipments[0].qty = remainQty;
+                        // 2. 新增一筆已出貨單 (獨立行)
+                        createOrder({po, model, cust, qty: shipQty, date: shipDate, shipped: true});
+                        created++;
+                    } else {
+                        // 系統內數量 < 實際出貨量：標記原單，並新增不足量的已出貨單
+                        target.isShipped = true;
+                        target.dueDate = shipDate;
+                        target.shipments[0].isShipped = true;
+                        updated++;
+                        const extraQty = shipQty - targetQty;
+                        if(extraQty > 0) {
+                            createOrder({po, model, cust, qty: extraQty, date: shipDate, shipped: true});
+                            created++;
+                        }
+                    }
+                } else {
+                    // 系統找不到未出貨單 -> 檢查是否已有完全一樣的「已出貨單」
+                    const existShipped = db.orders.find(o => 
+                        o.po === po && 
+                        fuzzyMatch(o.model, model) && 
+                        o.isShipped && 
+                        parseCleanNumber(o.qty) === shipQty &&
+                        isDateClose(o.dueDate, shipDate)
+                    );
+                    // 若不存在，則視為新資料匯入
+                    if (!existShipped) {
+                        createOrder({po, model, cust, qty: shipQty, date: shipDate, shipped: true});
+                        created++;
+                    }
+                }
+            });
+            return { updated, created, processed, errors };
+        }
+
+        // --- 邏輯 B: 處理 {未交貨明細} ---
+        function processUndeliveredSheet(data) {
+            let updated = 0, created = 0, processed = 0, errors = 0;
+            
+            data.forEach(row => {
+                const po = (getValueByKeywords(row, ['cus po', 'po', '單號']) || '').toString().trim();
+                const model = (getValueByKeywords(row, ['module', 'model', 'product', '產品']) || '').toString().trim();
+                const cust = (getValueByKeywords(row, ['customer', '客戶']) || '').toString().trim();
+                const totalQty = parseCleanNumber(getValueByKeywords(row, ['q\'ty', 'order qty', '訂單數量']));
+                const balanceQty = parseCleanNumber(getValueByKeywords(row, ['blance', 'balance', '未交', '餘額']));
+                const dueDate = parseExcelDate(getValueByKeywords(row, ['約定交貨日', 'agreed delivery date', 'delivery date', '交期']));
+
+                if (!po || !model) return;
+                
+                if (!isValidInMasterList(cust, model)) {
+                    errors++;
+                    return;
+                }
+
+                processed++;
+
+                // 1. 處理未交貨部分 (Balance Qty)
+                if (balanceQty > 0) {
+                    // 尋找系統內對應的未出貨單
+                    let target = db.orders.find(o => o.po === po && fuzzyMatch(o.model, model) && !o.isShipped);
+                    if (target) {
+                        const currentQty = parseCleanNumber(target.qty);
+                        if (currentQty === balanceQty) {
+                            // 數量相符，檢查日期，若差太多則更新
+                            if (!isDateClose(target.dueDate, dueDate)) {
+                                target.dueDate = dueDate;
+                                target.shipments[0].dueDate = dueDate;
+                                updated++;
+                            }
+                        } else if (currentQty > balanceQty) {
+                            // 系統數量 > Excel 未交量 (可能部分出貨了但沒更新) -> 更新為未交量
+                            target.qty = balanceQty;
+                            target.shipments[0].qty = balanceQty;
+                            target.dueDate = dueDate;
+                            updated++;
+                        } else {
+                            // 系統數量 < Excel 未交量 -> 更新
+                            target.qty = balanceQty;
+                            target.shipments[0].qty = balanceQty;
+                            updated++;
+                        }
+                    } else {
+                        // 系統無此單 -> 新增未出貨單
+                        createOrder({po, model, cust, qty: balanceQty, date: dueDate, shipped: false});
+                        created++;
+                    }
+                }
+
+                // 2. [重要] 自動推算並處理已出貨部分 (Order Qty - Balance Qty)
+                // 這樣 Excel 匯出時，「已出貨」和「未出貨」會是獨立的列 (符合需求)
+                const shippedQty = totalQty - balanceQty;
+                if (shippedQty > 0) {
+                    // 檢查系統中，這張 PO 已經標記出貨的總量是多少
+                    const systemShippedTotal = db.orders
+                        .filter(o => o.po === po && fuzzyMatch(o.model, model) && o.isShipped)
+                        .reduce((sum, o) => sum + parseCleanNumber(o.qty), 0);
+                    
+                    // 如果系統紀錄的已出貨量 < Excel 算出的已出貨量，補建已出貨單
+                    if (systemShippedTotal < shippedQty) {
+                        const missingQty = shippedQty - systemShippedTotal;
+                        // 日期暫定為今天 (因未交貨明細通常不含出貨日)，或保留原始邏輯
+                        createOrder({po, model, cust, qty: missingQty, date: new Date().toISOString().split('T')[0], shipped: true});
+                        created++;
+                    }
+                }
+            });
+            return { updated, created, processed, errors };
+        }
+
+        // --- 輔助函式群 ---
+        function isValidInMasterList(cust, model) {
+            const targetCust = cleanString(cust);
+            const targetModel = cleanString(model);
+            
+            return db.masterList.some(m => {
+                const mModel = cleanString(m.model);
+                // Model 模糊比對
+                if (!mModel.includes(targetModel) && !targetModel.includes(mModel)) return false;
+                
+                if (!targetCust) return true;
+                const mAgent = cleanString(m.agent);
+                const mEndUser = cleanString(m.endUser);
+                // Agent/EndUser 交叉比對
+                return mAgent.includes(targetCust) || targetCust.includes(mAgent) || 
+                       mEndUser.includes(targetCust) || targetCust.includes(mEndUser);
+            });
+        }
+
+        function fuzzyMatch(a, b) {
+            return cleanString(a).includes(cleanString(b)) || cleanString(b).includes(cleanString(a));
+        }
+
+        function isDateClose(d1, d2) {
+            if(!d1 || !d2) return false;
+            const date1 = new Date(d1);
+            const date2 = new Date(d2);
+            const diffTime = Math.abs(date2 - date1);
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+            return diffDays <= 10;
+        }
+
+        // [核心] 建立訂單功能：確保建立「獨立分行」的訂單 (單一 ID，單一交期)
+        function createOrder({po, model, cust, qty, date, shipped}) {
+            // 從總表反查資料 (寬鬆比對)
+            let masterInfo = db.masterList.find(m => {
+                 if (!fuzzyMatch(m.model, model)) return false;
+                 const targetCust = cleanString(cust);
+                 if(!targetCust) return true; 
+                 const mAgent = cleanString(m.agent);
+                 const mEndUser = cleanString(m.endUser);
+                 return mAgent.includes(targetCust) || targetCust.includes(mAgent) || 
+                        mEndUser.includes(targetCust) || targetCust.includes(mEndUser);
+            });
+            
+            const newId = Date.now() + Math.random();
+            const newOrder = {
+                id: newId,
+                project: masterInfo ? masterInfo.project : '', 
+                agent: masterInfo ? masterInfo.agent : cust,
+                endUser: masterInfo ? masterInfo.endUser : '',
+                // 強制使用總表中的標準 Model 名稱
+                model: masterInfo ? masterInfo.model : model, 
+                po: po,
+                createdAt: new Date().toISOString().split('T')[0],
+                dueDate: date,
+                qty: qty,
+                isShipped: shipped,
+                // [修正] 匯入時狀態說明留空
+                statusDesc: '', 
+                // [關鍵] 即使是新訂單，也建立 shipments 結構，但只含一筆資料 (Flat Structure)
+                shipments: [{dueDate: date, qty: qty, isShipped: shipped}],
+                star: false
+            };
+            db.orders.push(newOrder);
+        }
+
+        function parseExcelDate(val) {
+            if (!val) return '';
+            // Excel 數字日期轉換
+            if (typeof val === 'number') {
+                const date = new Date(Math.round((val - 25569)*86400*1000));
+                return date.toISOString().split('T')[0];
+            }
+            const str = val.toString().trim();
+            // 處理 YYYY/MM/DD 或 YYYY-MM-DD
+            // [修正] 確保字串轉換為 YYYY-MM-DD 格式
+            if(str.match(/^\d{4}[\/\-]\d{1,2}[\/\-]\d{1,2}$/)) {
+                 return str.replace(/\//g, '-');
+            }
+            // 如果只有 YYYY-MM (雖然不常見，但以防萬一補上 -01)
+            if(str.match(/^\d{4}[\/\-]\d{1,2}$/)) {
+                return str.replace(/\//g, '-') + '-01';
+            }
+            return str;
         }
 
         // 新增：匯出視窗控制函式
@@ -3142,7 +3523,11 @@ function renderCurrentView() {
                         '星號': p.star ? '★' : '',
                         '當年預算': p.budget,
                         'Active': p.active !== false ? 'Y' : 'N',
-                        'PLM#': p.plm
+                        'PLM#': p.plm,
+                        // [新增] 標籤與手動狀態，確保資料還原完整性
+                        '標籤': p.tags || '',
+                        '手動動態': p.manualLatestStatus || '',
+                        '手動日期': fmtDate(p.manualLatestDate)
                     };
                 });
                 addSheet("案子列表", projData);
@@ -3157,8 +3542,11 @@ function renderCurrentView() {
                         'Product Structure': m.productStructure,
                         'Price': lastQuote ? lastQuote.salesPrice : m.salesPrice, 
                         'Remark': m.remark,
-                        'Contact': m.contact, 'Cus PN': m.cusPN, 'PLM#': m.plm
-                        // [移除] _comments
+                        'Contact': m.contact, 'Cus PN': m.cusPN, 'PLM#': m.plm,
+                        // [新增] 標籤與觸發設定
+                        '標籤': m.tags || '',
+                        '觸發行為': m.triggerAction || '',
+                        '觸發說明': m.triggerDesc || ''
                     };
                 });
                 addSheet("總表維護", masterData);
@@ -3186,8 +3574,10 @@ function renderCurrentView() {
                 // 5. Codes (客戶代碼與行為)
                 const codeData = db.codes.map(c => ({
                     'Agent': c.agent, 'End User': c.endUser, 'Code': c.code,
-                    'Pricing': c.pricing, 'Logistics': c.logistics, 'Remark': c.remark
-                    // [移除] _comments
+                    'Pricing': c.pricing, 'Logistics': c.logistics, 'Remark': c.remark,
+                    // [新增] 觸發設定
+                    '觸發行為': c.triggerAction || '',
+                    '觸發說明': c.triggerDesc || ''
                 }));
                 addSheet("客戶代碼與行為", codeData);
                 
@@ -4033,7 +4423,3 @@ function renderCurrentView() {
     </script>
 </body>
 </html>
-
-
-
-
